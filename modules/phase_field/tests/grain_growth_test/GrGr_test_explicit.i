@@ -51,7 +51,7 @@
   [./BndsCalc]
     type = BndsCalcAux
     variable = bnds
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -71,7 +71,7 @@
   [./gr1area]
     type = ElementIntegralVariablePostprocessor
     variable = gr1
-    execute_on = 'initial timestep'
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -97,15 +97,14 @@
 
 [Outputs]
   file_base = explicit
-  output_initial = true
-  output_final = true
   csv = true
   interval = 20
   exodus = true
+  output_on = 'initial timestep_end final'
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []
 

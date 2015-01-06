@@ -40,13 +40,13 @@
     value = 2
     operator = +
     coupled = u
-    execute_on = 'initial timestep'
+    execute_on = 'initial timestep_end'
   [../]
   [./constant]
     variable = one
     type = ConstantAux
     value = 1
-    execute_on = 'initial timestep'
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -95,11 +95,12 @@
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
   [./ex_out]
     type = Exodus
     file_base = ho
-    output_initial = true
     elemental_as_nodal = true
+    output_on = 'initial timestep_end'
   [../]
 []

@@ -92,7 +92,7 @@
   [./mass_fin]
     type = RichardsMass
     variable = pressure
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./left_flux_out]
     type = RichardsPiecewiseLinearSinkFlux
@@ -198,10 +198,11 @@
 
 [Outputs]
   file_base = s_fu_03
-  output_initial = true
   csv = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

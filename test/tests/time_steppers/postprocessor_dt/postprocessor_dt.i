@@ -75,7 +75,7 @@
   [./dt]
     type = ElementAverageValue
     variable = u
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -93,5 +93,5 @@
 
 [Outputs]
   exodus = true
-  output_initial = true
+  output_on = 'initial timestep_end'
 []

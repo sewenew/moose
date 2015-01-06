@@ -161,13 +161,13 @@
   [./mwater_fin]
     type = RichardsMass
     variable = pwater
-    execute_on = timestep
+    execute_on = timestep_end
     outputs = none
   [../]
   [./mgas_fin]
     type = RichardsMass
     variable = pgas
-    execute_on = timestep
+    execute_on = timestep_end
     outputs = none
   [../]
 
@@ -279,12 +279,12 @@
 
 [Outputs]
   file_base = gh_fu_18
-  output_initial = true
-  output_final = true
   interval = 100000
   exodus = true
+  output_on = 'initial timestep_end final'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

@@ -83,11 +83,11 @@
 
 [Outputs]
   file_base = out_trapezoid
-  output_initial = false
   exodus = true
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []
 

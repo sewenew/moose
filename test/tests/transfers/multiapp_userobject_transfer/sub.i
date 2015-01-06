@@ -47,7 +47,7 @@
   [./layered_aux]
     type = SpatialUserObjectAux
     variable = layered_average_value
-    execute_on = timestep
+    execute_on = timestep_end
     user_object = layered_average
   [../]
 []
@@ -83,11 +83,12 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []
 

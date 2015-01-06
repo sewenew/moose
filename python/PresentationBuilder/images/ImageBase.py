@@ -12,14 +12,16 @@ class ImageBase(MooseObject):
     params.addParam('show_caption', True, 'Toggle the visibility of the caption')
     params.addParam('name', 'The image file name')
     params.addParam('url', 'The image file url')
-    params.addParam('download', 'Download the image locally')
+    params.addParam('download', False, 'Download the image locally')
 
+    params.addParam('div_center', True, 'Wrap html figure in centered div')
     params.addParam('align', 'The image horizontal alignment')
     params.addParam('width', 'The image width')
     params.addParam('height', 'The image height')
     params.addParam('style', 'The img style property')
     params.addParam('vertical-align', 'The vertical alignment of the image')
-    params.addParamsToGroup('html', ['align', 'width', 'height', 'vertical-align', 'style'])
+    params.addParam('text-align', 'Text alignment of image')
+    params.addParamsToGroup('html', ['align', 'width', 'height', 'vertical-align', 'text-align'])
 
     return params
 
@@ -40,10 +42,7 @@ class ImageBase(MooseObject):
     # Set download flag (default is true)
     self._download = True
     if self.isParamValid('download'):
-      d = self._pars['download']
-      if d.lower() == 'false' or d == 0:
-        self._download = False
-
+      self._download = self._pars['download']
 
   ##
   # Perform the matching
@@ -73,15 +72,28 @@ class ImageBase(MooseObject):
     else:
       img_name = url
 
+    # Flag for wrapping in div
+    div = self.getParam('div_center')
+
 
     # Create the html <img> block
-    img = '<figure style="float:left">\n'
+    img = ''
+    if div:
+      img += '<div style="text-align:center;>\n'
+    img += '<figure style="float:left">\n'
     img += '  <a href="' + url + '">\n'
     img += '    <img src="' + img_name + '"'
 
-    for prop in self._pars.groupKeys('html'):
-      if self.isParamValid(prop):
-        img += ' ' + prop + '="' + self._pars[prop] + '"'
+    if self.isParamValid('style'):
+      style = self.getParam('style')
+    else:
+      style = ''
+      for prop in self._pars.groupKeys('html'):
+        if self.isParamValid(prop):
+          style += prop + ':' + self._pars[prop] + ';'
+
+    if style:
+      img += ' style="'+style+'"'
     img += '/>\n  </a>\n'
 
     # Create a table that contains the image and caption (if desired)
@@ -91,6 +103,10 @@ class ImageBase(MooseObject):
       img += '\n  </figcaption>\n'
 
     img += '</figure>\n'
+
+    if div:
+      img += '</div>'
+
 
     # Return the complete html
     return img

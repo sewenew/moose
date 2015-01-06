@@ -62,7 +62,7 @@
     direction = y
     num_layers = 3
     variable = u
-    execute_on = residual
+    execute_on = linear
     boundary = right
   [../]
 []
@@ -72,6 +72,6 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
 []

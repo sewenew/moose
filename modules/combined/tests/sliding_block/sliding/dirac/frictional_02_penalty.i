@@ -69,13 +69,13 @@
     type = AccumulateAux
     variable = accum_slip_x
     accumulate_from_variable = inc_slip_x
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./accum_slip_y]
     type = AccumulateAux
     variable = accum_slip_y
     accumulate_from_variable = inc_slip_y
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./penetration]
     type = PenetrationAux
@@ -88,7 +88,7 @@
 [Postprocessors]
   [./nonlinear_its]
     type = NumNonlinearIterations
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./penetration]
     type = NodalVariableValue
@@ -180,9 +180,8 @@
 
 [Outputs]
   file_base = frictional_02_penalty_out
-  output_initial = true
-#  csv = true
   interval = 10
+  output_on = 'initial timestep_end'
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
@@ -190,8 +189,8 @@
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
     max_rows = 5
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []
 

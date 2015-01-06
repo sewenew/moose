@@ -3,9 +3,11 @@
 #include "AppFactory.h"
 
 #include "TensorMechanicsAction.h"
+
 #include "StressDivergenceTensors.h"
 #include "CosseratStressDivergenceTensors.h"
 #include "MomentBalancing.h"
+
 #include "LinearElasticMaterial.h"
 #include "FiniteStrainElasticMaterial.h"
 #include "FiniteStrainPlasticMaterial.h"
@@ -13,15 +15,10 @@
 #include "FiniteStrainMohrCoulomb.h"
 #include "FiniteStrainCrystalPlasticity.h"
 #include "FiniteStrainMultiPlasticity.h"
-#include "RankTwoAux.h"
-#include "RealTensorValueAux.h"
-#include "RankFourAux.h"
-#include "TensorElasticEnergyAux.h"
-#include "FiniteStrainPlasticAux.h"
-#include "CrystalPlasticitySlipSysAux.h"
-#include "CrystalPlasticityRotationOutAux.h"
 #include "CosseratLinearElasticMaterial.h"
 #include "ElementPropertyReadFileTest.h"
+#include "TwoPhaseStressMaterial.h"
+#include "SimpleEigenStrainMaterial.h"
 
 #include "TensorMechanicsPlasticSimpleTester.h"
 #include "TensorMechanicsPlasticTensile.h"
@@ -39,11 +36,21 @@
 #include "TensorMechanicsHardeningCubic.h"
 #include "ElementPropertyReadFile.h"
 
+#include "RankTwoAux.h"
+#include "RealTensorValueAux.h"
+#include "RankFourAux.h"
+#include "TensorElasticEnergyAux.h"
+#include "FiniteStrainPlasticAux.h"
+#include "CrystalPlasticitySlipSysAux.h"
+#include "CrystalPlasticityRotationOutAux.h"
 
 template<>
 InputParameters validParams<TensorMechanicsApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = true;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
+
   return params;
 }
 
@@ -85,6 +92,8 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerMaterial(FiniteStrainMultiPlasticity);
   registerMaterial(CosseratLinearElasticMaterial);
   registerMaterial(ElementPropertyReadFileTest);
+  registerMaterial(TwoPhaseStressMaterial);
+  registerMaterial(SimpleEigenStrainMaterial);
 
   registerUserObject(TensorMechanicsPlasticSimpleTester);
   registerUserObject(TensorMechanicsPlasticTensile);

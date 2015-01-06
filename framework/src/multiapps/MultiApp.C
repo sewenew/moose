@@ -70,7 +70,7 @@ InputParameters validParams<MultiApp>()
   MultiMooseEnum execute_options(SetupInterface::getExecuteOptions());
   execute_options = "timestep_begin";  // set the default
 
-  params.addParam<MultiMooseEnum>("execute_on", execute_options, "Set to (residual|jacobian|timestep|timestep_begin|custom) to execute only at that moment");
+  params.addParam<MultiMooseEnum>("execute_on", execute_options, "Set to (linear|nonlinear|timestep_end|timestep_begin|custom) to execute only at that moment");
 
   params.addParam<unsigned int>("max_procs_per_app", std::numeric_limits<unsigned int>::max(), "Maximum number of processors to give to each App in this MultiApp.  Useful for restricting small solves to just a few procs so they don't get spread out");
 
@@ -360,7 +360,7 @@ MultiApp::moveApp(unsigned int global_app, Point p)
 void
 MultiApp::parentOutputPositionChanged()
 {
-  if (getParam<bool>("output_in_position"))
+  if (_output_in_position)
     for (unsigned int i = 0; i < _apps.size(); i++)
       _apps[i]->setOutputPosition(_app.getOutputPosition() + _positions[_first_local_app + i]);
 }
@@ -418,7 +418,6 @@ MultiApp::createApp(unsigned int i, Real start_time)
 
   // Update the MultiApp level for the app that was just created
   app->getOutputWarehouse().multiappLevel() = _app.getOutputWarehouse().multiappLevel() + 1;
-
   app->setupOptions();
   app->runInputFile();
 }

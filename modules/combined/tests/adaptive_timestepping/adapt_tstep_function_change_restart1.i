@@ -87,7 +87,7 @@
     tensor = stress
     variable = vonmises
     quantity = vonmises
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -177,7 +177,7 @@
 []
 
 [Outputs]
-  output_initial = true
+  output_on = 'initial timestep_end'
   [./out]
     type = Exodus
     elemental_as_nodal = true

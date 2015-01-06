@@ -63,10 +63,11 @@
   csv = true
   [./exodus]
     type = Exodus
-    output_final = true
+    output_on = 'final timestep_end'
   [../]
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

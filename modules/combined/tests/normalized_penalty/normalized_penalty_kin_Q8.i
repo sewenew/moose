@@ -70,7 +70,7 @@
     tensor = stress
     variable = stress_xx
     index = 0
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 [] # AuxKernels
 
@@ -134,11 +134,10 @@
 [] # Executioner
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
-#    perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 [] # Output

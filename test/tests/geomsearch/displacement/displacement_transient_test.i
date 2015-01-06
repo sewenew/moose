@@ -90,15 +90,14 @@
 []
 
 [Outputs]
-  output_initial = true
-  [./out]
+  output_on = 'initial timestep_end'
+  [./out_displaced]
     type = Exodus
-    append_displaced = true
     use_displaced = true
   [../]
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'initial failed linear nonlinear timestep_end'
   [../]
 []

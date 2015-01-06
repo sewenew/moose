@@ -1,8 +1,9 @@
 [Mesh]
   type = GeneratedMesh
   dim = 2
-  nx = 10
-  ny = 10
+  # Yes we want a slightly irregular grid
+  nx = 11
+  ny = 11
 []
 
 [Variables]
@@ -45,12 +46,12 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []
 
@@ -58,7 +59,7 @@
   [./sub]
     app_type = MooseTestApp
     positions = '0.5 0.5 0 0.7 0.7 0'
-    execute_on = timestep
+    execute_on = timestep_end
     type = TransientMultiApp
     input_files = sub.i
   [../]

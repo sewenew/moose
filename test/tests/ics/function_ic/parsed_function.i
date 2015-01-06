@@ -58,15 +58,15 @@
 []
 
 [Outputs]
-  output_initial = true
   file_base = parsed
+  output_on = 'initial timestep_end'
   [./OverSampling]
     type = Exodus
     refinements = 3
-    oversample = true
   [../]
   [./console]
     type = Console
     perf_log = false
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []
