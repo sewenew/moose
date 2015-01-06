@@ -9,6 +9,32 @@
 ##############################################################################
 #
 # source files
+
+ifneq ($(OPENMC_DIR),)
+OPENMC_SRC_DIR := $(OPENMC_DIR)/src
+openmc_LIB := $(OPENMC_SRC_DIR)/build/lib/libopenmcl.dylib
+xml_LIB := $(OPENMC_SRC_DIR)/build/lib/libfox_common.a
+xml_LIB += $(OPENMC_SRC_DIR)/build/lib/libfox_dom.a
+xml_LIB += $(OPENMC_SRC_DIR)/build/lib/libfox_fsys.a
+xml_LIB += $(OPENMC_SRC_DIR)/build/lib/libfox_sax.a
+xml_LIB += $(OPENMC_SRC_DIR)/build/lib/libfox_utils.a
+xml_LIB += $(OPENMC_SRC_DIR)/build/lib/libfox_wxml.a
+
+# HDF5 Support
+ifneq ($(HDF5_DIR),)
+HDF5_DIR1 := $(HDF5_DIR)/fortran/src
+HDF5_DIR2 := $(HDF5_DIR)/hl/fortran/src
+HDL_LIB := $(HDF5_DIR)/hl/fortran/src/libhdf5hl_fortran.la
+HDL_LIB += $(HDF5_DIR)/fortran/src/libhdf5_fortran.la
+endif
+ifeq ($(HDF5_DIR),)
+HDF5_DIR1 :=
+HDF5_DIR2 :=
+HDL_LIB :=
+HDL_LIB +=
+endif
+endif
+
 SRC_DIRS    := $(APPLICATION_DIR)/src
 PLUGIN_DIR  := $(APPLICATION_DIR)/plugins
 
@@ -105,6 +131,7 @@ $(app_LIB): curr_dir  := $(APPLICATION_DIR)
 $(app_LIB): curr_deps := $(depend_libs)
 $(app_LIB): $(app_objects) $(app_plugin_deps) $(app_HEADER) $(depend_libs)
 	@echo "Linking Library "$@"..."
+	@echo $(libmesh_CXXFLAGS)
 	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=link --quiet \
 	  $(libmesh_CXX) $(libmesh_CXXFLAGS) -o $@ $(curr_objs) $(libmesh_LDFLAGS) $(curr_deps) $(EXTERNAL_FLAGS) -rpath $(curr_dir)/lib
 	@$(libmesh_LIBTOOL) --mode=install --quiet install -c $@ $(curr_dir)/lib
@@ -112,7 +139,7 @@ $(app_LIB): $(app_objects) $(app_plugin_deps) $(app_HEADER) $(depend_libs)
 $(app_EXEC): $(app_LIBS) $(mesh_library) $(main_object)
 	@echo "Linking Executable "$@"..."
 	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=link --quiet \
-	  $(libmesh_CXX) $(libmesh_CXXFLAGS) -o $@ $(main_object) $(app_LIBS) $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS) $(ADDITIONAL_LIBS)
+	  $(libmesh_CXX) $(libmesh_CXXFLAGS) -o $@ $(main_object) $(app_LIBS) $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS) $(ADDITIONAL_LIBS) $(openmc_LIB) $(HDF_LIB) -lgfortran
 
 # Clang static analyzer
 sa:: $(app_analyzer)
