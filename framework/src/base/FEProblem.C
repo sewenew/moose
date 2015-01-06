@@ -95,6 +95,7 @@ InputParameters validParams<FEProblem>()
   params.addParam<unsigned int>("dimNearNullSpace", 0, "The dimension of the near nullspace");
   params.addParam<bool>("solve", true, "Whether or not to actually solve the Nonlinear system.  This is handy in the case that all you want to do is execute AuxKernels, Transfers, etc. without actually solving anything");
   params.addParam<bool>("use_nonlinear", true, "Determines whether to use a Nonlinear vs a Eigenvalue system (Automatically determined based on executioner)");
+  params.addParam<bool>("error_on_jacobian_nonzero_reallocation", false, "This causes PETSc to error if it had to reallocate memory in the Jacobian matrix due to not having enough nonzeros");
   return params;
 }
 
@@ -145,7 +146,8 @@ FEProblem::FEProblem(const std::string & name, InputParameters parameters) :
     _kernel_coverage_check(false),
     _max_qps(std::numeric_limits<unsigned int>::max()),
     _use_legacy_uo_aux_computation(_app.legacyUoAuxComputationDefault()),
-    _use_legacy_uo_initialization(_app.legacyUoInitializationDefault())
+    _use_legacy_uo_initialization(_app.legacyUoInitializationDefault()),
+    _error_on_jacobian_nonzero_reallocation(getParam<bool>("error_on_jacobian_nonzero_reallocation"))
 {
 
 #ifdef LIBMESH_HAVE_PETSC
@@ -343,9 +345,9 @@ void FEProblem::initialSetup()
   // Build Refinement and Coarsening maps for stateful material projections if necessary
   if (_adaptivity.isOn() && (_material_props.hasStatefulProperties() || _bnd_material_props.hasStatefulProperties()))
   {
-    Moose::setup_perf_log.push("mesh.buildRefinementAndCoarseningMaps()","Setup");
+    Moose::setup_perf_log.push("mesh.buildRefinementAndCoarseningMaps()", "Setup");
     _mesh.buildRefinementAndCoarseningMaps(_assembly[0]);
-    Moose::setup_perf_log.pop("mesh.buildRefinementAndCoarseningMaps()","Setup");
+    Moose::setup_perf_log.pop("mesh.buildRefinementAndCoarseningMaps()", "Setup");
   }
 
   if (!_app.isRecovering())
@@ -370,16 +372,16 @@ void FEProblem::initialSetup()
   // UserObject initialSetup
   for (unsigned int i=0; i<n_threads; i++)
   {
-    _user_objects(EXEC_RESIDUAL)[i].updateDependObjects(_aux.getDependObjects(EXEC_RESIDUAL));
-    _user_objects(EXEC_JACOBIAN)[i].updateDependObjects(_aux.getDependObjects(EXEC_JACOBIAN));
-    _user_objects(EXEC_TIMESTEP)[i].updateDependObjects(_aux.getDependObjects(EXEC_TIMESTEP));
+    _user_objects(EXEC_LINEAR)[i].updateDependObjects(_aux.getDependObjects(EXEC_RESIDUAL));
+    _user_objects(EXEC_NONLINEAR)[i].updateDependObjects(_aux.getDependObjects(EXEC_JACOBIAN));
+    _user_objects(EXEC_TIMESTEP_END)[i].updateDependObjects(_aux.getDependObjects(EXEC_TIMESTEP_END));
     _user_objects(EXEC_TIMESTEP_BEGIN)[i].updateDependObjects(_aux.getDependObjects(EXEC_TIMESTEP_BEGIN));
     _user_objects(EXEC_INITIAL)[i].updateDependObjects(_aux.getDependObjects(EXEC_INITIAL));
     _user_objects(EXEC_CUSTOM)[i].updateDependObjects(_aux.getDependObjects(EXEC_CUSTOM));
 
-    _user_objects(EXEC_RESIDUAL)[i].initialSetup();
-    _user_objects(EXEC_JACOBIAN)[i].initialSetup();
-    _user_objects(EXEC_TIMESTEP)[i].initialSetup();
+    _user_objects(EXEC_LINEAR)[i].initialSetup();
+    _user_objects(EXEC_NONLINEAR)[i].initialSetup();
+    _user_objects(EXEC_TIMESTEP_END)[i].initialSetup();
     _user_objects(EXEC_TIMESTEP_BEGIN)[i].initialSetup();
     _user_objects(EXEC_INITIAL)[i].initialSetup();
     _user_objects(EXEC_CUSTOM)[i].initialSetup();
@@ -507,9 +509,9 @@ void FEProblem::initialSetup()
     it->second->updateSeeds(EXEC_INITIAL);
 
   // Call initial setup on the transfers
-  _transfers(EXEC_RESIDUAL)[0].initialSetup();
-  _transfers(EXEC_JACOBIAN)[0].initialSetup();
-  _transfers(EXEC_TIMESTEP)[0].initialSetup();
+  _transfers(EXEC_LINEAR)[0].initialSetup();
+  _transfers(EXEC_NONLINEAR)[0].initialSetup();
+  _transfers(EXEC_TIMESTEP_END)[0].initialSetup();
   _transfers(EXEC_TIMESTEP_BEGIN)[0].initialSetup();
   _transfers(EXEC_INITIAL)[0].initialSetup();
   _transfers(EXEC_CUSTOM)[0].initialSetup();
@@ -536,7 +538,7 @@ void FEProblem::initialSetup()
     if (_use_legacy_uo_initialization)
     {
       computeUserObjects(EXEC_TIMESTEP_BEGIN);
-      computeUserObjects(EXEC_RESIDUAL);
+      computeUserObjects(EXEC_LINEAR);
     }
     Moose::setup_perf_log.pop("Initial computeUserObjects()","Setup");
   }
@@ -1104,6 +1106,11 @@ FEProblem::subdomainSetup(SubdomainID subdomain, THREAD_ID tid)
     // FIXME: cannot do this b/c variables are not computed => potential NaNs will pop-up
 //    reinitMaterials(subdomain, tid);
   }
+
+  // Call the subdomain methods of the output system, these are not threaded so only call it once
+  if (tid == 0)
+    _app.getOutputWarehouse().subdomainSetup();
+
 
   _nl.subdomainSetup(subdomain, tid);
 
@@ -2198,7 +2205,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
        * we compute user objects.
        */
       if (_use_legacy_uo_aux_computation)
-        _aux.compute(EXEC_RESIDUAL);
+        _aux.compute(EXEC_LINEAR);
     }
 
     // init
@@ -2527,18 +2534,18 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
 }
 
 void
-FEProblem::computeUserObjects(ExecFlagType type/* = EXEC_TIMESTEP*/, UserObjectWarehouse::GROUP group)
+FEProblem::computeUserObjects(ExecFlagType type/* = EXEC_TIMESTEP_END*/, UserObjectWarehouse::GROUP group)
 {
   Moose::perf_log.push("compute_user_objects()","Solve");
 
   switch (type)
   {
-  case EXEC_RESIDUAL:
+  case EXEC_LINEAR:
     for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
       _user_objects(type)[tid].residualSetup();
     break;
 
-  case EXEC_JACOBIAN:
+  case EXEC_NONLINEAR:
     for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
       _user_objects(type)[tid].jacobianSetup();
     break;
@@ -3217,13 +3224,13 @@ FEProblem::computeResidualType(const NumericVector<Number>& soln, NumericVector<
   for (std::map<std::string, RandomData *>::iterator it = _random_data_objects.begin();
        it != _random_data_objects.end();
        ++it)
-    it->second->updateSeeds(EXEC_RESIDUAL);
+    it->second->updateSeeds(EXEC_LINEAR);
 
-  execTransfers(EXEC_RESIDUAL);
+  execTransfers(EXEC_LINEAR);
 
-  execMultiApps(EXEC_RESIDUAL);
+  execMultiApps(EXEC_LINEAR);
 
-  computeUserObjects(EXEC_RESIDUAL, UserObjectWarehouse::PRE_AUX);
+  computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
 
   if (_displaced_problem != NULL)
     _displaced_problem->updateMesh(soln, *_aux.currentSolution());
@@ -3241,9 +3248,11 @@ FEProblem::computeResidualType(const NumericVector<Number>& soln, NumericVector<
   }
   _aux.residualSetup();
 
-  _aux.compute(EXEC_RESIDUAL);
+  _aux.compute(EXEC_LINEAR);
 
-  computeUserObjects(EXEC_RESIDUAL, UserObjectWarehouse::POST_AUX);
+  computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
+
+  _app.getOutputWarehouse().residualSetup();
 
   _nl.computeResidual(residual, type);
 
@@ -3268,12 +3277,12 @@ FEProblem::computeJacobian(NonlinearImplicitSystem & sys, const NumericVector<Nu
     for (std::map<std::string, RandomData *>::iterator it = _random_data_objects.begin();
          it != _random_data_objects.end();
          ++it)
-      it->second->updateSeeds(EXEC_JACOBIAN);
+      it->second->updateSeeds(EXEC_NONLINEAR);
 
-    execTransfers(EXEC_JACOBIAN);
-    execMultiApps(EXEC_JACOBIAN);
+    execTransfers(EXEC_NONLINEAR);
+    execMultiApps(EXEC_NONLINEAR);
 
-    computeUserObjects(EXEC_JACOBIAN, UserObjectWarehouse::PRE_AUX);
+    computeUserObjects(EXEC_NONLINEAR, UserObjectWarehouse::PRE_AUX);
 
     if (_displaced_problem != NULL)
       _displaced_problem->updateMesh(soln, *_aux.currentSolution());
@@ -3290,9 +3299,11 @@ FEProblem::computeJacobian(NonlinearImplicitSystem & sys, const NumericVector<Nu
 
     _aux.jacobianSetup();
 
-    _aux.compute(EXEC_JACOBIAN);
+    _aux.compute(EXEC_NONLINEAR);
 
-    computeUserObjects(EXEC_JACOBIAN, UserObjectWarehouse::POST_AUX);
+    computeUserObjects(EXEC_NONLINEAR, UserObjectWarehouse::POST_AUX);
+
+    _app.getOutputWarehouse().jacobianSetup();
 
     _nl.computeJacobian(jacobian);
 
@@ -3328,7 +3339,7 @@ FEProblem::computeJacobianBlocks(std::vector<JacobianBlock *> & blocks)
   if (_displaced_problem != NULL)
     _displaced_problem->updateMesh(*_nl.currentSolution(), *_aux.currentSolution());
 
-  _aux.compute(EXEC_JACOBIAN);
+  _aux.compute(EXEC_NONLINEAR);
 
   _nl.computeJacobianBlocks(blocks);
 }
@@ -3359,7 +3370,7 @@ FEProblem::computeBounds(NonlinearImplicitSystem & /*sys*/, NumericVector<Number
       _materials[i].residualSetup();
     }
     _aux.residualSetup();
-    _aux.compute(EXEC_RESIDUAL);
+    _aux.compute(EXEC_LINEAR);
     _lower.swap(lower);
     _upper.swap(upper);
   }
@@ -3758,15 +3769,15 @@ FEProblem::getVariableNames()
 
 MooseNonlinearConvergenceReason
 FEProblem::checkNonlinearConvergence(std::string &msg,
-                                     const int it,
+                                     const PetscInt it,
                                      const Real xnorm,
                                      const Real snorm,
                                      const Real fnorm,
                                      const Real rtol,
                                      const Real stol,
                                      const Real abstol,
-                                     const int nfuncs,
-                                     const int max_funcs,
+                                     const PetscInt nfuncs,
+                                     const PetscInt max_funcs,
                                      const Real ref_resid,
                                      const Real div_threshold)
 {
@@ -3812,7 +3823,7 @@ FEProblem::checkNonlinearConvergence(std::string &msg,
   }
 
   system._last_nl_rnorm = fnorm;
-  system._current_nl_its = it;
+  system._current_nl_its = static_cast<unsigned int>(it);
 
   msg = oss.str();
 
@@ -3823,12 +3834,12 @@ FEProblem::checkNonlinearConvergence(std::string &msg,
 
 MooseLinearConvergenceReason
 FEProblem::checkLinearConvergence(std::string & /*msg*/,
-                                  const int n,
+                                  const PetscInt n,
                                   const Real rnorm,
                                   const Real /*rtol*/,
                                   const Real /*atol*/,
                                   const Real /*dtol*/,
-                                  const int maxits)
+                                  const PetscInt maxits)
 {
   // We initialize the reason to something that basically means MOOSE
   // has not made a decision on convergence yet.
@@ -3859,7 +3870,7 @@ FEProblem::checkLinearConvergence(std::string & /*msg*/,
   // If either of our convergence criteria is met, store the number of linear
   // iterations in the System.
   if (reason == MOOSE_CONVERGED_ITS || reason == MOOSE_CONVERGED_RTOL)
-    system._current_l_its.push_back(n);
+    system._current_l_its.push_back(static_cast<unsigned int>(n));
 
   return reason;
 }

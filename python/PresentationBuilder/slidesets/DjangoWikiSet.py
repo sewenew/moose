@@ -37,39 +37,36 @@ class DjangoWikiSet(SlideSet):
     self.images = dict()
     self._buildImageMap()
 
-    # Storage for comments
-    self._comments = []
-
   ##
   # Read the raw wiki
   def read(self):
     raw = self._extractHTML('pre','class="pre-scrollable"')
 
-    # Extract comments
-    raw = re.sub(r'(?<![^\s.])(\s*\[\]\(\?\?\?\s*(.*?)\))', self._storeComment, raw)
-
     # Extract other RemarkJS commands
     raw = re.sub(r'(?<![^\s.])(\s*\[\]\((.*?)\))', self._applyRemark, raw)
 
-    # Add the comments at the end
-    if self._comments:
-      raw += '\n???\n'
-      for c in self._comments:
-        raw += c
+    # Extract "[TOC]"
+    raw = re.sub(r'(\s*\[TOC\])', self._stripTOC, raw)
 
     # Return the markdown
     return raw
 
   ##
-  # Substitution function for extracting Remark properties and commands (private)
-  def _applyRemark(self, match):
-    return '\n\n' + match.group(2).strip()
+  # Substitution function for enabling table of contents via [TOC] in wiki content
+  def _stripTOC(self, match):
+    return ''
+    self._pars['contents'] = True
 
   ##
-  # Substituion function for extracting Remark comments (private)
-  def _storeComment(self, match):
-    self._comments.append(match.group(2).strip())
-    return ''
+  # Substitution function for extracting Remark properties and commands (private)
+  def _applyRemark(self, match):
+
+    # Do not parse comments (i.e., if the string starts with ???), these are parsed at the slide level
+    s = match.group(2).strip()
+    if s.startswith('???'):
+      return match.group(0)
+    else:
+      return '\n\n' + match.group(2).strip()
 
   ##
   # Creates an image map from the id to the name and url (private)

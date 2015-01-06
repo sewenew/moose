@@ -31,7 +31,7 @@
     type = MatPropUserObjectAux
     variable = uo_e
     material_user_object = uo
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -64,7 +64,7 @@
   [./uo]
     type = MaterialPropertyUserObject
     mat_prop = 'e'
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -77,11 +77,11 @@
 
 [Outputs]
   file_base = uo_material
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

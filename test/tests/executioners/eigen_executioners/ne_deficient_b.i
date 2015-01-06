@@ -82,7 +82,7 @@
     type = ElementIntegralVariablePostprocessor
     variable = v
     # execute on residual is important for nonlinear eigen solver!
-    execute_on = residual
+    execute_on = linear
   [../]
 
   [./udiff]
@@ -98,7 +98,7 @@
   exodus = true
   [./console]
     type = Console
-    linear_residuals = true
     perf_log = true
+    output_on = 'failed nonlinear linear timestep_end'
   [../]
 []

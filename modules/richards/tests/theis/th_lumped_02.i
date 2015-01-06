@@ -106,7 +106,7 @@
     type = PointValue
     variable = pressure
     point = '50 0 0'
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -170,10 +170,11 @@
 
 [Outputs]
   file_base = th_lumped_02
-  output_initial = true
   csv = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

@@ -43,6 +43,7 @@
 #include "PowerLawCreepModel.h"
 #include "CavityPressureAction.h"
 #include "CavityPressurePostprocessor.h"
+#include "LineMaterialSymmTensorSampler.h"
 #include "CavityPressurePPAction.h"
 #include "CavityPressureUserObject.h"
 #include "CavityPressureUOAction.h"
@@ -51,6 +52,8 @@
 #include "PressureAction.h"
 #include "DisplacementAboutAxis.h"
 #include "DisplacementAboutAxisAction.h"
+#include "TorqueReaction.h"
+#include "CrackDataSampler.h"
 #include "SolidMechanicsAction.h"
 #include "DomainIntegralAction.h"
 #include "SolidMechInertialForce.h"
@@ -67,6 +70,9 @@ template<>
 InputParameters validParams<SolidMechanicsApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = true;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
+
   return params;
 }
 
@@ -149,6 +155,10 @@ SolidMechanicsApp::registerObjects(Factory & factory)
   registerPostprocessor(CrackFrontData);
   registerPostprocessor(InteractionIntegral);
   registerPostprocessor(CavityPressurePostprocessor);
+  registerPostprocessor(TorqueReaction);
+
+  registerVectorPostprocessor(CrackDataSampler);
+  registerVectorPostprocessor(LineMaterialSymmTensorSampler);
 
   registerUserObject(MaterialTensorOnLine);
   registerUserObject(CavityPressureUserObject);

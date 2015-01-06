@@ -60,7 +60,7 @@
   [./saved_norm]
     type = NodalL2Norm
     variable = saved
-    execute_on = timestep
+    execute_on = timestep_end
     block = 0
   [../]
 []
@@ -77,11 +77,11 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

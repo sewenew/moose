@@ -101,18 +101,18 @@
   [./x]
     type = ScalarVariable
     variable = x
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./y]
     type = ScalarVariable
     variable = y
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 
   [./exact_x]
     type = PlotFunction
     function = exact_x_fn
-    execute_on = timestep
+    execute_on = timestep_end
     point = '0 0 0'
   [../]
 
@@ -134,10 +134,11 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

@@ -115,10 +115,10 @@
 
 [Outputs]
   file_base = jn_lumped_16
-  output_initial = false
   exodus = false
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

@@ -191,21 +191,21 @@
   [./internalVolume]
     type = InternalVolume
     boundary = 2
-    execute_on = residual
+    execute_on = linear
   [../]
 
   [./aveTempInterior]
     type = SideAverageValue
     boundary = 2
     variable = temp
-    execute_on = residual
+    execute_on = linear
   [../]
 
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true

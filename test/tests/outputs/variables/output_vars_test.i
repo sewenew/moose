@@ -163,12 +163,12 @@
   [./x]
     type = ScalarVariable
     variable = x
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
   [./y]
     type = ScalarVariable
     variable = y
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -183,7 +183,8 @@
 
 [Outputs]
   file_base = out
-  output_initial = true
+  show = 'x u nodal elemental'
+  output_on = 'initial timestep_end'
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
@@ -192,6 +193,6 @@
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
-  show = 'x u nodal elemental'
 []

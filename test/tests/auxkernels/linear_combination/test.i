@@ -72,7 +72,7 @@
     variable = lc
     v = 'v1 v2'
     w = 'w1 w2'
-    execute_on = 'timestep'
+    execute_on = 'timestep_end'
   [../]
 []
 
@@ -108,6 +108,6 @@
 [Outputs]
   [./out]
     type = Exodus
-    output_initial = true
+    output_on = 'initial timestep_end'
   [../]
 []

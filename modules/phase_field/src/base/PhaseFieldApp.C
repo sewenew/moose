@@ -21,10 +21,15 @@
 #include "PFMobility.h"
 #include "DerivativeParsedMaterial.h"
 #include "DerivativeTwoPhaseMaterial.h"
+#include "BarrierFunctionMaterial.h"
+#include "SwitchingFunctionMaterial.h"
+#include "ElasticEnergyMaterial.h"
+#include "MathFreeEnergy.h"
 #include "NodalFloodCount.h"
 #include "NodalFloodCountAux.h"
 #include "NodalVolumeFraction.h"
 #include "BndsCalcAux.h"
+#include "TotalFreeEnergy.h"
 #include "ACGrGrPoly.h"
 #include "ACGBPoly.h"
 #include "ACParsed.h"
@@ -55,6 +60,9 @@ template<>
 InputParameters validParams<PhaseFieldApp>()
 {
   InputParameters params = validParams<MooseApp>();
+  params.set<bool>("use_legacy_uo_initialization") = true;
+  params.set<bool>("use_legacy_uo_aux_computation") = false;
+
   return params;
 }
 
@@ -95,6 +103,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(ACGrGrPoly);
   registerKernel(ACGBPoly);
   registerKernel(ACParsed);
+
   registerInitialCondition(CrossIC);
   registerInitialCondition(SmoothCircleIC);
   registerInitialCondition(RndSmoothCircleIC);
@@ -107,20 +116,30 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerInitialCondition(PolycrystalReducedIC);
   registerInitialCondition(ThumbIC);
   registerInitialCondition(Tricrystal2CircleGrainsIC);
+
   registerMaterial(PFMobility);
   registerMaterial(GBEvolution);
   registerMaterial(DerivativeParsedMaterial);
   registerMaterial(DerivativeTwoPhaseMaterial);
-  registerUserObject(NodalFloodCount);
+  registerMaterial(BarrierFunctionMaterial);
+  registerMaterial(SwitchingFunctionMaterial);
+  registerMaterial(ElasticEnergyMaterial);
+  registerMaterial(MathFreeEnergy);
+
   registerAux(NodalFloodCountAux);
   registerAux(BndsCalcAux);
+  registerAux(TotalFreeEnergy);
   // registerAux(SPPARKSAux);
+
+  registerUserObject(NodalFloodCount);
   registerUserObject(NodalVolumeFraction);
+  registerUserObject(SolutionRasterizer);
   // registerUserObject(SPPARKSUserObject);
+
 #ifdef LIBMESH_HAVE_VTK
   registerFunction(ImageFunction);
 #endif
-  registerUserObject(SolutionRasterizer);
+
   registerMesh(ImageMesh);
 }
 

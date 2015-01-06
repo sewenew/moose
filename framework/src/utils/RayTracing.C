@@ -28,6 +28,7 @@ namespace Moose
 
 /**
  * Figure out which (if any) side of an Elem is intersected by a line.
+ *
  * @param elem The elem to search
  * @param not_side A side to _not_ search (Use -1 if you want to search all sides)
  * @return The side that is intersected by the line.  Will return -1 if it doesn't intersect any side
@@ -46,6 +47,9 @@ int sideIntersectedByLine(const Elem * elem, int not_side, const LineSegment & l
 
   for (unsigned int i=0; i<n_sides; i++)
   {
+    if (static_cast<int>(i) == not_side) // Don't search the "not_side"
+      continue;
+
     // Get a simplified side element
     AutoPtr<Elem> side_elem = elem->side(i);
 
@@ -85,6 +89,26 @@ int sideIntersectedByLine(const Elem * elem, int not_side, const LineSegment & l
 }
 
 /**
+ * Returns the side number for elem that neighbor is on
+ *
+ * Returns -1 if the neighbor can't be found to be a neighbor
+ */
+int sideNeighborIsOn(const Elem * elem, const Elem * neighbor)
+{
+  unsigned int n_sides = elem->n_sides();
+
+  for (unsigned int i=0; i<n_sides; i++)
+  {
+    if (elem->neighbor(i) == neighbor)
+      return i;
+  }
+
+  return -1;
+}
+
+
+/**
+>>>>>>> c1571d4314db2457e3900b771a5796fc810e98b6
  * Recursively find all elements intersected by a line segment
  *
  * Works by moving from one element to the next _through_ the side of the current element.
@@ -112,8 +136,11 @@ void recursivelyFindElementsIntersectedByLine(const LineSegment & line_segment, 
       // Add it to the list
       intersected_elems.push_back(neighbor);
 
+      // Note: This is finding the side the current_elem is on for the neighbor.  That's the "incoming_side" for the neighbor
+      int incoming_side = sideNeighborIsOn(neighbor, current_elem);
+
       // Recurse
-      recursivelyFindElementsIntersectedByLine(line_segment, neighbor, neighbor->which_side_am_i(current_elem), intersected_elems);
+      recursivelyFindElementsIntersectedByLine(line_segment, neighbor, incoming_side, intersected_elems);
 
       return;
     }
@@ -138,8 +165,13 @@ void elementsIntersectedByLine(const Point & p0, const Point & p1, const MeshBas
   if (!first_elem)
     return;
 
+  intersected_elems.push_back(const_cast<Elem *>(first_elem));
+
   // Make a LineSegment object out of our two points for ease:
   LineSegment line_segment = LineSegment(p0, p1);
+
+  // Find 'em!
+  recursivelyFindElementsIntersectedByLine(line_segment, first_elem, -1, intersected_elems);
 }
 
 }

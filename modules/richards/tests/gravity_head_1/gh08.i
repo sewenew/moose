@@ -117,10 +117,10 @@
 
 [Outputs]
   file_base = gh08
-  output_initial = false
   exodus = true
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

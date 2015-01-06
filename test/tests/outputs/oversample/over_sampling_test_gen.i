@@ -77,17 +77,17 @@
 []
 
 [Outputs]
-  output_initial = true
   file_base = out_gen
   exodus = true
+  output_on = 'initial timestep_end'
   [./oversampling]
+    file_base = out_gen_oversample
     type = Exodus
-    oversample = true
     refinements = 3
-    append_oversample = true
   [../]
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

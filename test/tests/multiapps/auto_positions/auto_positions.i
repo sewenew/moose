@@ -61,13 +61,12 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
-    nonlinear_residuals = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []
 
@@ -75,7 +74,7 @@
   [./auto_pos]
     type = AutoPositionsMultiApp
     app_type = MooseTestApp
-    execute_on = timestep
+    execute_on = timestep_end
     input_files = sub.i
     boundary = right
   [../]

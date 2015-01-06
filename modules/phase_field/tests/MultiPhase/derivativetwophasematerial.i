@@ -102,6 +102,19 @@
     mob = 1
   [../]
 
+  [./switching]
+    type = SwitchingFunctionMaterial
+    block = 0
+    eta = eta
+    h_order = SIMPLE
+  [../]
+  [./barrier]
+    type = BarrierFunctionMaterial
+    block = 0
+    eta = eta
+    g_order = SIMPLE
+  [../]
+
   [./free_energy_A]
     type = DerivativeParsedMaterial
     block = 0
@@ -128,7 +141,7 @@
     fa_name = Fa
     fb_name = Fb
     args = 'c'
-    phi = eta
+    eta = eta
     third_derivatives = false
     outputs = exodus
   [../]
@@ -163,12 +176,12 @@
 []
 
 [Outputs]
-  output_initial = true
   interval = 1
   exodus = true
-
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

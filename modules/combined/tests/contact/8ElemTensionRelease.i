@@ -59,7 +59,7 @@
   [./pid]
     type = ProcessorIDAux
     variable = pid
-    execute_on = 'initial timestep'
+    execute_on = 'initial timestep_end'
   [../]
   [./status]
     type = PenetrationAux
@@ -67,7 +67,7 @@
     variable = status
     boundary = 3
     paired_boundary = 2
-    execute_on = timestep
+    execute_on = timestep_end
   [../]
 []
 
@@ -152,11 +152,11 @@
 [] # Executioner
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 [] # Output

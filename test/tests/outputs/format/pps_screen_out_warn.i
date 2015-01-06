@@ -63,6 +63,7 @@
 [Outputs]
   [./console]
     type = Console
-    output_postprocessors = false
+    output_postprocessors_on = none
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []

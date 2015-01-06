@@ -86,15 +86,16 @@
 [Outputs]
   [./screen]
     type = Console
-    output_initial = false
     fit_mode = 100
-    linear_residuals = true
+    output_on = 'failed nonlinear linear timestep_end'
   [../]
   [./screen2]
     type = Console
+    output_on = 'timestep_end failed nonlinear'
   [../]
   [./screen3]
     type = Console
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []
 

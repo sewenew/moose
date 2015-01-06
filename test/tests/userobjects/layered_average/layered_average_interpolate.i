@@ -30,13 +30,13 @@
   [./layered_average]
     type = SpatialUserObjectAux
     variable = layered_average
-    execute_on = timestep
+    execute_on = timestep_end
     user_object = average
   [../]
   [./nodal_layered_average]
     type = SpatialUserObjectAux
     variable = nodal_layered_average
-    execute_on = timestep
+    execute_on = timestep_end
     user_object = average
   [../]
 []
@@ -76,11 +76,11 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
-    linear_residuals = true
+    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

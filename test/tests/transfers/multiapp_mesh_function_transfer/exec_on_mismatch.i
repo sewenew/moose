@@ -57,11 +57,12 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
   [./console]
     type = Console
     perf_log = true
+    output_on = 'timestep_end failed nonlinear'
   [../]
 []
 
@@ -81,7 +82,7 @@
     variable = transferred_u
     type = MultiAppMeshFunctionTransfer
     multi_app = sub
-    execute_on = 'initial timestep'
+    execute_on = 'initial timestep_end'
   [../]
   [./elemental_from_sub]
     source_variable = sub_u

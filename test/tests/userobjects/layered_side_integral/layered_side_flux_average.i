@@ -72,7 +72,7 @@
     diffusivity = diffusivity
     num_layers = 1
     variable = u
-    execute_on = residual
+    execute_on = linear
     boundary = top
   [../]
 []
@@ -82,8 +82,8 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
+  output_on = 'initial timestep_end'
 []
 
 [Debug]
