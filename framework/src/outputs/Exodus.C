@@ -194,7 +194,10 @@ Exodus::outputScalarVariables()
   // Append the scalar to the global output lists
   for (std::set<std::string>::const_iterator it = out.begin(); it != out.end(); ++it)
   {
-    VariableValue & variable = _problem_ptr->getScalarVariable(0, *it).sln();
+    MooseVariableScalar & scalar_var = _problem_ptr->getScalarVariable(0, *it);
+    scalar_var.reinit();
+    VariableValue & variable = scalar_var.sln();
+    
     unsigned int n = variable.size();
 
     // If the scalar has a single component, output the name directly
