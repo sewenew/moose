@@ -39,7 +39,7 @@
     variable = cv
   [../]
   [./CHSolid]
-    type = CHParsed
+    type = CahnHilliard
     variable = cv
     f_name = F
     mob_name = M
@@ -54,10 +54,10 @@
 
 [Materials]
   [./consts]
-    type = PFMobility
+    type = GenericConstantMaterial
+    prop_names  = 'M kappa_c'
+    prop_values = '1 0.1'
     block = 0
-    kappa = 0.1
-    mob = 1
   [../]
   [./free_energy]
     type = DerivativeParsedMaterial
@@ -93,6 +93,5 @@
     type = Exodus
     refinements = 1
     output_initial = true
-    oversample = true
   [../]
 []

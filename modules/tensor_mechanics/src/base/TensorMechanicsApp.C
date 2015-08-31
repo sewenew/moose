@@ -47,6 +47,7 @@
 #include "ComputeVariableEigenstrain.h"
 #include "ComputeConcentrationDependentElasticityTensor.h"
 #include "FiniteStrainHyperElasticViscoPlastic.h"
+#include "LinearIsoElasticPFDamage.h"
 
 #include "TensorMechanicsPlasticSimpleTester.h"
 #include "TensorMechanicsPlasticTensile.h"
@@ -69,7 +70,6 @@
 #include "EulerAngleFileReader.h"
 
 #include "RankTwoAux.h"
-#include "RealTensorValueAux.h"
 #include "RankFourAux.h"
 #include "TensorElasticEnergyAux.h"
 #include "CrystalPlasticityRotationOutAux.h"
@@ -151,6 +151,7 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerMaterial(ComputeVariableEigenstrain);
   registerMaterial(ComputeConcentrationDependentElasticityTensor);
   registerMaterial(FiniteStrainHyperElasticViscoPlastic);
+  registerMaterial(LinearIsoElasticPFDamage);
 
   registerUserObject(TensorMechanicsPlasticSimpleTester);
   registerUserObject(TensorMechanicsPlasticTensile);
@@ -173,7 +174,6 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerUserObject(EulerAngleFileReader);
 
   registerAux(RankTwoAux);
-  registerAux(RealTensorValueAux);
   registerAux(RankFourAux);
   registerAux(TensorElasticEnergyAux);
   registerAux(CrystalPlasticityRotationOutAux);
@@ -200,4 +200,3 @@ TensorMechanicsApp::associateSyntax(Syntax & syntax, ActionFactory & action_fact
   registerAction(PoroMechanicsAction, "add_kernel");
   registerAction(TensorMechanicsAxisymmetricRZAction, "add_kernel");
 }
-

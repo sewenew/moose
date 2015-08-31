@@ -17,11 +17,13 @@
 #include "ACInterface.h"
 #include "ACMultiInterface.h"
 #include "ACParsed.h"
+#include "CahnHilliard.h"
+#include "CahnHilliardAniso.h"
 #include "CHBulkPFCTrad.h"
 #include "CHCpldPFCTrad.h"
 #include "CHInterface.h"
+#include "CHInterfaceAniso.h"
 #include "CHMath.h"
-#include "CHParsed.h"
 #include "CHPFCRFF.h"
 #include "CHSplitVar.h"
 #include "ConservedLangevinNoise.h"
@@ -45,6 +47,7 @@
 #include "SplitCHMath.h"
 #include "SplitCHParsed.h"
 #include "SplitCHWRes.h"
+#include "SplitCHWResAniso.h"
 #include "SwitchingFunctionConstraintEta.h"
 #include "SwitchingFunctionConstraintLagrange.h"
 #include "SwitchingFunctionPenalty.h"
@@ -73,6 +76,7 @@
  */
 #include "BarrierFunctionMaterial.h"
 #include "ComputePolycrystalElasticityTensor.h"
+#include "ConstantAnisotropicMobility.h"
 #include "DerivativeMultiPhaseMaterial.h"
 #include "DerivativeParsedMaterial.h"
 #include "DerivativeSumMaterial.h"
@@ -85,7 +89,6 @@
 #include "GBEvolution.h"
 #include "GrainAdvectionVelocity.h"
 #include "KKSXeVacSolidMaterial.h"
-#include "LinearIsoElasticPFDamage.h"
 #include "MathEBFreeEnergy.h"
 #include "MathFreeEnergy.h"
 #include "MultiBarrierFunctionMaterial.h"
@@ -220,11 +223,13 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(ACInterface);
   registerKernel(ACMultiInterface);
   registerKernel(ACParsed);
+  registerKernel(CahnHilliard);
+  registerKernel(CahnHilliardAniso);
   registerKernel(CHBulkPFCTrad);
   registerKernel(CHCpldPFCTrad);
   registerKernel(CHInterface);
+  registerKernel(CHInterfaceAniso);
   registerKernel(CHMath);
-  registerKernel(CHParsed);
   registerKernel(CHPFCRFF);
   registerKernel(CHSplitVar);
   registerKernel(ConservedLangevinNoise);
@@ -247,9 +252,11 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(SplitCHMath);
   registerKernel(SplitCHParsed);
   registerKernel(SplitCHWRes);
+  registerKernel(SplitCHWResAniso);
   registerKernel(SwitchingFunctionConstraintEta);
   registerKernel(SwitchingFunctionConstraintLagrange);
   registerKernel(SwitchingFunctionPenalty);
+  registerDeprecatedObjectName(CahnHilliard, "CHParsed", "11/01/2015 00:00");
   registerDeprecatedObjectName(CoupledTimeDerivative, "CoupledImplicitEuler", "09/01/2015 00:00");
 
   registerInitialCondition(ClosePackIC);
@@ -270,6 +277,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
 
   registerMaterial(BarrierFunctionMaterial);
   registerMaterial(ComputePolycrystalElasticityTensor);
+  registerMaterial(ConstantAnisotropicMobility);
   registerMaterial(DerivativeMultiPhaseMaterial);
   registerMaterial(DerivativeParsedMaterial);
   registerMaterial(DerivativeSumMaterial);
@@ -282,7 +290,6 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerMaterial(GBEvolution);
   registerMaterial(GrainAdvectionVelocity);
   registerMaterial(KKSXeVacSolidMaterial);
-  registerMaterial(LinearIsoElasticPFDamage);
   registerMaterial(MathEBFreeEnergy);
   registerMaterial(MathFreeEnergy);
   registerMaterial(MultiBarrierFunctionMaterial);
@@ -290,11 +297,11 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerMaterial(PFCRFFMaterial);
   registerMaterial(PFCTradMaterial);
   registerMaterial(PFFracBulkRateMaterial);
-  registerMaterial(PFMobility);
   registerMaterial(PFParamsPolyFreeEnergy);
   registerMaterial(PolynomialFreeEnergy);
   registerMaterial(SwitchingFunctionMaterial);
   registerMaterial(CrossTermBarrierFunctionMaterial);
+  registerDeprecatedObjectName(PFMobility, "PFMobility", "09/26/2015 00:00");
 
   registerPostprocessor(FeatureFloodCount);
   registerPostprocessor(GrainTracker);
