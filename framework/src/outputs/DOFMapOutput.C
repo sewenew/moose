@@ -38,7 +38,7 @@ InputParameters validParams<DOFMapOutput>()
   params.addParam<std::string>("system_name", "nl0", "System to output");
 
   // By default this only executes on the initial timestep
-  params.set<MultiMooseEnum>("output_on") = "initial";
+  params.set<MultiMooseEnum>("execute_on") = "initial";
 
   return params;
 }
@@ -165,7 +165,13 @@ DOFMapOutput::output(const ExecFlagType & /*type*/)
         {
           const std::vector<KernelBase *> & active_kernels = kernels.activeVar(var);
           for (unsigned i = 0; i<active_kernels.size(); ++i)
-            oss << (i>0 ? ", " : "") << "{\"name\": \""<< active_kernels[i]->name() << "\", \"type\": \"" << demangle(typeid(*active_kernels[i]).name()) << "\"}";
+          {
+            KernelBase & kb = *active_kernels[i];
+            oss << (i>0 ? ", " : "")
+                << "{\"name\": \"" << kb.name()
+                << "\", \"type\": \"" << demangle(typeid(kb).name())
+                << "\"}";
+          }
         }
         oss << "], \"dofs\": [";
 

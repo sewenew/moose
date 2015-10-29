@@ -45,7 +45,13 @@ MultiAppNearestNodeTransfer::MultiAppNearestNodeTransfer(const InputParameters &
     _to_var_name(getParam<AuxVariableName>("variable")),
     _from_var_name(getParam<VariableName>("source_variable")),
     _fixed_meshes(getParam<bool>("fixed_meshes")),
-    _neighbors_cached(false)
+    _node_map(declareRestartableData<std::map<dof_id_type, Node *> >("node_map")),
+    _distance_map(declareRestartableData<std::map<dof_id_type, Real> >("distance_map")),
+    _neighbors_cached(declareRestartableData<bool>("neighbors_cached", false)),
+    _cached_froms(declareRestartableData<std::vector< std::vector<unsigned int> > >("cached_froms")),
+    _cached_dof_ids(declareRestartableData<std::vector< std::vector<dof_id_type> > >("cached_dof_ids")),
+    _cached_from_inds(declareRestartableData<std::map<unsigned int, unsigned int> >("cached_from_ids")),
+    _cached_qp_inds(declareRestartableData<std::map<unsigned int, unsigned int> >("cached_qp_inds"))
 {
   // This transfer does not work with ParallelMesh
   _displaced_source_mesh = getParam<bool>("displaced_source_mesh");
@@ -261,16 +267,19 @@ MultiAppNearestNodeTransfer::execute()
             if (current_distance < outgoing_evals[2*qp])
             {
               // Assuming LAGRANGE!
-              dof_id_type from_dof = local_nodes[i_local_from][i_node]->dof_number(from_sys_num, from_var_num, 0);
-
-              outgoing_evals[2*qp] = current_distance;
-              outgoing_evals[2*qp + 1] = (*from_sys.solution)(from_dof);
-
-              if (_fixed_meshes)
+              if (local_nodes[i_local_from][i_node]->n_dofs(from_sys_num, from_var_num) > 0)
               {
-                // Cache the nearest nodes.
-                _cached_froms[i_proc][qp] = i_local_from;
-                _cached_dof_ids[i_proc][qp] = from_dof;
+                dof_id_type from_dof = local_nodes[i_local_from][i_node]->dof_number(from_sys_num, from_var_num, 0);
+
+                outgoing_evals[2*qp] = current_distance;
+                outgoing_evals[2*qp + 1] = (*from_sys.solution)(from_dof);
+
+                if (_fixed_meshes)
+                {
+                  // Cache the nearest nodes.
+                  _cached_froms[i_proc][qp] = i_local_from;
+                  _cached_dof_ids[i_proc][qp] = from_dof;
+                }
               }
             }
           }

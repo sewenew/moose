@@ -331,7 +331,7 @@
 []
 
 [Postprocessors]
-  # The total free enrgy of the simulation cell to observe the energy reduction.
+  # The total free energy of the simulation cell to observe the energy reduction.
   [./total_free_energy]
     type = ElementIntegralVariablePostprocessor
     variable = local_energy
@@ -383,12 +383,10 @@
 []
 
 [Outputs]
-  interval = 1
+  execute_on = 'timestep_end'
   exodus = true
-  # print_linear_residuals = true
   [./table]
     type = CSV
     delimiter = ' '
   [../]
-  print_perf_log = true
 []

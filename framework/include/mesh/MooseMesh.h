@@ -22,6 +22,7 @@
 #include "MooseTypes.h"
 #include "Restartable.h"
 #include "MooseEnum.h"
+#include "MoosePartitioner.h"
 
 // libMesh
 #include "libmesh/mesh.h"
@@ -681,6 +682,17 @@ public:
   MooseMesh::MortarInterface * getMortarInterfaceByName(const std::string name);
   MooseMesh::MortarInterface * getMortarInterface(BoundaryID master, BoundaryID slave);
 
+  /**
+   * Setter for custom partitioner
+   */
+  void setCustomPartitioner(Partitioner * partitioner);
+
+  /**
+   * Setter and getter for _custom_partitioner_requested
+   */
+  bool isCustomPartitionerRequested() const;
+  void setIsCustomPartitionerRequested(bool cpr);
+
 protected:
   /// Can be set to PARALLEL, SERIAL, or DEFAULT.  Determines whether
   /// the underlying libMesh mesh is a SerialMesh or ParallelMesh.
@@ -698,6 +710,10 @@ protected:
   /// The partitioner used on this mesh
   MooseEnum _partitioner_name;
   bool _partitioner_overridden;
+
+  /// The custom partitioner
+  UniquePtr<Partitioner> _custom_partitioner;
+  bool _custom_partitioner_requested;
 
   /// Convenience enums
   enum {

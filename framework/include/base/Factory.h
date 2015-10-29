@@ -36,6 +36,7 @@
 
 // for backward compatibility
 #define registerKernel(name)                        registerObject(name)
+#define registerNodalKernel(name)                   registerObject(name)
 #define registerBoundaryCondition(name)             registerObject(name)
 #define registerAux(name)                           registerObject(name)
 #define registerAuxKernel(name)                     registerObject(name)
@@ -64,9 +65,11 @@
 #define registerPredictor(name)                     registerObject(name)
 #define registerSplit(name)                         registerObject(name)
 #define registerOutput(name)                        registerObject(name)
-
+#define registerControl(name)                       registerObject(name)
+#define registerPartitioner(name)                   registerObject(name)
 
 #define registerNamedKernel(obj, name)              registerNamedObject(obj, name)
+#define registerNamedNodalKernel(obj, name)         registerNamedObject(obj, name)
 #define registerNamedBoundaryCondition(obj, name)   registerNamedObject(obj, name)
 #define registerNamedAux(obj, name)                 registerNamedObject(obj, name)
 #define registerNamedAuxKernel(name)                registerNamedObject(obj, name)
@@ -94,7 +97,8 @@
 #define registerNamedPredictor(obj, name)           registerNamedObject(obj, name)
 #define registerNamedSplit(obj, name)               registerNamedObject(obj, name)
 #define registerNamedOutput(obj, name)              registerNamedObject(obj, name)
-
+#define registerNamedControl(obj, name)             registerNamedObject(obj, name)
+#define registerNamedPartitioner(obj, name)         registerNamedObject(obj, name)
 
 /**
  * Typedef to wrap shared pointer type

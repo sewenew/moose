@@ -28,6 +28,7 @@
 #include "MeshModifier.h"
 #include "DependencyResolver.h"
 #include "MooseUtils.h"
+#include "MooseObjectAction.h"
 
 // Regular expression includes
 #include "pcrecpp.h"
@@ -88,12 +89,12 @@ InputParameters validParams<MooseApp>()
   params.addParam<bool>("use_legacy_uo_aux_computation", true, "Set to true to have MOOSE recompute *all* AuxKernel types every time *any* UserObject type is executed.\nThis behavoir is non-intuitive and will be removed late fall 2014, The default is controlled through MooseApp");
   params.addParam<bool>("use_legacy_uo_initialization", true, "Set to true to have MOOSE compute all UserObjects and Postprocessors during the initial setup phase of the problem recompute *all* AuxKernel types every time *any* UserObject type is executed.\nThis behavoir is non-intuitive and will be removed late fall 2014, The default is controlled through MooseApp");
 
-
   // Options ignored by MOOSE but picked up by libMesh, these are here so that they are displayed in the application help
   params.addCommandLineParam<bool>("keep_cout", "--keep-cout", false, "Keep standard output from all processors when running in parallel");
   params.addCommandLineParam<bool>("redirect_stdout", "--redirect-stdout", false, "Keep standard output from all processors when running in parallel");
 
 
+  params.addPrivateParam<std::string>("_app_name"); // the name passed to AppFactory::create
   params.addPrivateParam<std::string>("_type");
   params.addPrivateParam<int>("_argc");
   params.addPrivateParam<char**>("_argv");
@@ -103,16 +104,10 @@ InputParameters validParams<MooseApp>()
   return params;
 }
 
-// Free function for removing cli flags
-bool isFlag(const std::string s)
-{
-  return s.length() && s[0] == '-';
-}
-
 MooseApp::MooseApp(InputParameters parameters) :
     ConsoleStreamInterface(*this),
     ParallelObject(*parameters.get<MooseSharedPointer<Parallel::Communicator> >("_comm")), // Can't call getParam() before pars is set
-    _name(parameters.get<std::string>("name")),
+    _name(parameters.get<std::string>("_app_name")),
     _pars(parameters),
     _comm(getParam<MooseSharedPointer<Parallel::Communicator> >("_comm")),
     _output_position_set(false),
@@ -123,8 +118,7 @@ MooseApp::MooseApp(InputParameters parameters) :
     _action_factory(*this),
     _action_warehouse(*this, _syntax, _action_factory),
     _parser(*this, _action_warehouse),
-    _use_nonlinear(true),
-    _enable_unused_check(WARN_UNUSED),
+    _use_nonlinear(true),_enable_unused_check(WARN_UNUSED),
     _factory(*this),
     _error_overridden(false),
     _ready_to_exit(false),
@@ -135,7 +129,6 @@ MooseApp::MooseApp(InputParameters parameters) :
     _half_transient(false),
     _legacy_uo_aux_computation_default(getParam<bool>("use_legacy_uo_aux_computation")),
     _legacy_uo_initialization_default(getParam<bool>("use_legacy_uo_initialization")),
-    _legacy_constructors(false),
     _check_input(getParam<bool>("check_input")),
     _restartable_data(libMesh::n_threads()),
     _multiapp_level(0)
@@ -173,7 +166,7 @@ MooseApp::setupOptions()
 {
   // Print the header, this is as early as possible
   std::string hdr = header();
-  if (multiappLevel() > 0)
+  if (multiAppLevel() > 0)
     MooseUtils::indentMessage(_name, hdr);
   Moose::out << hdr << std::endl;
 
@@ -326,72 +319,16 @@ MooseApp::runInputFile()
 
   if (error_unused || warn_unused)
   {
-    // Check the input file parameters
-    std::vector<std::string> all_vars = _parser.getPotHandle()->get_variable_names();
-    _parser.checkUnidentifiedParams(all_vars, error_unused, true);
-
-    // Check the CLI parameters
-    all_vars = _command_line->getPot()->get_variable_names();
-    // Remove flags, they aren't "input" parameters
-    all_vars.erase( std::remove_if(all_vars.begin(), all_vars.end(), isFlag), all_vars.end() );
-
     MooseSharedPointer<FEProblem> fe_problem= _action_warehouse.problem();
     if (fe_problem.get() && name() == "main")
     {
-      // Make sure that multiapp overrides were processed properly
-      int last = all_vars.size() - 1;                      // last is allowed to go negative
-      for (int i = 0; i <= last; /* no increment */)       // i is an int because last is an int
-      {
-        std::string multi_app, variable;
-        int app_num;
+      // Check the CLI parameters
+      std::vector<std::string> all_vars = _command_line->getPot()->get_variable_names();
+      _parser.checkUnidentifiedParams(all_vars, error_unused, false, fe_problem);
 
-        /**
-         * Command line parameters that contain a colon are assumed to apply to MultiApps
-         * (e.g.  MultiApp_name[num]:fully_qualified_parameter)
-         *
-         * Note: Two separate regexs are used since the digit part is optional. Attempting
-         * to have an optional capture into a non-string type will cause pcrecpp to report
-         * false. Capturing into a string an converting is more work than just using two
-         * regexs to begin with.
-         */
-        if (pcrecpp::RE("(.*?)"                                             // Match the MultiApp name
-                        "(\\d+)"                                            // MultiApp number (leave off to apply to all MultiApps with this name)
-                        ":"                                                 // the colon delimiter
-                        "(.*)"                                              // the variable override that applies to the MultiApp
-              ).FullMatch(all_vars[i], &multi_app, &app_num, &variable) &&
-            fe_problem->hasMultiApp(multi_app) &&                           // Make sure the MultiApp exists
-                                                                            // Finally make sure the number is in range (if provided)
-            static_cast<unsigned int>(app_num) < fe_problem->getMultiApp(multi_app)->numGlobalApps())
-
-
-          // delete the current item by copying the last item to this position and decrementing the vector end position
-          all_vars[i] = all_vars[last--];
-
-        else if (pcrecpp::RE("(.*?)"                                        // Same as above without the MultiApp number
-                             ":"
-                             "(.*)"
-                   ).FullMatch(all_vars[i], &multi_app, &variable) &&
-                 fe_problem->hasMultiApp(multi_app))                        // Make sure the MultiApp exists but no need to check numbers
-
-          // delete (see comment above)
-          all_vars[i] = all_vars[last--];
-
-
-        // TODO: check to see if globals are unused
-        else if (all_vars[i].find(":") == 0)
-          all_vars[i] = all_vars[last--];
-
-        else
-          // only increment if we didn't "delete", otherwise we'll need to revisit the current index due to copy
-          ++i;
-      }
-
-      mooseAssert(last + 1 >= 0, "index \"last\" is negative");
-
-      // Remove the deleted items
-      all_vars.resize(last+1);
-
-      _parser.checkUnidentifiedParams(all_vars, error_unused, false);
+      // Check the input file parameters
+      all_vars = _parser.getPotHandle()->get_variable_names();
+      _parser.checkUnidentifiedParams(all_vars, error_unused, true, fe_problem);
     }
   }
 
@@ -427,6 +364,24 @@ MooseApp::executeExecutioner()
     mooseError("No executioner was specified (go fix your input file)");
 }
 
+bool
+MooseApp::isRecovering() const
+{
+  return _recover;
+}
+
+bool
+MooseApp::isRestarting() const
+{
+  return _restart;
+}
+
+bool
+MooseApp::hasRecoverFileBase()
+{
+  return !_recover_base.empty();
+}
+
 void
 MooseApp::meshOnly(std::string mesh_file_name)
 {
@@ -436,6 +391,8 @@ MooseApp::meshOnly(std::string mesh_file_name)
    */
   _action_warehouse.executeActionsWithAction("set_global_params");
   _action_warehouse.executeActionsWithAction("setup_mesh");
+  _action_warehouse.executeActionsWithAction("add_partitioner");
+  _action_warehouse.executeActionsWithAction("init_mesh");
   _action_warehouse.executeActionsWithAction("prepare_mesh");
   _action_warehouse.executeActionsWithAction("add_mesh_modifier");
   _action_warehouse.executeActionsWithAction("execute_mesh_modifiers");
@@ -486,7 +443,7 @@ MooseApp::registerRecoverableData(std::string name)
 MooseSharedPointer<Backup>
 MooseApp::backup()
 {
-  FEProblem & fe_problem = static_cast<FEProblem &>(_executioner->problem());
+  FEProblem & fe_problem = _executioner->feProblem();
 
   RestartableDataIO rdio(fe_problem);
 
@@ -494,13 +451,21 @@ MooseApp::backup()
 }
 
 void
-MooseApp::restore(MooseSharedPointer<Backup> backup)
+MooseApp::restore(MooseSharedPointer<Backup> backup, bool for_restart)
 {
-  FEProblem & fe_problem = static_cast<FEProblem &>(_executioner->problem());
+  // This means that a Backup is coming through to use for restart / recovery
+  // We should just cache it for now
+  if (!_executioner)
+  {
+    _cached_backup = backup;
+    return;
+  }
+
+  FEProblem & fe_problem = _executioner->feProblem();
 
   RestartableDataIO rdio(fe_problem);
 
-  rdio.restoreBackup(backup);
+  rdio.restoreBackup(backup, for_restart);
 }
 
 void
@@ -550,6 +515,57 @@ MooseApp::setOutputPosition(Point p)
 
   if (_executioner.get() != NULL)
     _executioner->parentOutputPositionChanged();
+}
+
+std::list<std::string>
+MooseApp::getCheckpointFiles()
+{
+  // Extract the CommonOutputAction
+  const Action* common = _action_warehouse.getActionsByName("common_output")[0];
+
+  // Storage for the directory names
+  std::list<std::string> checkpoint_dirs;
+
+  // If file_base is set in CommonOutputAction, add this file to the list of potential checkpoint files
+  if (common->isParamValid("file_base"))
+    checkpoint_dirs.push_back(common->getParam<std::string>("file_base") + "_cp");
+  // Case for normal application or master in a Multiapp setting
+  else if (getOutputFileBase().empty())
+    checkpoint_dirs.push_back(FileOutput::getOutputFileBase(*this, "_out_cp"));
+  // Case for a sub app in a Multiapp setting
+  else
+    checkpoint_dirs.push_back(getOutputFileBase() + "_cp");
+
+  // Add the directories from any existing checkpoint objects
+  const std::vector<Action *> actions = _action_warehouse.getActionsByName("add_output");
+  for (std::vector<Action *>::const_iterator it = actions.begin(); it != actions.end(); ++it)
+  {
+    // Get the parameters from the MooseObjectAction
+    MooseObjectAction * moose_object_action = static_cast<MooseObjectAction *>(*it);
+    const InputParameters & params = moose_object_action->getObjectParams();
+
+    // Loop through the actions and add the necessary directories to the list to check
+    if (moose_object_action->getParam<std::string>("type") == "Checkpoint")
+    {
+      if (params.isParamValid("file_base"))
+        checkpoint_dirs.push_back(common->getParam<std::string>("file_base") + "_cp");
+      else
+      {
+        std::ostringstream oss;
+        oss << "_" << (*it)->getShortName() << "_cp";
+        checkpoint_dirs.push_back(FileOutput::getOutputFileBase(*this, oss.str()));
+      }
+    }
+  }
+
+  return MooseUtils::getFilesInDirs(checkpoint_dirs);
+}
+
+void
+MooseApp::setStartTime(const Real time)
+{
+  _start_time_set = true;
+  _start_time = time;
 }
 
 std::string
@@ -890,4 +906,31 @@ MooseApp::executeMeshModifiers()
 
   // Clear the modifiers, they are not used again during the simulation
   _mesh_modifiers.clear();
+}
+
+void
+MooseApp::setRestart(const bool & value)
+{
+  _restart = value;
+
+  MooseSharedPointer<FEProblem> fe_problem = _action_warehouse.problem();
+}
+
+void
+MooseApp::setRecover(const bool & value)
+{
+  _recover = value;
+}
+
+
+void
+MooseApp::restoreCachedBackup()
+{
+  if (!_cached_backup.get())
+    mooseError("No cached Backup to restore!");
+
+  restore(_cached_backup, isRestarting());
+
+  // Release our hold on this Backup
+  _cached_backup.reset();
 }

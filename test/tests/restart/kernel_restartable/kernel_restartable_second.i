@@ -40,7 +40,6 @@
 [Executioner]
   # Preconditioned JFNK (default)
   type = Transient
-  restart_file_base = kernel_restartable_restart_cp/0005
   num_steps = 5
   dt = 1e-2
   solve_type = PJFNK
@@ -49,8 +48,9 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  print_linear_residuals = true
-  print_perf_log = true
+[]
+
+[Problem]
+  restart_file_base = kernel_restartable_restart_cp/LATEST
 []

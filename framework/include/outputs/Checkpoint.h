@@ -42,9 +42,6 @@ struct CheckpointFileNames
   /// Filename for EquationsSystems::write
   std::string system;
 
-  /// Filename for stateful material property file
-  std::string material;
-
   /// Filename for restartable data filename
   std::string restart;
 };
@@ -58,7 +55,6 @@ public:
 
   /**
    * Class constructor
-   * @param name
    * @param parameters
    */
   Checkpoint(const InputParameters & parameters);

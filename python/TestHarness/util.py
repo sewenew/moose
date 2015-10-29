@@ -22,7 +22,7 @@ LIBMESH_OPTIONS = {
       'FALSE' : '0'
       }
                      },
-  'dtk' :          { 're_option' : r'#define\s+LIBMESH_HAVE_DTK\s+(\d+)',
+  'dtk' :          { 're_option' : r'#define\s+LIBMESH_TRILINOS_HAVE_DTK\s+(\d+)',
                      'default'   : 'FALSE',
                      'options'   :
                        {
@@ -58,6 +58,14 @@ LIBMESH_OPTIONS = {
   'petsc_debug'  : { 're_option' : r'#define\s+LIBMESH_PETSC_USE_DEBUG\s+(\d+)',
                      'default'   : 'FALSE',
                      'options'   : {'TRUE'  : '1', 'FALSE' : '0'}
+                   },
+  'curl' :         { 're_option' : r'#define\s+LIBMESH_HAVE_CURL\s+(\d+)',
+                     'default'   : 'FALSE',
+                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
+                   },
+  'tbb' :          { 're_option' : r'#define\s+LIBMESH_HAVE_TBB_API\s+(\d+)',
+                     'default'   : 'FALSE',
+                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
                    },
 }
 

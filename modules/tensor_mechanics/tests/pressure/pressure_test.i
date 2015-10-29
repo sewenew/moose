@@ -77,7 +77,7 @@
     boundary = 6
     value = 0.0
   [../]
-  [./PressureTM]
+  [./Pressure]
     [./Side1]
       boundary = 1
       function = rampConstant
@@ -134,9 +134,6 @@
 []
 
 [Outputs]
-  output_initial = true
-  print_linear_residuals = true
-  print_perf_log = true
   [./out]
     type = Exodus
     elemental_as_nodal = true

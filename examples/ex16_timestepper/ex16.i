@@ -88,13 +88,7 @@
 
 [Executioner]
   type = Transient
-
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
   num_steps = 40
 
   # Use our custom TimeStepper
@@ -107,8 +101,5 @@
 []
 
 [Outputs]
-  file_base = out
   exodus = true
-  print_linear_residuals = true
-  print_perf_log = true
 []

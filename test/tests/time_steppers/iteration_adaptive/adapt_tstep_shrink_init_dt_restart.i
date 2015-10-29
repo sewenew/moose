@@ -51,7 +51,6 @@
     linear_iteration_ratio = 1
     dt = 2.0
   [../]
-  restart_file_base = adapt_tstep_shrink_init_dt_out_cp/0005
 []
 
 [Postprocessors]
@@ -61,6 +60,10 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  print_linear_residuals = true
+[]
+
+[Problem]
+  restart_file_base = adapt_tstep_shrink_init_dt_out_cp/LATEST
 []

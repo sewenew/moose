@@ -59,7 +59,6 @@
     time_t = '0.0, 5.0'
     time_dt = '1.0, 5.0'
   [../]
-  restart_file_base = adapt_tstep_grow_dtfunc_out_cp/0003
 []
 
 [Postprocessors]
@@ -69,9 +68,10 @@
 []
 
 [Outputs]
-  output_initial = true
   exodus = true
-  print_linear_residuals = true
   checkpoint = true
 []
 
+[Problem]
+  restart_file_base = adapt_tstep_grow_dtfunc_out_cp/0003
+[]

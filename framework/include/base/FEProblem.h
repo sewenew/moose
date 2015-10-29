@@ -224,6 +224,11 @@ public:
   unsigned int getMaxQps() const;
 
   /**
+   * @return The maximum number of quadrature points in use on any element in this problem.
+   */
+  unsigned int getMaxShapeFunctions() const;
+
+  /**
    * @return The maximum order for all scalar variables in this problem's systems.
    */
   Order getMaxScalarOrder() const;
@@ -257,6 +262,7 @@ public:
   virtual void reinitNode(const Node * node, THREAD_ID tid);
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid);
   virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid);
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid);
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid);
@@ -391,6 +397,7 @@ public:
   void addVariable(const std::string & var_name, const FEType & type, Real scale_factor, const std::set< SubdomainID > * const active_subdomains = NULL);
   void addScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1., const std::set< SubdomainID > * const active_subdomains = NULL);
   void addKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
+  void addNodalKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addScalarKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addBoundaryCondition(const std::string & bc_name, const std::string & name, InputParameters parameters);
   void addConstraint(const std::string & c_name, const std::string & name, InputParameters parameters);
@@ -485,31 +492,28 @@ public:
   /**
    * Check existence of the postprocessor.
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return true if it exists, otherwise false
    */
-  bool hasPostprocessor(const std::string & name, THREAD_ID tid = 0);
+  bool hasPostprocessor(const std::string & name);
 
   /**
    * Get a reference to the value associated with the postprocessor.
    */
-  PostprocessorValue & getPostprocessorValue(const PostprocessorName & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValue(const PostprocessorName & name);
 
   /**
    * Get the reference to the old value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return The reference to the old value
    */
-  PostprocessorValue & getPostprocessorValueOld(const std::string & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValueOld(const std::string & name);
 
   /**
    * Get the reference to the older value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return The reference to the old value
    */
-  PostprocessorValue & getPostprocessorValueOlder(const std::string & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValueOlder(const std::string & name);
 
   /**
    * Get a reference to the PostprocessorWarehouse ExecStore object
@@ -536,13 +540,16 @@ public:
 
   /**
    * Get a reference to the value associated with the VectorPostprocessor.
+   * @param name The name of the post-processor
+   * @param vector_name The name of the post-processor
+   * @return The reference to the current value
    */
   VectorPostprocessorValue & getVectorPostprocessorValue(const VectorPostprocessorName & name, const std::string & vector_name);
 
   /**
    * Get the reference to the old value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
+   * @param vector_name The name of the post-processor
    * @return The reference to the old value
    */
   VectorPostprocessorValue & getVectorPostprocessorValueOld(const std::string & name, const std::string & vector_name);
@@ -604,8 +611,9 @@ public:
 
   /**
    * Restore the MultiApps associated with the ExecFlagType
+   * @param force Force restoration because something went wrong with the solve
    */
-  void restoreMultiApps(ExecFlagType type);
+  void restoreMultiApps(ExecFlagType type, bool force=false);
 
   /**
    * Find the smallest timestep over all MultiApps
@@ -939,7 +947,7 @@ protected:
   std::vector<MarkerWarehouse> _markers;
 
   // postprocessors
-  std::vector<PostprocessorData*> _pps_data;
+  PostprocessorData _pps_data;
   ExecStore<PostprocessorWarehouse> _pps;
 
   // VectorPostprocessors
@@ -1030,6 +1038,9 @@ protected:
 
   /// Maximum number of quadrature points used in the problem
   unsigned int _max_qps;
+
+  /// Maximum number of shape functions on any element in the problem
+  unsigned int _max_shape_funcs;
 
   /// Maximum scalar variable order
   Order _max_scalar_order;

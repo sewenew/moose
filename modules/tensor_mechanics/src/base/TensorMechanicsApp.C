@@ -9,16 +9,19 @@
 #include "AppFactory.h"
 
 #include "TensorMechanicsAction.h"
+#include "DynamicTensorMechanicsAction.h"
 #include "TensorMechanicsAxisymmetricRZAction.h"
-#include "PressureActionTM.h"
 #include "PoroMechanicsAction.h"
+#include "PressureAction.h"
 
 #include "StressDivergenceTensors.h"
 #include "CosseratStressDivergenceTensors.h"
 #include "StressDivergenceRZTensors.h"
 #include "MomentBalancing.h"
-#include "GravityTM.h"
 #include "PoroMechanicsCoupling.h"
+#include "InertialForce.h"
+#include "Gravity.h"
+#include "DynamicStressDivergenceTensors.h"
 
 #include "LinearElasticMaterial.h"
 #include "FiniteStrainElasticMaterial.h"
@@ -26,12 +29,14 @@
 #include "FiniteStrainRatePlasticMaterial.h"
 #include "FiniteStrainMohrCoulomb.h"
 #include "FiniteStrainCrystalPlasticity.h"
+#include "FiniteStrainCPSlipRateRes.h"
 #include "ComputeMultiPlasticityStress.h"
 #include "CosseratLinearElasticMaterial.h"
 #include "ElementPropertyReadFileTest.h"
 #include "TwoPhaseStressMaterial.h"
 #include "MultiPhaseStressMaterial.h"
 #include "SimpleEigenStrainMaterial.h"
+#include "CompositeElasticityTensor.h"
 #include "ComputeElasticityTensor.h"
 #include "ComputeIsotropicElasticityTensor.h"
 #include "ComputeSmallStrain.h"
@@ -58,6 +63,7 @@
 #include "TensorMechanicsPlasticWeakPlaneTensileN.h"
 #include "TensorMechanicsPlasticWeakPlaneShear.h"
 #include "TensorMechanicsPlasticJ2.h"
+#include "TensorMechanicsPlasticMeanCap.h"
 #include "TensorMechanicsHardeningConstant.h"
 #include "TensorMechanicsHardeningGaussian.h"
 #include "TensorMechanicsHardeningExponential.h"
@@ -75,9 +81,10 @@
 #include "CrystalPlasticityRotationOutAux.h"
 #include "RankTwoScalarAux.h"
 #include "StressDivergencePFFracTensors.h"
+#include "NewmarkAccelAux.h"
+#include "NewmarkVelAux.h"
 
-#include "PressureTM.h"
-
+#include "Pressure.h"
 
 template<>
 InputParameters validParams<TensorMechanicsApp>()
@@ -85,7 +92,6 @@ InputParameters validParams<TensorMechanicsApp>()
   InputParameters params = validParams<MooseApp>();
   params.set<bool>("use_legacy_uo_initialization") = false;
   params.set<bool>("use_legacy_uo_aux_computation") = false;
-
   return params;
 }
 
@@ -121,8 +127,10 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerKernel(StressDivergenceRZTensors);
   registerKernel(MomentBalancing);
   registerKernel(StressDivergencePFFracTensors);
-  registerKernel(GravityTM);
   registerKernel(PoroMechanicsCoupling);
+  registerKernel(InertialForce);
+  registerKernel(Gravity);
+  registerKernel(DynamicStressDivergenceTensors);
 
   registerMaterial(LinearElasticMaterial);
   registerMaterial(FiniteStrainElasticMaterial);
@@ -130,12 +138,14 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerMaterial(FiniteStrainMohrCoulomb);
   registerMaterial(FiniteStrainRatePlasticMaterial);
   registerMaterial(FiniteStrainCrystalPlasticity);
+  registerMaterial(FiniteStrainCPSlipRateRes);
   registerMaterial(ComputeMultiPlasticityStress);
   registerMaterial(CosseratLinearElasticMaterial);
   registerMaterial(ElementPropertyReadFileTest);
   registerMaterial(TwoPhaseStressMaterial);
   registerMaterial(MultiPhaseStressMaterial);
   registerMaterial(SimpleEigenStrainMaterial);
+  registerMaterial(CompositeElasticityTensor);
   registerMaterial(ComputeElasticityTensor);
   registerMaterial(ComputeIsotropicElasticityTensor);
   registerMaterial(ComputeSmallStrain);
@@ -162,6 +172,7 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerUserObject(TensorMechanicsPlasticWeakPlaneTensileN);
   registerUserObject(TensorMechanicsPlasticWeakPlaneShear);
   registerUserObject(TensorMechanicsPlasticJ2);
+  registerUserObject(TensorMechanicsPlasticMeanCap);
   registerUserObject(TensorMechanicsHardeningConstant);
   registerUserObject(TensorMechanicsHardeningGaussian);
   registerUserObject(TensorMechanicsHardeningExponential);
@@ -178,8 +189,10 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerAux(TensorElasticEnergyAux);
   registerAux(CrystalPlasticityRotationOutAux);
   registerAux(RankTwoScalarAux);
+  registerAux(NewmarkAccelAux);
+  registerAux(NewmarkVelAux);
 
-  registerBoundaryCondition(PressureTM);
+  registerBoundaryCondition(Pressure);
 }
 
 // External entry point for dynamic syntax association
@@ -188,15 +201,16 @@ void
 TensorMechanicsApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
 {
   syntax.registerActionSyntax("TensorMechanicsAction", "Kernels/TensorMechanics");
-
-  syntax.registerActionSyntax("EmptyAction", "BCs/PressureTM");
-  syntax.registerActionSyntax("PressureActionTM", "BCs/PressureTM/*");
-
+  syntax.registerActionSyntax("DynamicTensorMechanicsAction", "Kernels/DynamicTensorMechanics");
   syntax.registerActionSyntax("PoroMechanicsAction", "Kernels/PoroMechanics");
   syntax.registerActionSyntax("TensorMechanicsAxisymmetricRZAction", "Kernels/AxisymmetricRZ");
 
+  syntax.registerActionSyntax("EmptyAction", "BCs/Pressure");
+  syntax.registerActionSyntax("PressureAction", "BCs/Pressure/*");
+
   registerAction(TensorMechanicsAction, "add_kernel");
-  registerAction(PressureActionTM, "add_bc");
+  registerAction(DynamicTensorMechanicsAction, "add_kernel");
   registerAction(PoroMechanicsAction, "add_kernel");
   registerAction(TensorMechanicsAxisymmetricRZAction, "add_kernel");
+  registerAction(PressureAction, "add_bc");
 }

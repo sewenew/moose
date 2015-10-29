@@ -54,7 +54,6 @@
 
 [Executioner]
   type = Transient
-  restart_file_base = solution_aux_exodus_interp_restart1_out_cp/0005
   solve_type = NEWTON
   l_max_its = 800
   nl_rel_tol = 1e-10
@@ -65,6 +64,10 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  print_perf_log = true
+[]
+
+[Problem]
+  restart_file_base = solution_aux_exodus_interp_restart1_out_cp/0005
 []

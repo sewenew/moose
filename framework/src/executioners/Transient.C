@@ -86,18 +86,18 @@ InputParameters validParams<Transient>()
 
 Transient::Transient(const InputParameters & parameters) :
     Executioner(parameters),
-    _problem(*parameters.getCheckedPointerParam<FEProblem *>("_fe_problem", "This might happen if you don't have a mesh")),
+    _problem(_fe_problem),
     _time_scheme(getParam<MooseEnum>("scheme")),
     _t_step(_problem.timeStep()),
     _time(_problem.time()),
     _time_old(_problem.timeOld()),
     _dt(_problem.dt()),
     _dt_old(_problem.dtOld()),
-    _unconstrained_dt(declareRestartableData<Real>("unconstrained_dt", -1)),
-    _at_sync_point(declareRestartableData<bool>("at_sync_point", false)),
+    _unconstrained_dt(declareRecoverableData<Real>("unconstrained_dt", -1)),
+    _at_sync_point(declareRecoverableData<bool>("at_sync_point", false)),
     _first(declareRecoverableData<bool>("first", true)),
-    _multiapps_converged(declareRestartableData<bool>("multiapps_converged", true)),
-    _last_solve_converged(declareRestartableData<bool>("last_solve_converged", true)),
+    _multiapps_converged(declareRecoverableData<bool>("multiapps_converged", true)),
+    _last_solve_converged(declareRecoverableData<bool>("last_solve_converged", true)),
     _end_time(getParam<Real>("end_time")),
     _dtmin(getParam<Real>("dtmin")),
     _dtmax(getParam<Real>("dtmax")),
@@ -107,20 +107,20 @@ Transient::Transient(const InputParameters & parameters) :
     _trans_ss_check(getParam<bool>("trans_ss_check")),
     _ss_check_tol(getParam<Real>("ss_check_tol")),
     _ss_tmin(getParam<Real>("ss_tmin")),
-    _old_time_solution_norm(declareRestartableData<Real>("old_time_solution_norm", 0.0)),
+    _old_time_solution_norm(declareRecoverableData<Real>("old_time_solution_norm", 0.0)),
     _sync_times(_app.getOutputWarehouse().getSyncTimes()),
     _abort(getParam<bool>("abort_on_solve_fail")),
-    _time_interval(declareRestartableData<bool>("time_interval", false)),
+    _time_interval(declareRecoverableData<bool>("time_interval", false)),
     _start_time(getParam<Real>("start_time")),
     _timestep_tolerance(getParam<Real>("timestep_tolerance")),
-    _target_time(declareRestartableData<Real>("target_time", -1)),
+    _target_time(declareRecoverableData<Real>("target_time", -1)),
     _use_multiapp_dt(getParam<bool>("use_multiapp_dt")),
-    _picard_it(declareRestartableData<int>("picard_it", 0)),
+    _picard_it(declareRecoverableData<int>("picard_it", 0)),
     _picard_max_its(getParam<unsigned int>("picard_max_its")),
-    _picard_converged(declareRestartableData<bool>("picard_converged", false)),
-    _picard_initial_norm(declareRestartableData<Real>("picard_initial_norm", 0.0)),
-    _picard_timestep_begin_norm(declareRestartableData<Real>("picard_timestep_begin_norm", 0.0)),
-    _picard_timestep_end_norm(declareRestartableData<Real>("picard_timestep_end_norm", 0.0)),
+    _picard_converged(declareRecoverableData<bool>("picard_converged", false)),
+    _picard_initial_norm(declareRecoverableData<Real>("picard_initial_norm", 0.0)),
+    _picard_timestep_begin_norm(declareRecoverableData<Real>("picard_timestep_begin_norm", 0.0)),
+    _picard_timestep_end_norm(declareRecoverableData<Real>("picard_timestep_end_norm", 0.0)),
     _picard_rel_tol(getParam<Real>("picard_rel_tol")),
     _picard_abs_tol(getParam<Real>("picard_abs_tol")),
     _verbose(getParam<bool>("verbose"))
@@ -133,7 +133,7 @@ Transient::Transient(const InputParameters & parameters) :
   // Either a start_time has been forced on us, or we want to tell the App about what our start time is (in case anyone else is interested.
   if (_app.hasStartTime())
     _start_time = _app.getStartTime();
-  else
+  else if (parameters.paramSetByUser("start_time"))
     _app.setStartTime(_start_time);
 
   _time = _time_old = _start_time;
@@ -225,6 +225,18 @@ Transient::init()
 }
 
 void
+Transient::preStep()
+{
+  _time_stepper->preStep();
+}
+
+void
+Transient::postStep()
+{
+  _time_stepper->postStep();
+}
+
+void
 Transient::execute()
 {
 
@@ -248,11 +260,11 @@ Transient::execute()
     if (!keepGoing())
       break;
 
+    preStep();
     computeDT();
-
     takeStep();
-
     endStep();
+    postStep();
 
     _steps_taken++;
   }
@@ -271,7 +283,7 @@ Transient::computeDT()
 void
 Transient::incrementStepOrReject()
 {
-  if (_last_solve_converged)
+  if (lastSolveConverged())
   {
 #ifdef LIBMESH_ENABLE_AMR
     if (_problem.adaptivity().isOn())
@@ -282,11 +294,20 @@ Transient::incrementStepOrReject()
     _t_step++;
 
     _problem.advanceState();
+
+    // Advance (and Output) MultiApps if we were doing Picard iterations
+    if (_picard_max_its > 1)
+    {
+      _problem.advanceMultiApps(EXEC_TIMESTEP_BEGIN);
+      _problem.advanceMultiApps(EXEC_TIMESTEP_END);
+    }
   }
   else
   {
-    _problem.restoreMultiApps(EXEC_TIMESTEP_BEGIN);
-    _problem.restoreMultiApps(EXEC_TIMESTEP_END);
+    _console<<"\nRestoring Multiapps Because of solve failure!"<<std::endl;
+
+    _problem.restoreMultiApps(EXEC_TIMESTEP_BEGIN, true);
+    _problem.restoreMultiApps(EXEC_TIMESTEP_END, true);
     _time_stepper->rejectStep();
     _time = _time_old;
   }
@@ -326,6 +347,11 @@ Transient::takeStep(Real input_dt)
     }
 
     solveStep(input_dt);
+
+    // If the last solve didn't converge then we need to exit this step completely (even in the case of Picard)
+    // So we can retry...
+    if (!lastSolveConverged())
+      return;
 
     if (_picard_max_its > 1)
     {
@@ -459,13 +485,6 @@ Transient::endStep(Real input_time)
 
     // Perform the output of the current time step
     _problem.outputStep(EXEC_TIMESTEP_END);
-
-    // Output MultiApps if we were doing Picard iterations
-    if (_picard_max_its > 1)
-    {
-      _problem.advanceMultiApps(EXEC_TIMESTEP_BEGIN);
-      _problem.advanceMultiApps(EXEC_TIMESTEP_END);
-    }
 
     //output
     if (_time_interval && (_time + _timestep_tolerance >= _next_interval_output_time))
@@ -687,12 +706,6 @@ Transient::postExecute()
   _time_stepper->postExecute();
 }
 
-Problem &
-Transient::problem()
-{
-  return _problem;
-}
-
 void
 Transient::setTargetTime(Real target_time)
 {
@@ -725,8 +738,8 @@ Transient::setupTimeIntegrator()
     case 1: ti_str = "ExplicitEuler"; break;
     case 2: ti_str = "CrankNicolson"; break;
     case 3: ti_str = "BDF2"; break;
-    case 4: ti_str = "RungeKutta2"; break;
-    case 5: ti_str = "Dirk"; mooseError("Dirk requires parameters, please use the TimeIntegrator block instead of the \"scheme\" parameter."); break;
+    case 4: ti_str = "ExplicitMidpoint"; break;
+    case 5: ti_str = "LStableDirk2"; break;
     default: mooseError("Unknown scheme"); break;
     }
 
@@ -738,9 +751,11 @@ Transient::setupTimeIntegrator()
 std::string
 Transient::getTimeStepperName()
 {
-  if (_time_stepper.get())
-    return demangle(typeid(*_time_stepper).name());
+  if (_time_stepper)
+  {
+    TimeStepper & ts = *_time_stepper;
+    return demangle(typeid(ts).name());
+  }
   else
     return std::string();
 }
-

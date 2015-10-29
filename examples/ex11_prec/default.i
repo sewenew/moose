@@ -70,22 +70,9 @@
 
 [Executioner]
   type = Steady
-
-#  petsc_options = '-snes_mf'
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
-#  petsc_options_iname = '-pc_type'
-#  petsc_options_value = 'lu'
 []
 
 [Outputs]
-  file_base = out
-  output_initial = true
   exodus = true
-  print_linear_residuals = true
-  print_perf_log = true
 []

@@ -123,6 +123,7 @@ FEProblem::FEProblem(const InputParameters & parameters) :
     _cm(NULL),
     _material_props(declareRestartableDataWithContext<MaterialPropertyStorage>("material_props", &_mesh)),
     _bnd_material_props(declareRestartableDataWithContext<MaterialPropertyStorage>("bnd_material_props", &_mesh)),
+    _pps_data(*this),
 #ifdef LIBMESH_ENABLE_AMR
     _adaptivity(*this),
 #endif
@@ -141,6 +142,7 @@ FEProblem::FEProblem(const InputParameters & parameters) :
     _kernel_coverage_check(false),
     _material_coverage_check(false),
     _max_qps(std::numeric_limits<unsigned int>::max()),
+    _max_shape_funcs(std::numeric_limits<unsigned int>::max()),
     _max_scalar_order(INVALID_ORDER),
     _has_time_integrator(false),
     _has_exception(false),
@@ -197,11 +199,6 @@ FEProblem::FEProblem(const InputParameters & parameters) :
     _neighbor_material_data[i] = new MaterialData(_bnd_material_props);
   }
 
-  _pps_data.resize(n_threads);
-
-  for (unsigned int i=0; i<n_threads; i++)
-    _pps_data[i] = new PostprocessorData(*this, i);
-
   _vpps_data.resize(n_threads);
 
   for (unsigned int i=0; i<n_threads; i++)
@@ -241,9 +238,6 @@ FEProblem::~FEProblem()
   }
 
   delete &_nl;
-
-  for (unsigned int i=0; i<n_threads; i++)
-    delete _pps_data[i];
 
   for (unsigned int i=0; i<n_threads; i++)
     delete _vpps_data[i];
@@ -325,10 +319,10 @@ void FEProblem::initialSetup()
   // Flush all output to _console that occur during construction and initialization of objects
   _app.getOutputWarehouse().mooseConsole();
 
-  if (_app.isRecovering())
+  if (_app.isRecovering() && _app.isUltimateMaster())
     _resurrector->setRestartFile(_app.getRecoverFileBase());
 
-  if (_app.isRestarting() || _app.isRecovering())
+  if ((_app.isRestarting() || _app.isRecovering()) && _app.isUltimateMaster())
     _resurrector->restartFromFile();
   else
   {
@@ -358,6 +352,9 @@ void FEProblem::initialSetup()
      */
     if (_mesh.uniformRefineLevel() > 0 && _app.setFileRestart())
     {
+      if (!_app.isUltimateMaster())
+        mooseError("Doing extra refinements when restarting is NOT supported for sub-apps of a MultiApp");
+
       Moose::setup_perf_log.push("Uniformly Refine Mesh","Setup");
       adaptivity().uniformRefineWithProjection();
       Moose::setup_perf_log.pop("Uniformly Refine Mesh","Setup");
@@ -375,8 +372,8 @@ void FEProblem::initialSetup()
   // UserObject initialSetup
   for (unsigned int i=0; i<n_threads; i++)
   {
-    _user_objects(EXEC_LINEAR)[i].updateDependObjects(_aux.getDependObjects(EXEC_RESIDUAL));
-    _user_objects(EXEC_NONLINEAR)[i].updateDependObjects(_aux.getDependObjects(EXEC_JACOBIAN));
+    _user_objects(EXEC_LINEAR)[i].updateDependObjects(_aux.getDependObjects(EXEC_LINEAR));
+    _user_objects(EXEC_NONLINEAR)[i].updateDependObjects(_aux.getDependObjects(EXEC_NONLINEAR));
     _user_objects(EXEC_TIMESTEP_END)[i].updateDependObjects(_aux.getDependObjects(EXEC_TIMESTEP_END));
     _user_objects(EXEC_TIMESTEP_BEGIN)[i].updateDependObjects(_aux.getDependObjects(EXEC_TIMESTEP_BEGIN));
     _user_objects(EXEC_INITIAL)[i].updateDependObjects(_aux.getDependObjects(EXEC_INITIAL));
@@ -419,6 +416,10 @@ void FEProblem::initialSetup()
   {
     Moose::setup_perf_log.push("initial adaptivity", "Setup");
     unsigned int n = adaptivity().getInitialSteps();
+
+    if (n && !_app.isUltimateMaster() && _app.isRestarting())
+      mooseError("Cannot perform initial adaptivity during restart on sub-apps of a MultiApp!");
+
     for (unsigned int i = 0; i < n; i++)
     {
       _console << "Initial adaptivity step " << i+1 << " of " << n << std::endl;
@@ -499,6 +500,16 @@ void FEProblem::initialSetup()
        ++it)
     it->second->updateSeeds(EXEC_INITIAL);
 
+  if (_app.isRestarting() || _app.isRecovering())
+  {
+    if (_app.hasCachedBackup()) // This happens when this app is a sub-app and has been given a Backup
+      _app.restoreCachedBackup();
+    else
+      _resurrector->restartRestartableData();
+  }
+
+  // HUGE NOTE: MultiApp initialSetup() MUST... I repeat MUST be _after_ restartable data has been restored
+
   // Call initialSetup on the MultiApps
   _multi_apps(EXEC_LINEAR)[0].initialSetup();
   _multi_apps(EXEC_NONLINEAR)[0].initialSetup();
@@ -538,7 +549,11 @@ void FEProblem::initialSetup()
     Moose::setup_perf_log.push("Initial execMultiApps()","Setup");
     execMultiApps(EXEC_INITIAL);
     Moose::setup_perf_log.pop("Initial execMultiApps()","Setup");
+  }
 
+  // Yak is currently relying on doing this after initial Transfers
+  if (!_app.isRecovering())
+  {
     Moose::setup_perf_log.push("Initial computeUserObjects()","Setup");
 
     computeUserObjects(EXEC_INITIAL, UserObjectWarehouse::PRE_AUX);
@@ -564,16 +579,19 @@ void FEProblem::initialSetup()
 
   // Here we will initialize the stateful properties once more since they may have been updated
   // during initialSetup by calls to computeProperties.
-  if (_material_props.hasStatefulProperties() || _bnd_material_props.hasStatefulProperties())
+  //
+  // It's really bad that we don't allow this during restart.  It means that we can't add new stateful materials
+  // during restart.  This is only happening because this _has_ to be below initial userobject execution.
+  // Otherwise this could be done up above... _before_ restoring restartable data... which would allow you to have
+  // this happen during restart.  I honestly have no idea why this has to happen after initial user object computation.
+  // THAT is something we should fix... so I've opened this ticket: #5804
+  if (!_app.isRecovering() && !_app.isRestarting() && (_material_props.hasStatefulProperties() || _bnd_material_props.hasStatefulProperties()))
   {
     ConstElemRange & elem_range = *_mesh.getActiveLocalElementRange();
     ComputeMaterialsObjectThread cmt(*this, _nl, _material_data, _bnd_material_data, _neighbor_material_data,
                                      _material_props, _bnd_material_props, _materials, _assembly);
     Threads::parallel_reduce(elem_range, cmt);
   }
-
-  if (_app.isRestarting() || _app.isRecovering())
-    _resurrector->restartRestartableData();
 
   // Scalar variables need to reinited for the initial conditions to be available for output
   for (unsigned int tid = 0; tid < n_threads; tid++)
@@ -629,6 +647,14 @@ FEProblem::getMaxQps() const
   if (_max_qps == std::numeric_limits<unsigned int>::max())
     mooseError("Max QPS uninitialized");
   return _max_qps;
+}
+
+unsigned int
+FEProblem::getMaxShapeFunctions() const
+{
+  if (_max_shape_funcs == std::numeric_limits<unsigned int>::max())
+    mooseError("Max shape functions uninitialized");
+  return _max_shape_funcs;
 }
 
 Order
@@ -877,11 +903,9 @@ FEProblem::ghostGhostedBoundaries()
 }
 
 void
-FEProblem::sizeZeroes(unsigned int size, THREAD_ID tid)
+FEProblem::sizeZeroes(unsigned int /*size*/, THREAD_ID /*tid*/)
 {
-  _zero[tid].resize(size, 0);
-  _grad_zero[tid].resize(size, 0);
-  _second_zero[tid].resize(size, RealTensor(0.));
+  mooseDoOnce(mooseWarning("This function is deprecated and no longer performs any function. Please do not call it."));
 }
 
 bool
@@ -889,10 +913,27 @@ FEProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
 {
   std::vector<Point> & points = _dirac_kernel_info.getPoints()[elem];
 
-  bool have_points = points.size();
+  unsigned int n_points = points.size();
 
-  if (have_points)
+  if (n_points)
   {
+    if (n_points > _max_qps)
+    {
+      _max_qps = n_points;
+
+      /**
+       * The maximum number of qps can rise if several Dirac points are added to a single element.
+       * In that case we need to resize the zeros to compensate.
+       */
+      for (unsigned int tid = 0; tid < libMesh::n_threads(); ++tid)
+      {
+        _zero[tid].resize(getMaxQps(), 0);
+        _grad_zero[tid].resize(getMaxQps(), 0);
+        _second_zero[tid].resize(getMaxQps(), RealTensor(0.));
+        _second_phi_zero[tid].resize(getMaxQps(), std::vector<RealTensor>(getMaxShapeFunctions(), RealTensor(0.)));
+      }
+    }
+
     _assembly[tid]->reinitAtPhysical(elem, points);
 
     _nl.prepare(tid);
@@ -900,10 +941,12 @@ FEProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
 
     reinitElem(elem, tid);
   }
+
   _assembly[tid]->prepare();
 
+  bool have_points = n_points > 0;
   if (_displaced_problem != NULL && (_reinit_displaced_elem))
-    have_points = have_points || _displaced_problem->reinitDirac(_displaced_mesh->elem(elem->id()), tid);
+    have_points |= _displaced_problem->reinitDirac(_displaced_mesh->elem(elem->id()), tid);
 
   return have_points;
 }
@@ -911,8 +954,6 @@ FEProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
 void
 FEProblem::reinitElem(const Elem * elem, THREAD_ID tid)
 {
-  sizeZeroes(_assembly[tid]->qRule()->n_points(), tid);
-
   _nl.reinitElem(elem, tid);
   _aux.reinitElem(elem, tid);
 
@@ -943,8 +984,6 @@ FEProblem::reinitElemFace(const Elem * elem, unsigned int side, BoundaryID bnd_i
 {
   _assembly[tid]->reinit(elem, side);
 
-  sizeZeroes(_assembly[tid]->qRule()->n_points(), tid);
-
   _nl.reinitElemFace(elem, side, bnd_id, tid);
   _aux.reinitElemFace(elem, side, bnd_id, tid);
 
@@ -956,8 +995,6 @@ void
 FEProblem::reinitNode(const Node * node, THREAD_ID tid)
 {
   _assembly[tid]->reinit(node);
-
-  sizeZeroes(1, tid);
 
   if (_displaced_problem != NULL && _reinit_displaced_elem)
     _displaced_problem->reinitNode(&_displaced_mesh->node(node->id()), tid);
@@ -971,8 +1008,6 @@ FEProblem::reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid)
 {
   _assembly[tid]->reinit(node);
 
-  sizeZeroes(1, tid);
-
   if (_displaced_problem != NULL && _reinit_displaced_face)
     _displaced_problem->reinitNodeFace(&_displaced_mesh->node(node->id()), bnd_id, tid);
 
@@ -984,8 +1019,6 @@ FEProblem::reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid)
 void
 FEProblem::reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
 {
-  sizeZeroes(nodes.size(), tid);
-
   if (_displaced_problem != NULL && _reinit_displaced_elem)
     _displaced_problem->reinitNodes(nodes, tid);
 
@@ -994,11 +1027,19 @@ FEProblem::reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
 }
 
 void
+FEProblem::reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
+{
+  if (_displaced_problem != NULL && _reinit_displaced_elem)
+    _displaced_problem->reinitNodesNeighbor(nodes, tid);
+
+  _nl.reinitNodesNeighbor(nodes, tid);
+  _aux.reinitNodesNeighbor(nodes, tid);
+}
+
+void
 FEProblem::reinitNodeNeighbor(const Node * node, THREAD_ID tid)
 {
   _assembly[tid]->reinitNodeNeighbor(node);
-
-  sizeZeroes(1, tid);
 
   if (_displaced_problem != NULL && _reinit_displaced_elem)
     _displaced_problem->reinitNodeNeighbor(&_displaced_mesh->node(node->id()), tid);
@@ -1259,6 +1300,24 @@ FEProblem::addKernel(const std::string & kernel_name, const std::string & name, 
     parameters.set<SystemBase *>("_sys") = &_nl;
   }
   _nl.addKernel(kernel_name, name, parameters);
+}
+
+void
+FEProblem::addNodalKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters)
+{
+  parameters.set<FEProblem *>("_fe_problem") = this;
+  if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
+  {
+    parameters.set<SubProblem *>("_subproblem") = _displaced_problem.get();
+    parameters.set<SystemBase *>("_sys") = &_displaced_problem->nlSys();
+    _reinit_displaced_elem = true;
+  }
+  else
+  {
+    parameters.set<SubProblem *>("_subproblem") = this;
+    parameters.set<SystemBase *>("_sys") = &_nl;
+  }
+  _nl.addNodalKernel(kernel_name, name, parameters);
 }
 
 void
@@ -1842,16 +1901,26 @@ FEProblem::addPostprocessor(std::string pp_name, const std::string & name, Input
     if (parameters.have_parameter<std::vector<BoundaryName> >("boundary") && !parameters.have_parameter<bool>("block_restricted_nodal"))
        mat_data = _bnd_material_data[tid];
 
-    if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
-      _reinit_displaced_face = true;
-
     parameters.set<MaterialData *>("_material_data") = mat_data;
+    if (parameters.isParamValid("use_neighbor_material") && parameters.get<bool>("use_neighbor_material"))
+      parameters.set<MaterialData *>("_neighbor_material_data") = _neighbor_material_data[tid];
 
     MooseSharedPointer<MooseObject> mo = _factory.create(pp_name, name, parameters, tid);
     if (!mo)
       mooseError("Unable to determine type for Postprocessor: " + mo->name());
 
     MooseSharedPointer<Postprocessor> pp = getPostprocessorPointer(mo);
+
+    if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
+    {
+      MooseSharedPointer<ElementUserObject> euo = MooseSharedNamespace::dynamic_pointer_cast<ElementUserObject>(mo);
+      MooseSharedPointer<SideUserObject> suo = MooseSharedNamespace::dynamic_pointer_cast<SideUserObject>(mo);
+      MooseSharedPointer<NodalUserObject> nuo = MooseSharedNamespace::dynamic_pointer_cast<NodalUserObject>(mo);
+      if (euo.get() != NULL || nuo.get() != NULL)
+        _reinit_displaced_elem = true;
+      else if (suo.get() != NULL)
+        _reinit_displaced_face = true;
+    }
 
     // Postprocessor does not inherit from SetupInterface so we need to retrieve the exec_flags from the parameters directory
     const std::vector<ExecFlagType> exec_flags = Moose::vectorStringsToEnum<ExecFlagType>(parameters.get<MultiMooseEnum>("execute_on"));
@@ -1870,16 +1939,15 @@ FEProblem::addPostprocessor(std::string pp_name, const std::string & name, Input
       _user_objects(exec_flags[i])[tid].addUserObject(user_object);
     }
 
-    _pps_data[tid]->init(mo->name());
+    if (tid == 0)
+      _pps_data.init(mo->name());
   }
 }
 
 void
 FEProblem::initPostprocessorData(const std::string & name)
 {
-  for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-    _pps_data[tid]->init(name);
-
+  _pps_data.init(name);
 }
 
 ExecStore<PostprocessorWarehouse> &
@@ -1952,9 +2020,6 @@ FEProblem::addVectorPostprocessor(std::string pp_name, const std::string & name,
     if (parameters.have_parameter<std::vector<BoundaryName> >("boundary") && !parameters.have_parameter<bool>("block_restricted_nodal"))
        mat_data = _bnd_material_data[tid];
 
-    if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
-      _reinit_displaced_face = true;
-
     parameters.set<MaterialData *>("_material_data") = mat_data;
 
     MooseSharedPointer<MooseObject> mo = _factory.create(pp_name, name, parameters, tid);
@@ -1963,6 +2028,17 @@ FEProblem::addVectorPostprocessor(std::string pp_name, const std::string & name,
       mooseError("Unable to determine type for VectorPostprocessor: " + mo->name());
 
     MooseSharedPointer<VectorPostprocessor> pp = getVectorPostprocessorPointer(mo);
+
+    if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
+    {
+      MooseSharedPointer<ElementVectorPostprocessor> evp = MooseSharedNamespace::dynamic_pointer_cast<ElementVectorPostprocessor>(mo);
+      MooseSharedPointer<SideVectorPostprocessor> svp = MooseSharedNamespace::dynamic_pointer_cast<SideVectorPostprocessor>(mo);
+      MooseSharedPointer<NodalVectorPostprocessor> nvp = MooseSharedNamespace::dynamic_pointer_cast<NodalVectorPostprocessor>(mo);
+      if (evp.get() != NULL || nvp.get() != NULL)
+        _reinit_displaced_elem = true;
+      else if (svp.get() != NULL)
+        _reinit_displaced_face = true;
+    }
 
     // VectorPostprocessor does not inherit from SetupInterface so we need to retrieve the exec_flags from the parameters directory
     const std::vector<ExecFlagType> exec_flags = Moose::vectorStringsToEnum<ExecFlagType>(parameters.get<MultiMooseEnum>("execute_on"));
@@ -2007,12 +2083,21 @@ FEProblem::addUserObject(std::string user_object_name, const std::string & name,
         (parameters.have_parameter<std::vector<BoundaryName> >("boundary") && !parameters.have_parameter<bool>("block_restricted_nodal")))
        mat_data = _bnd_material_data[tid];
 
-    if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
-      _reinit_displaced_face = true;
-
     parameters.set<MaterialData *>("_material_data") = mat_data;
+    if (parameters.isParamValid("use_neighbor_material") && parameters.get<bool>("use_neighbor_material"))
+      parameters.set<MaterialData *>("_neighbor_material_data") = _neighbor_material_data[tid];
 
     MooseSharedPointer<UserObject> user_object = MooseSharedNamespace::static_pointer_cast<UserObject>(_factory.create(user_object_name, name, parameters, tid));
+    if (_displaced_problem != NULL && parameters.get<bool>("use_displaced_mesh"))
+    {
+      MooseSharedPointer<ElementUserObject> euo = MooseSharedNamespace::dynamic_pointer_cast<ElementUserObject>(user_object);
+      MooseSharedPointer<SideUserObject> suo = MooseSharedNamespace::dynamic_pointer_cast<SideUserObject>(user_object);
+      MooseSharedPointer<NodalUserObject> nuo = MooseSharedNamespace::dynamic_pointer_cast<NodalUserObject>(user_object);
+      if (euo.get() != NULL || nuo.get() != NULL)
+        _reinit_displaced_elem = true;
+      else if (suo.get() != NULL)
+        _reinit_displaced_face = true;
+    }
 
     const std::vector<ExecFlagType> & exec_flags = user_object->execFlags();
     for (unsigned int i=0; i<exec_flags.size(); ++i)
@@ -2040,27 +2125,27 @@ FEProblem::hasUserObject(const std::string & name)
 }
 
 bool
-FEProblem::hasPostprocessor(const std::string & name, THREAD_ID tid)
+FEProblem::hasPostprocessor(const std::string & name)
 {
-  return _pps_data[tid]->hasPostprocessor(name);
+  return _pps_data.hasPostprocessor(name);
 }
 
 PostprocessorValue &
-FEProblem::getPostprocessorValue(const PostprocessorName & name, THREAD_ID tid)
+FEProblem::getPostprocessorValue(const PostprocessorName & name)
 {
-  return _pps_data[tid]->getPostprocessorValue(name);
+  return _pps_data.getPostprocessorValue(name);
 }
 
 PostprocessorValue &
-FEProblem::getPostprocessorValueOld(const std::string & name, THREAD_ID tid)
+FEProblem::getPostprocessorValueOld(const std::string & name)
 {
-  return _pps_data[tid]->getPostprocessorValueOld(name);
+  return _pps_data.getPostprocessorValueOld(name);
 }
 
 PostprocessorValue &
-FEProblem::getPostprocessorValueOlder(const std::string & name, THREAD_ID tid)
+FEProblem::getPostprocessorValueOlder(const std::string & name)
 {
-  return _pps_data[tid]->getPostprocessorValueOlder(name);
+  return _pps_data.getPostprocessorValueOlder(name);
 }
 
 bool
@@ -2292,13 +2377,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
             Postprocessor * pp = getPostprocessorPointer<ElementUserObject, ElementPostprocessor>(ps);
 
             if (pp)
-            {
-              Real value = pp->getValue();
-              // store the value in each thread
-
-              for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-                _pps_data[tid]->storeValue(name, value);
-            }
+              _pps_data.storeValue(name, pp->getValue());
 
             already_gathered.insert(ps);
           }
@@ -2330,13 +2409,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
             Postprocessor * pp = getPostprocessorPointer<SideUserObject, SidePostprocessor>(ps);
 
             if (pp)
-            {
-              Real value = pp->getValue();
-
-              // store the value in each thread
-              for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-                _pps_data[tid]->storeValue(name, value);
-            }
+              _pps_data.storeValue(name, pp->getValue());
 
             already_gathered.insert(ps);
           }
@@ -2368,13 +2441,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
             Postprocessor * pp = getPostprocessorPointer<InternalSideUserObject, InternalSidePostprocessor>(it);
 
             if (pp)
-            {
-              Real value = pp->getValue();
-
-              // store the value in each thread
-              for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-                _pps_data[tid]->storeValue(pp->PPName(), value);
-            }
+              _pps_data.storeValue(pp->PPName(), pp->getValue());
 
             already_gathered.insert(it);
           }
@@ -2429,13 +2496,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
             Postprocessor * pp = getPostprocessorPointer<NodalUserObject, NodalPostprocessor>(ps);
 
             if (pp)
-            {
-              Real value = pp->getValue();
-
-              // store the value in each thread
-              for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-                _pps_data[tid]->storeValue(name, value);
-            }
+              _pps_data.storeValue(name, pp->getValue());
 
             already_gathered.insert(ps);
           }
@@ -2467,11 +2528,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
 
             if (pp)
             {
-              Real value = pp->getValue();
-
-              // store the value in each thread
-              for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-                _pps_data[tid]->storeValue(name, value);
+              _pps_data.storeValue(name, pp->getValue());
 
               already_gathered.insert(ps);
             }
@@ -2495,13 +2552,7 @@ FEProblem::computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GR
     Postprocessor * pp = getPostprocessorPointer<GeneralUserObject, GeneralPostprocessor>(*generic_user_object_it);
 
     if (pp)
-    {
-      Real value = pp->getValue();
-
-      // store the value in each thread
-      for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-        _pps_data[tid]->storeValue(name, value);
-    }
+      _pps_data.storeValue(name, pp->getValue());
   }
 }
 
@@ -2781,7 +2832,7 @@ FEProblem::backupMultiApps(ExecFlagType type)
 }
 
 void
-FEProblem::restoreMultiApps(ExecFlagType type)
+FEProblem::restoreMultiApps(ExecFlagType type, bool force)
 {
   std::vector<MultiApp *> multi_apps = _multi_apps(type)[0].all();
 
@@ -2790,7 +2841,7 @@ FEProblem::restoreMultiApps(ExecFlagType type)
     _console << "Restoring MultiApps" << std::endl;
 
     for (unsigned int i=0; i<multi_apps.size(); i++)
-      if (multi_apps[i]->needsRestoration())
+      if (force || multi_apps[i]->needsRestoration())
         multi_apps[i]->restore();
 
     _console << "Waiting For Other Processors To Finish" << std::endl;
@@ -2977,7 +3028,16 @@ FEProblem::createQRules(QuadratureType type, Order order, Order volume_order, Or
     MaxQpsThread mqt(*this, type, std::max(order, volume_order), face_order);
     Threads::parallel_reduce(*_mesh.getActiveLocalElementRange(), mqt);
     _max_qps = mqt.max();
+    _max_shape_funcs = mqt.max_shape_funcs();
     Moose::setup_perf_log.pop("maxQps()","Setup");
+  }
+
+  for (unsigned int tid = 0; tid < libMesh::n_threads(); ++tid)
+  {
+    _zero[tid].resize(getMaxQps(), 0);
+    _grad_zero[tid].resize(getMaxQps(), 0);
+    _second_zero[tid].resize(getMaxQps(), RealTensor(0.));
+    _second_phi_zero[tid].resize(getMaxQps(), std::vector<RealTensor>(getMaxShapeFunctions(), RealTensor(0.)));
   }
 }
 
@@ -3180,8 +3240,7 @@ FEProblem::advanceState()
     _displaced_problem->auxSys().copyOldSolutions();
   }
 
-  for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
-    _pps_data[tid]->copyValuesBack();
+  _pps_data.copyValuesBack();
 
   if (_material_props.hasStatefulProperties())
     _material_props.shift();
@@ -3869,7 +3928,7 @@ FEProblem::checkUserObjects()
   }
 
   // check that all requested UserObjects were defined in the input file
-  for (std::map<std::string, PostprocessorValue*>::const_iterator it = _pps_data[0]->values().begin(); it != _pps_data[0]->values().end(); ++it)
+  for (std::map<std::string, PostprocessorValue*>::const_iterator it = _pps_data.values().begin(); it != _pps_data.values().end(); ++it)
   {
     if (names.find(it->first) == names.end())
       mooseError("Postprocessor '" + it->first + "' requested but not specified in the input file.");

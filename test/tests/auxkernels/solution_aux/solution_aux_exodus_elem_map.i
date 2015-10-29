@@ -44,7 +44,7 @@
     type = SolutionUserObject
     mesh = elem_map.e
     system_variables = MatID
-    timestep = 1
+    timestep = LATEST
   [../]
 []
 
@@ -64,6 +64,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  print_perf_log = true
 []

@@ -30,14 +30,20 @@ InputParameters validParams<Exodus>()
   // Enable sequential file output (do not set default, the use_displace criteria relies on isParamValid, see Constructor)
   params.addParam<bool>("sequence", "Enable/disable sequential file output (enabled by default when 'use_displace = true', otherwise defaults to false");
 
+  // Select problem dimension for mesh output
+  params.addParam<bool>("use_problem_dimension", "Use the problem dimension to the mesh output. Set to false when outputting lower dimensional meshes embedded in a higher dimensional space.");
+
   // Set the default padding to 3
   params.set<unsigned int>("padding") = 3;
 
   // Add description for the Exodus class
   params.addClassDescription("Object for output data in the Exodus II format");
 
+  // Flag for overwriting at each timestep
+  params.addParam<bool>("overwrite", false, "When true the latest timestep will overwrite the existing file, so only a single timestep exists.");
+
   // Set outputting of the input to be on by default
-  params.set<MultiMooseEnum>("output_input_on") = "initial";
+  params.set<MultiMooseEnum>("execute_input_on") = "initial";
 
   // Return the InputParameters
   return params;
@@ -49,7 +55,8 @@ Exodus::Exodus(const InputParameters & parameters) :
     _exodus_num(declareRestartableData<unsigned int>("exodus_num", 0)),
     _recovering(_app.isRecovering()),
     _exodus_mesh_changed(declareRestartableData<bool>("exodus_mesh_changed", true)),
-    _sequence(isParamValid("sequence") ? getParam<bool>("sequence") : _use_displaced ? true : false)
+    _sequence(isParamValid("sequence") ? getParam<bool>("sequence") : _use_displaced ? true : false),
+    _overwrite(getParam<bool>("overwrite"))
 {
 }
 
@@ -136,9 +143,14 @@ Exodus::outputSetup()
     _exodus_num = 1;
   }
 
-  // Utilize the spatial dimensions
-  if (_es_ptr->get_mesh().mesh_dimension() != 1)
-    _exodus_io_ptr->use_mesh_dimension_instead_of_spatial_dimension(true);
+  if (isParamValid("use_problem_dimension"))
+    _exodus_io_ptr->use_mesh_dimension_instead_of_spatial_dimension(getParam<bool>("use_problem_dimension"));
+  else
+  {
+    // Utilize the spatial dimensions
+    if (_es_ptr->get_mesh().mesh_dimension() != 1)
+      _exodus_io_ptr->use_mesh_dimension_instead_of_spatial_dimension(true);
+  }
 }
 
 
@@ -151,7 +163,9 @@ Exodus::outputNodalVariables()
 
   // Write the data via libMesh::ExodusII_IO
   _exodus_io_ptr->write_timestep(filename(), *_es_ptr, _exodus_num, time() + _app.getGlobalTimeOffset());
-  _exodus_num++;
+
+  if (!_overwrite)
+    _exodus_num++;
 
   // This satisfies the initialization of the ExodusII_IO object
   _exodus_initialized = true;
@@ -306,6 +320,9 @@ Exodus::outputEmptyTimestep()
   // Write a timestep with no variables
   _exodus_io_ptr->set_output_variables(std::vector<std::string>());
   _exodus_io_ptr->write_timestep(filename(), *_es_ptr, _exodus_num, time() + _app.getGlobalTimeOffset());
-  _exodus_num++;
+
+  if (!_overwrite)
+    _exodus_num++;
+
   _exodus_initialized = true;
 }

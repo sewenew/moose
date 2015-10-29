@@ -130,7 +130,7 @@
 
 # exterior and internal pressures
   [./exterior_pressure_r]
-    type = PressureTM
+    type = Pressure
     variable = disp_r
     boundary = outer
     component = 0
@@ -138,7 +138,7 @@
   [../]
 
  [./exterior_pressure_z]
-    type = PressureTM
+    type = Pressure
     variable = disp_z
     boundary = outer
     component = 1
@@ -146,7 +146,7 @@
   [../]
 
   [./interior_pressure_r]
-    type = PressureTM
+    type = Pressure
     variable = disp_r
     boundary = inner
     component = 0
@@ -154,7 +154,7 @@
   [../]
 
   [./interior_pressure_z]
-    type = PressureTM
+    type = Pressure
     variable = disp_z
     boundary = inner
     component = 1
@@ -207,15 +207,5 @@
 []
 
 [Outputs]
-  output_on = 'timestep_end'
-  output_initial = true
   exodus = true
-  #csv = true
-  print_linear_residuals = true
-  print_perf_log = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'initial timestep_end failed nonlinear'
-  [../]
 []

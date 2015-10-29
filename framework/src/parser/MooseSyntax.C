@@ -33,6 +33,7 @@ void associateSyntax(Syntax & syntax, ActionFactory & action_factory)
   syntax.registerActionSyntax("CopyNodalVarsAction", "AuxVariables/*", "copy_nodal_aux_vars");
 
   syntax.registerActionSyntax("AddKernelAction", "Kernels/*", "add_kernel");
+  syntax.registerActionSyntax("AddNodalKernelAction", "NodalKernels/*", "add_nodal_kernel");
   syntax.registerActionSyntax("AddKernelAction", "AuxKernels/*", "add_aux_kernel");
   syntax.registerActionSyntax("AddKernelAction", "Bounds/*", "add_aux_kernel");
 
@@ -104,6 +105,8 @@ void associateSyntax(Syntax & syntax, ActionFactory & action_factory)
   syntax.registerActionSyntax("AdaptivityAction", "Executioner/Adaptivity");
 #endif
 
+  syntax.registerActionSyntax("PartitionerAction", "Mesh/Partitioner");
+
   syntax.registerActionSyntax("AddDiracKernelAction", "DiracKernels/*");
 
   syntax.registerActionSyntax("AddDGKernelAction", "DGKernels/*");
@@ -111,7 +114,7 @@ void associateSyntax(Syntax & syntax, ActionFactory & action_factory)
   syntax.registerActionSyntax("AddConstraintAction", "Constraints/*");
 
   syntax.registerActionSyntax("AddUserObjectAction", "UserObjects/*");
-
+  syntax.registerActionSyntax("AddControlAction", "Controls/*");
   syntax.registerActionSyntax("AddBoundsVectorsAction", "Bounds");
 
   syntax.registerActionSyntax("AddNodalNormalsAction", "NodalNormals");

@@ -7,18 +7,12 @@
 [Outputs]
   file_base = out
   exodus = true
-  print_linear_residuals = true
-  print_perf_log = true
 []
 
 # Note: The executioner is out of its normal place (should be just about the output block)
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
 []
 
 [Variables]

@@ -46,6 +46,7 @@
 #include "ForcingFunctionXYZ0.h"
 #include "TEJumpFFN.h"
 #include "NanKernel.h"
+#include "NanAtCountKernel.h"
 #include "ExceptionKernel.h"
 #include "MatConvection.h"
 #include "PPSDiffusion.h"
@@ -216,6 +217,9 @@
 // Outputs
 #include "OutputObjectTest.h"
 
+// Controls
+#include "TestControl.h"
+
 template<>
 InputParameters validParams<MooseTestApp>()
 {
@@ -282,6 +286,7 @@ MooseTestApp::registerObjects(Factory & factory)
   registerKernel(ForcingFunctionXYZ0);
   registerKernel(TEJumpFFN);
   registerKernel(NanKernel);
+  registerKernel(NanAtCountKernel);
   registerKernel(ExceptionKernel);
   registerKernel(MatConvection);
   registerKernel(PPSDiffusion);
@@ -447,6 +452,9 @@ MooseTestApp::registerObjects(Factory & factory)
 
   // Outputs
   registerOutput(OutputObjectTest);
+
+  // Controls
+  registerControl(TestControl);
 }
 
 // External entry point for dynamic syntax association

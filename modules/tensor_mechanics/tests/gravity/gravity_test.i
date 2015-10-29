@@ -35,7 +35,7 @@
     displacements = 'disp_x disp_y disp_z'
   [../]
   [./gravity_y]
-    type = GravityTM
+    type = Gravity
     variable = disp_y
     value = -9.81
   [../]
@@ -95,9 +95,6 @@
 []
 
 [Outputs]
-  output_initial = true
-  print_linear_residuals = true
-  print_perf_log = true
   [./out]
     type = Exodus
     elemental_as_nodal = true

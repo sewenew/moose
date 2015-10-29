@@ -108,6 +108,7 @@ int sideNeighborIsOn(const Elem * elem, const Elem * neighbor)
 
 
 /**
+>>>>>>> c1571d4314db2457e3900b771a5796fc810e98b6
  * Recursively find all elements intersected by a line segment
  *
  * Works by moving from one element to the next _through_ the side of the current element.

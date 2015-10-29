@@ -43,14 +43,11 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the Executioner in the input file.
    * @param parameters The parameters object holding data for the class to use.
    * @return Whether or not the solve was successful.
    */
   Transient(const InputParameters & parameters);
   virtual ~Transient();
-
-  virtual Problem & problem();
 
   /**
    * Initialize executioner
@@ -93,6 +90,10 @@ public:
   virtual void postExecute();
 
   virtual void computeDT();
+
+  virtual void preStep();
+
+  virtual void postStep();
 
   /**
    * This is where the solve step is actually incremented.
@@ -199,7 +200,7 @@ public:
    */
   Real unconstrainedDT() { return _unconstrained_dt; }
 
-  void parentOutputPositionChanged() { _problem.parentOutputPositionChanged(); }
+  void parentOutputPositionChanged() { _fe_problem.parentOutputPositionChanged(); }
 
   /**
    * Get the number of Picard iterations performed
@@ -216,6 +217,7 @@ protected:
    */
   virtual void solveStep(Real input_dt = -1.0);
 
+  /// Here for backward compatibility
   FEProblem & _problem;
 
   MooseEnum _time_scheme;

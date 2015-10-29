@@ -82,7 +82,7 @@ public:
    * Returns a writable reference to the named parameters.  Note: This is not a virtual
    * function! Use caution when comparing to the parent class implementation
    * @param name The name of the parameter to set
-   * @param quite_mode When true the parameter is not removed from the _set_by_add_param list,
+   * @param quiet_mode When true the parameter is not removed from the _set_by_add_param list,
    * this is generally not needed.
    *
    * "quite_mode" returns a writable reference to the named parameter, without removing it from the
@@ -353,6 +353,16 @@ public:
   bool isPrivate(const std::string &name) const;
 
   /**
+   * Declare the given parameters as controllable
+   */
+  void declareControllable(const std::string & name);
+
+  /**
+   * Returns a Boolean indicating whether the specified parameter is controllable
+   */
+  bool isControllable(const std::string & name);
+
+  /**
    * This method must be called from every base "Moose System" to create linkage with the Action System.
    * See "Moose.C" for the registerMooseObjectTask() calls.
    */
@@ -397,7 +407,7 @@ public:
    *   Required parameters are verified as valid meaning that they were either initialized when
    *   they were created, or were read from an input file or some other valid source
    */
-  void checkParams(const std::string & prefix);
+  void checkParams(const std::string & parsing_syntax);
 
   /**
    * Methods returning iterators to the coupled variables names stored in this
@@ -437,6 +447,7 @@ public:
    * Set the default value for an optionally coupled variable (called by the Parser).
    *
    * @param coupling_name The name of the coupling parameter to get the default value for.
+   * @param value Default value to set.
    */
   void defaultCoupledValue(const std::string & coupling_name, Real value);
 
@@ -579,6 +590,9 @@ private:
 
   /// If a parameters value was set by addParam, and not set again, it will appear in this list (see applyParameters)
   std::set<std::string> _set_by_add_param;
+
+  /// A list of parameters declared as controllable
+  std::set<std::string> _controllable_params;
 
   /// Flag for disabling deprecated parameters message, this is used by applyParameters to avoid dumping messages
   bool _show_deprecated_message;
@@ -916,6 +930,9 @@ template <typename T>
 void
 InputParameters::suppressParameter(const std::string &name)
 {
+  if (!this->have_parameter<T>(name))
+    mooseError("Unable to suppress nonexistent parameter: " << name);
+
   _required_params.erase(name);
   _private_params.insert(name);
 }
@@ -924,27 +941,33 @@ template <typename T>
 void
 InputParameters::addRequiredDeprecatedParam(const std::string &name, const std::string &doc_string, const std::string &deprecation_message)
 {
+  _show_deprecated_message = false;
   addRequiredParam<T>(name, doc_string);
 
   _deprecated_params.insert(std::make_pair(name, deprecation_message));
+  _show_deprecated_message = true;
 }
 
 template <typename T>
 void
 InputParameters::addDeprecatedParam(const std::string &name, const T &value, const std::string &doc_string, const std::string &deprecation_message)
 {
+  _show_deprecated_message = false;
   addParam<T>(name, value, doc_string);
 
   _deprecated_params.insert(std::make_pair(name, deprecation_message));
+  _show_deprecated_message = true;
 }
 
 template <typename T>
 void
 InputParameters::addDeprecatedParam(const std::string &name, const std::string &doc_string, const std::string &deprecation_message)
 {
+  _show_deprecated_message = false;
   addParam<T>(name, doc_string);
 
   _deprecated_params.insert(std::make_pair(name, deprecation_message));
+  _show_deprecated_message = true;
 }
 
 

@@ -35,7 +35,6 @@ InputParameters validParams<HeatConductionApp>()
   InputParameters params = validParams<MooseApp>();
   params.set<bool>("use_legacy_uo_initialization") = false;
   params.set<bool>("use_legacy_uo_aux_computation") = false;
-
   return params;
 }
 
@@ -107,4 +106,3 @@ HeatConductionApp::associateSyntax(Syntax & syntax, ActionFactory & action_facto
   registerAction(ThermalContactDiracKernelsAction, "add_dirac_kernel");
   registerAction(ThermalContactMaterialsAction,    "add_material");
 }
-

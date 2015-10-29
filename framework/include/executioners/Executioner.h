@@ -32,13 +32,6 @@ template<>
 InputParameters validParams<Executioner>();
 
 /**
- * A helper function for creating execution related parameters, these are needed by
- * both Preconditioners and Executioners.
- */
-InputParameters commonExecutionParameters();
-
-
-/**
  * Executioners are objects that do the actual work of solving your problem.
  *
  * In general there are two "sets" of Executioners: Steady and Transient.
@@ -57,9 +50,7 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the Executioner in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @return Whether or not the solve was successful.
    */
   Executioner(const InputParameters & parameters);
 
@@ -96,7 +87,16 @@ public:
    */
   virtual void postSolve();
 
-  virtual Problem & problem() = 0;
+  /**
+   * Deprecated:
+   * Return a reference to this Executioner's Problem instance
+   */
+  virtual Problem & problem();
+
+  /**
+   * Return a reference to this Executioner's FEProblem instance
+   */
+  FEProblem & feProblem();
 
   /** The name of the TimeStepper
    * This is an empty string for non-Transient executioners
@@ -119,6 +119,8 @@ protected:
    * @param execute_on When to execute the postprocessor that is created
    */
   virtual void addAttributeReporter(const std::string & name, Real & attribute, const std::string execute_on = "");
+
+  FEProblem & _fe_problem;
 
   /// Initial Residual Variables
   Real _initial_residual_norm;

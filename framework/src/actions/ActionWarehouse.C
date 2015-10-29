@@ -23,7 +23,6 @@
 #include "AddAuxVariableAction.h"
 #include "XTermConstants.h"
 #include "InfixIterator.h"
-#include "MemData.h"
 
 ActionWarehouse::ActionWarehouse(MooseApp & app, Syntax & syntax, ActionFactory & factory) :
     Warehouse<Action>(),
@@ -325,14 +324,9 @@ ActionWarehouse::executeActionsWithAction(const std::string & task)
       _console << "[DBG][ACT] "
                << "TASK (" << COLOR_YELLOW << std::setw (24) << task << COLOR_DEFAULT << ") "
                << "TYPE (" << COLOR_YELLOW << std::setw (32) << (*act_iter)->type() << COLOR_DEFAULT << ") "
-               << "NAME (" << COLOR_YELLOW << std::setw (16) << (*act_iter)->getShortName() << COLOR_DEFAULT << ") ";
+               << "NAME (" << COLOR_YELLOW << std::setw (16) << (*act_iter)->name() << COLOR_DEFAULT << ") ";
 
-      MemData mcount;
-      mcount.start();
       (*act_iter)->act();
-      mcount.stop();
-
-      _console << "MEM (" << COLOR_YELLOW << mcount.delta() << "kB" << COLOR_DEFAULT << ")"<< std::endl;
     }
     else
       (*act_iter)->act();
@@ -355,8 +349,12 @@ ActionWarehouse::printInputFile(std::ostream & out)
   for (std::vector<Action* >::iterator i = ordered_actions.begin();
        i != ordered_actions.end();
        ++i)
-   {
-    std::string name ((*i)->name());
+  {
+    std::string name;
+    if ((*i)->isParamValid("parser_syntax"))
+      name = (*i)->getParam<std::string>("parser_syntax");
+    else
+      name = (*i)->name();
     const std::set<std::string> & tasks = ((*i)->getAllTasks());
     mooseAssert(!tasks.empty(), "Task list is empty");
 

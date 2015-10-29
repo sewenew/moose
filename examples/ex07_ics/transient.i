@@ -65,8 +65,5 @@
 [Outputs]
   # Request that we output the initial condition so we can inspect
   # the values with our visualization tool
-  output_initial = true
   exodus = true
-  print_linear_residuals = true
-  print_perf_log = true
 []

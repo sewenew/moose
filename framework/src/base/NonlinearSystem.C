@@ -27,6 +27,8 @@
 #include "ComputeJacobianBlocksThread.h"
 #include "ComputeDiracThread.h"
 #include "ComputeDampingThread.h"
+#include "ComputeNodalKernelsThread.h"
+#include "ComputeNodalKernelJacobiansThread.h"
 #include "TimeKernel.h"
 #include "BoundaryCondition.h"
 #include "PresetNodalBC.h"
@@ -47,6 +49,7 @@
 #include "MooseMesh.h"
 #include "MooseUtils.h"
 #include "MooseApp.h"
+#include "NodalKernel.h"
 
 // libMesh
 #include "libmesh/nonlinear_solver.h"
@@ -181,6 +184,7 @@ NonlinearSystem::NonlinearSystem(FEProblem & fe_problem, const std::string & nam
 
   unsigned int n_threads = libMesh::n_threads();
   _kernels.resize(n_threads);
+  _nodal_kernels.resize(n_threads);
   _bcs.resize(n_threads);
   _dirac_kernels.resize(n_threads);
   _dg_kernels.resize(n_threads);
@@ -546,6 +550,30 @@ NonlinearSystem::addKernel(const std::string & kernel_name, const std::string & 
 }
 
 void
+NonlinearSystem::addNodalKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters)
+{
+  for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
+  {
+    // Set the parameters for thread ID and material data
+    parameters.set<MaterialData *>("_material_data") = _fe_problem._material_data[tid];
+
+    // Create the kernel object via the factory
+    MooseSharedPointer<NodalKernel> kernel = MooseSharedNamespace::static_pointer_cast<NodalKernel>(_factory.create(kernel_name, name, parameters, tid));
+
+    // Extract the SubdomainIDs from the object (via BlockRestrictable class)
+    std::set<SubdomainID> blk_ids = kernel->blockIDs();
+
+    // Add the kernel to the warehouse
+    _nodal_kernels[tid].addNodalKernel(kernel);
+  }
+
+  if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
+    _has_save_in = true;
+  if (parameters.get<std::vector<AuxVariableName> >("diag_save_in").size() > 0)
+    _has_diag_save_in = true;
+}
+
+void
 NonlinearSystem::addScalarKernel(const  std::string & kernel_name, const std::string & name, InputParameters parameters)
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
@@ -842,61 +870,46 @@ NonlinearSystem::computeTimeDerivatives()
 void
 NonlinearSystem::enforceNodalConstraintsResidual(NumericVector<Number> & residual)
 {
-  THREAD_ID tid = 0;                            // constraints are going to be done single-threaded
-  // loop over nodes with nodal constraints
+  THREAD_ID tid = 0; // constraints are going to be done single-threaded
+  residual.close();
   std::vector<NodalConstraint *> & ncs = _constraints[0].getNodalConstraints();
   for (std::vector<NodalConstraint *>::iterator it = ncs.begin(); it != ncs.end(); ++it)
   {
     NodalConstraint * nc = (*it);
-    std::vector<dof_id_type>& slave_nodes = nc->getSlaveNodeId();
-    if (slave_nodes.size() > 0)
-    {
-      Node & master_node = _mesh.node(nc->getMasterNodeId());
-      // reinit variables at the master node
-      _fe_problem.reinitNode(&master_node, tid);
-      _fe_problem.prepareAssembly(tid);
+    std::vector<dof_id_type> & slave_node_ids = nc->getSlaveNodeId();
+    std::vector<dof_id_type> & master_node_ids = nc->getMasterNodeId();
 
-      // go over slave nodes
-      for (std::vector<dof_id_type>::iterator it = slave_nodes.begin(); it != slave_nodes.end(); ++it)
-      {
-        Node & slave_node = _mesh.node(*it);
-        // reinit variables on the slave node
-        _fe_problem.reinitNodeNeighbor(&slave_node, tid);
-        // compute residual
-        nc->computeResidual(residual);
-      }
+    if ((slave_node_ids.size() > 0) && (master_node_ids.size() > 0))
+    {
+       _fe_problem.reinitNodes(master_node_ids, tid);
+       _fe_problem.reinitNodesNeighbor(slave_node_ids, tid);
+       nc->computeResidual(residual);
     }
   }
+  _fe_problem.addCachedResidualDirectly(residual,0);
+  residual.close();
 }
 
 void
 NonlinearSystem::enforceNodalConstraintsJacobian(SparseMatrix<Number> & jacobian)
 {
-  THREAD_ID tid = 0;                            // constraints are going to be done single-threaded
-  // loop over nodes with nodal constraints
+  THREAD_ID tid = 0;    // constraints are going to be done single-threaded
+  jacobian.close();
   std::vector<NodalConstraint *> & ncs = _constraints[0].getNodalConstraints();
   for (std::vector<NodalConstraint *>::iterator it = ncs.begin(); it != ncs.end(); ++it)
   {
     NodalConstraint * nc = (*it);
-    std::vector<dof_id_type>& slave_nodes = nc->getSlaveNodeId();
-    if (slave_nodes.size() > 0)
-    {
-      Node & master_node = _mesh.node(nc->getMasterNodeId());
-      // reinit variables at the master node
-      _fe_problem.reinitNode(&master_node, tid);
-      _fe_problem.prepareAssembly(tid);
+    std::vector<dof_id_type> & slave_node_ids = nc->getSlaveNodeId();
+    std::vector<dof_id_type> & master_node_ids = nc->getMasterNodeId();
 
-      // go over slave nodes
-      for (std::vector<dof_id_type>::iterator it = slave_nodes.begin(); it != slave_nodes.end(); ++it)
-      {
-        Node & slave_node = _mesh.node(*it);
-        // reinit variables on the slave node
-        _fe_problem.reinitNodeNeighbor(&slave_node, tid);
-        // compute Jacobian
-        nc->computeJacobian(jacobian);
-      }
+    if ((slave_node_ids.size() > 0) && (master_node_ids.size() > 0))
+    {
+      _fe_problem.reinitNodes(master_node_ids, tid);
+      _fe_problem.reinitNodesNeighbor(slave_node_ids, tid);
+      nc->computeJacobian(jacobian);
     }
   }
+  _fe_problem.addCachedJacobian(jacobian, 0);
   jacobian.close();
 }
 
@@ -1123,10 +1136,8 @@ NonlinearSystem::constraintResiduals(NumericVector<Number> & residual, bool disp
       // before adding the cached residuals below.
       _communicator.max( residual_has_inserted_values );
       if ( residual_has_inserted_values )
-      {
         residual.close();
-        residual_has_inserted_values = false;
-      }
+
       _fe_problem.addCachedResidualDirectly(residual, 0);
       residual.close();
 
@@ -1183,9 +1194,8 @@ NonlinearSystem::constraintResiduals(NumericVector<Number> & residual, bool disp
 
 
 void
- NonlinearSystem::computeResidualInternal(Moose::KernelType type)
+NonlinearSystem::computeResidualInternal(Moose::KernelType type)
 {
-
    // residualSetup() /////
   for (unsigned int i=0; i<libMesh::n_threads(); i++)
   {
@@ -1195,7 +1205,6 @@ void
     if (_doing_dg) _dg_kernels[i].residualSetup();
     _constraints[i].residualSetup();
   }
-
 
   // reinit scalar variables
   for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
@@ -1230,6 +1239,26 @@ void
         kernel->computeResidual();
       }
       _fe_problem.addResidualScalar();
+    }
+  }
+  PARALLEL_CATCH;
+
+  // residual contributions from NodalKernels
+  PARALLEL_TRY
+  {
+    if (!_nodal_kernels[0].all().empty())
+    {
+      ComputeNodalKernelsThread cnk(_fe_problem, _fe_problem.getAuxiliarySystem(), _nodal_kernels);
+
+      ConstNodeRange & range = *_mesh.getLocalNodeRange();
+
+      _fe_problem.reinitNode(*range.begin(), 0);
+
+      Threads::parallel_reduce(range, cnk);
+
+      unsigned int n_threads = libMesh::n_threads();
+      for (unsigned int i=0; i<n_threads; i++) // Add any cached residuals that might be hanging around
+        _fe_problem.addCachedResidual(i);
     }
   }
   PARALLEL_CATCH;
@@ -1414,8 +1443,9 @@ NonlinearSystem::findImplicitGeometricCouplingEntries(GeometricSearchData & geom
     NodalConstraint * nc = *it;
 
     std::vector<dof_id_type> master_dofs;
-    unsigned int master_node_id = nc->getMasterNodeId();
-    getNodeDofs(master_node_id, master_dofs);
+    std::vector<dof_id_type> &  master_node_ids = nc->getMasterNodeId();
+    for (std::vector<dof_id_type>::iterator mi = master_node_ids.begin(); mi != master_node_ids.end(); mi++)
+      getNodeDofs(*mi, master_dofs);
 
     std::vector<dof_id_type> slave_dofs;
     std::vector<dof_id_type> & slave_node_ids = nc->getSlaveNodeId();
@@ -1799,6 +1829,17 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
         unsigned int n_threads = libMesh::n_threads();
         for (unsigned int i=0; i<n_threads; i++) // Add any Jacobian contributions still hanging around
           _fe_problem.addCachedJacobian(jacobian, i);
+
+        if (!_nodal_kernels[0].all().empty())
+        {
+          ComputeNodalKernelJacobiansThread cnkjt(_fe_problem, _fe_problem.getAuxiliarySystem(), _nodal_kernels, jacobian);
+          ConstNodeRange & range = *_mesh.getLocalNodeRange();
+          Threads::parallel_reduce(range, cnkjt);
+
+          unsigned int n_threads = libMesh::n_threads();
+          for (unsigned int i=0; i<n_threads; i++) // Add any cached jacobians that might be hanging around
+            _fe_problem.assembly(i).addCachedJacobianContributions(jacobian);
+        }
       }
       break;
 
@@ -1811,6 +1852,17 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
 
         for (unsigned int i=0; i<n_threads; i++)
           _fe_problem.addCachedJacobian(jacobian, i);
+
+        if (!_nodal_kernels[0].all().empty())
+        {
+          ComputeNodalKernelJacobiansThread cnkjt(_fe_problem, _fe_problem.getAuxiliarySystem(), _nodal_kernels, jacobian);
+          ConstNodeRange & range = *_mesh.getLocalNodeRange();
+          Threads::parallel_reduce(range, cnkjt);
+
+          unsigned int n_threads = libMesh::n_threads();
+          for (unsigned int i=0; i<n_threads; i++) // Add any cached jacobians that might be hanging around
+            _fe_problem.assembly(i).addCachedJacobianContributions(jacobian);
+        }
       }
       break;
     }
@@ -1856,9 +1908,6 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
     _fe_problem.getAuxiliarySystem().solution().close();
 
   PARALLEL_TRY {
-    // Make sure there are no cached NodalBC entries hanging around from the last assembly
-    _fe_problem.assembly(0).clearCachedNodalBCJacobianEntries();
-
     // Cache the information about which BCs are coupled to which
     // variables, so we don't have to figure it out for each node.
     std::map<std::string, std::set<unsigned int> > bc_involved_vars;
@@ -1936,7 +1985,7 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
     } // end loop over boundary nodes
 
     // Set the cached NodalBC values in the Jacobian matrix
-    _fe_problem.assembly(0).setCachedNodalBCJacobianEntries(jacobian);
+    _fe_problem.assembly(0).setCachedJacobianContributions(jacobian);
   }
   PARALLEL_CATCH;
   jacobian.close();
@@ -2311,6 +2360,9 @@ NonlinearSystem::checkKernelCoverage(const std::set<SubdomainID> & mesh_subdomai
   std::set<std::string> kernel_variables;
 
   bool global_kernels_exist = _kernels[0].subdomainsCovered(input_subdomains, kernel_variables);
+
+  global_kernels_exist |= _nodal_kernels[0].subdomainsCovered(input_subdomains, kernel_variables);
+
   _constraints[0].subdomainsCovered(input_subdomains, kernel_variables);
   if (!global_kernels_exist && check_kernel_coverage)
   {

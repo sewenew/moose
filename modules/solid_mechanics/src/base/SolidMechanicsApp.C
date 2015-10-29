@@ -10,7 +10,6 @@
 
 #include "AbaqusCreepMaterial.h"
 #include "AbaqusUmatMaterial.h"
-#include "AdaptiveTransient.h"
 #include "CLSHPlasticMaterial.h"
 #include "CLSHPlasticModel.h"
 #include "CombinedCreepPlasticity.h"
@@ -19,7 +18,6 @@
 #include "ElasticModel.h"
 #include "ElasticEnergyAux.h"
 #include "ElementsOnLineAux.h"
-#include "Gravity.h"
 #include "HomogenizationKernel.h"
 #include "HomogenizedElasticConstants.h"
 #include "HomogenizationHeatConduction.h"
@@ -42,8 +40,6 @@
 #include "MaterialTensorOnLine.h"
 #include "MaterialVectorAux.h"
 #include "AccumulateAux.h"
-#include "NewmarkAccelAux.h"
-#include "NewmarkVelAux.h"
 #include "DomainIntegralQFunction.h"
 #include "DomainIntegralTopologicalQFunction.h"
 #include "PLC_LSH.h"
@@ -56,8 +52,6 @@
 #include "CavityPressureUserObject.h"
 #include "CavityPressureUOAction.h"
 #include "PresetVelocity.h"
-#include "Pressure.h"
-#include "PressureAction.h"
 #include "DisplacementAboutAxis.h"
 #include "DisplacementAboutAxisAction.h"
 #include "InteractionIntegralBenchmarkBC.h"
@@ -66,7 +60,6 @@
 #include "CrackDataSampler.h"
 #include "SolidMechanicsAction.h"
 #include "DomainIntegralAction.h"
-#include "SolidMechInertialForce.h"
 #include "SolidMechImplicitEuler.h"
 #include "SolidModel.h"
 #include "StressDivergence.h"
@@ -85,7 +78,6 @@ InputParameters validParams<SolidMechanicsApp>()
   InputParameters params = validParams<MooseApp>();
   params.set<bool>("use_legacy_uo_initialization") = false;
   params.set<bool>("use_legacy_uo_aux_computation") = false;
-
   return params;
 }
 
@@ -121,19 +113,14 @@ SolidMechanicsApp::registerObjects(Factory & factory)
   registerAux(MaterialTensorAux);
   registerAux(MaterialVectorAux);
   registerAux(AccumulateAux);
-  registerAux(NewmarkAccelAux);
-  registerAux(NewmarkVelAux);
   registerAux(DomainIntegralQFunction);
   registerAux(DomainIntegralTopologicalQFunction);
   registerAux(ElementsOnLineAux);
 
   registerBoundaryCondition(DashpotBC);
   registerBoundaryCondition(PresetVelocity);
-  registerBoundaryCondition(Pressure);
   registerBoundaryCondition(DisplacementAboutAxis);
   registerBoundaryCondition(InteractionIntegralBenchmarkBC);
-
-  registerExecutioner(AdaptiveTransient);
 
   registerMaterial(AbaqusCreepMaterial);
   registerMaterial(AbaqusUmatMaterial);
@@ -157,10 +144,8 @@ SolidMechanicsApp::registerObjects(Factory & factory)
   registerMaterial(RateDepSmearCrackModel);
   registerMaterial(RateDepSmearIsoCrackModel);
 
-  registerKernel(Gravity);
   registerKernel(HomogenizationKernel);
   registerKernel(SolidMechImplicitEuler);
-  registerKernel(SolidMechInertialForce);
   registerKernel(StressDivergence);
   registerKernel(OutOfPlaneStress);
   registerKernel(StressDivergenceRZ);
@@ -197,9 +182,6 @@ SolidMechanicsApp::associateSyntax(Syntax & syntax, ActionFactory & action_facto
   syntax.registerActionSyntax("CavityPressurePPAction", "BCs/CavityPressure/*");
   syntax.registerActionSyntax("CavityPressureUOAction", "BCs/CavityPressure/*");
 
-  syntax.registerActionSyntax("EmptyAction", "BCs/Pressure");
-  syntax.registerActionSyntax("PressureAction", "BCs/Pressure/*");
-
   syntax.registerActionSyntax("EmptyAction", "BCs/DisplacementAboutAxis");
   syntax.registerActionSyntax("DisplacementAboutAxisAction", "BCs/DisplacementAboutAxis/*");
 
@@ -212,7 +194,6 @@ SolidMechanicsApp::associateSyntax(Syntax & syntax, ActionFactory & action_facto
   syntax.registerActionSyntax("DomainIntegralAction", "DomainIntegral","add_vector_postprocessor");
   syntax.registerActionSyntax("DomainIntegralAction", "DomainIntegral","add_material");
 
-  registerAction(PressureAction, "add_bc");
   registerAction(DisplacementAboutAxisAction, "add_bc");
   registerAction(CavityPressureAction, "add_bc");
   registerAction(CavityPressurePPAction, "add_postprocessor");
