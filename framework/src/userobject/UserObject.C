@@ -33,11 +33,11 @@ InputParameters validParams<UserObject>()
   return params;
 }
 
-UserObject::UserObject(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
+UserObject::UserObject(const InputParameters & parameters) :
+    MooseObject(parameters),
     SetupInterface(parameters),
     FunctionInterface(parameters),
-    Restartable(name, parameters, "UserObjects"),
+    Restartable(parameters, "UserObjects"),
     MeshChangedInterface(parameters),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
     _fe_problem(*parameters.get<FEProblem *>("_fe_problem")),
@@ -60,3 +60,4 @@ void
 UserObject::store(std::ofstream & /*stream*/)
 {
 }
+

@@ -31,11 +31,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = false
   csv = true
-  [./console]
-    type = Console
-    perf_log = false
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "Advection0.h"
 
 
@@ -17,8 +30,8 @@ InputParameters validParams<Advection0>()
   return params;
 }
 
-Advection0::Advection0(const std::string & name, InputParameters parameters)
-  :Kernel(name, parameters)
+Advection0::Advection0(const InputParameters & parameters)
+  :Kernel(parameters)
 {
   _Au = getParam<Real>("Au");
   _Bu = getParam<Real>("Bu");

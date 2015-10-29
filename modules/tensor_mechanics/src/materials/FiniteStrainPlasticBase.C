@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "FiniteStrainPlasticBase.h"
 
 // Following is used to access PETSc's LAPACK routines
@@ -25,9 +31,8 @@ InputParameters validParams<FiniteStrainPlasticBase>()
   return params;
 }
 
-FiniteStrainPlasticBase::FiniteStrainPlasticBase(const std::string & name,
-                                                         InputParameters parameters) :
-    FiniteStrainMaterial(name, parameters),
+FiniteStrainPlasticBase::FiniteStrainPlasticBase(const InputParameters & parameters) :
+    FiniteStrainMaterial(parameters),
     _max_iter(getParam<unsigned int>("max_NR_iterations")),
     _max_subdivisions(getParam<unsigned int>("max_subdivisions")),
     _f_tol(getParam<std::vector<Real> >("yield_function_tolerance")),
@@ -980,3 +985,4 @@ FiniteStrainPlasticBase::outputAndCheckDebugParameters()
   for (unsigned a = 0 ; a < numberOfInternalParameters() ; ++a)
     _console << _fspb_debug_intnl_change[a] << "\n";
 }
+

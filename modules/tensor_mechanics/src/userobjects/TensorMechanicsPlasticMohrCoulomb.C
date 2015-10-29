@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsPlasticMohrCoulomb.h"
 #include <math.h> // for M_PI
 
@@ -20,9 +26,8 @@ InputParameters validParams<TensorMechanicsPlasticMohrCoulomb>()
   return params;
 }
 
-TensorMechanicsPlasticMohrCoulomb::TensorMechanicsPlasticMohrCoulomb(const std::string & name,
-                                                         InputParameters parameters) :
-    TensorMechanicsPlasticModel(name, parameters),
+TensorMechanicsPlasticMohrCoulomb::TensorMechanicsPlasticMohrCoulomb(const InputParameters & parameters) :
+    TensorMechanicsPlasticModel(parameters),
     _cohesion(getUserObject<TensorMechanicsHardeningModel>("cohesion")),
     _phi(getUserObject<TensorMechanicsHardeningModel>("friction_angle")),
     _psi(getUserObject<TensorMechanicsHardeningModel>("dilation_angle")),
@@ -417,3 +422,10 @@ TensorMechanicsPlasticMohrCoulomb::d2smooth(const RankTwoTensor & stress) const
   }
   return d2smoother2;
 }
+
+std::string
+TensorMechanicsPlasticMohrCoulomb::modelName() const
+{
+  return "MohrCoulomb";
+}
+

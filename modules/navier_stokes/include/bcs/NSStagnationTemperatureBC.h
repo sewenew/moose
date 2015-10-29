@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSSTAGNATIONTEMPERATUREBC_H
 #define NSSTAGNATIONTEMPERATUREBC_H
 
@@ -21,7 +27,7 @@ class NSStagnationTemperatureBC : public NSStagnationBC
 {
 public:
   // Constructor
-  NSStagnationTemperatureBC(const std::string & name, InputParameters parameters);
+  NSStagnationTemperatureBC(const InputParameters & parameters);
 
   // Destructor, better be virtual
   virtual ~NSStagnationTemperatureBC(){}

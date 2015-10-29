@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSTEMPERATURE_H
 #define INSTEMPERATURE_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<INSTemperature>();
 class INSTemperature : public Kernel
 {
 public:
-  INSTemperature(const std::string & name, InputParameters parameters);
+  INSTemperature(const InputParameters & parameters);
 
   virtual ~INSTemperature(){}
 

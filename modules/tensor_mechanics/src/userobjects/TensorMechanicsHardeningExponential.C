@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsHardeningExponential.h"
 
 template<>
@@ -11,8 +17,8 @@ InputParameters validParams<TensorMechanicsHardeningExponential>()
   return params;
 }
 
-TensorMechanicsHardeningExponential::TensorMechanicsHardeningExponential(const std::string & name, InputParameters parameters) :
-  TensorMechanicsHardeningModel(name, parameters),
+TensorMechanicsHardeningExponential::TensorMechanicsHardeningExponential(const InputParameters & parameters) :
+  TensorMechanicsHardeningModel(parameters),
   _val_0(getParam<Real>("value_0")),
   _val_res(parameters.isParamValid("value_residual") ? getParam<Real>("value_residual") : _val_0),
   _rate(getParam<Real>("rate"))
@@ -30,3 +36,4 @@ TensorMechanicsHardeningExponential::derivative(const Real & intnl) const
 {
   return -_rate*(_val_0 - _val_res)*std::exp(-_rate*intnl);
 }
+

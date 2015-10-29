@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSCourant.h"
 
 template<>
@@ -13,8 +19,8 @@ InputParameters validParams<INSCourant>()
   return params;
 }
 
-INSCourant::INSCourant(const std::string & name, InputParameters parameters)
-  :AuxKernel(name, parameters),
+INSCourant::INSCourant(const InputParameters & parameters)
+  :AuxKernel(parameters),
   _u_vel(coupledValue("u")),
   _v_vel(_mesh.dimension() >= 2 ? coupledValue("v") : _zero),
   _w_vel(_mesh.dimension() == 3 ? coupledValue("w") : _zero)
@@ -32,3 +38,4 @@ INSCourant::computeValue()
 
   return _current_elem->hmin() / vel_mag;
 }
+

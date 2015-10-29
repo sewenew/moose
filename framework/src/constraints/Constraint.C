@@ -31,14 +31,14 @@ InputParameters validParams<Constraint>()
   return params;
 }
 
-Constraint::Constraint(const std::string & name, InputParameters parameters) :
-  MooseObject(name, parameters),
+Constraint::Constraint(const InputParameters & parameters) :
+  MooseObject(parameters),
   SetupInterface(parameters),
   FunctionInterface(parameters),
   UserObjectInterface(parameters),
-  TransientInterface(parameters, name, "constraint"),
+  TransientInterface(parameters, "constraint"),
   GeometricSearchInterface(parameters),
-  Restartable(name, parameters, "Constraints"),
+  Restartable(parameters, "Constraints"),
   ZeroInterface(parameters),
   MeshChangedInterface(parameters),
   _subproblem(*parameters.get<SubProblem *>("_subproblem")),
@@ -53,3 +53,4 @@ Constraint::Constraint(const std::string & name, InputParameters parameters) :
 Constraint::~Constraint()
 {
 }
+

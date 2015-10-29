@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef MECHANICALCONTACTCONSTRAINT_H
 #define MECHANICALCONTACTCONSTRAINT_H
@@ -33,7 +27,7 @@ class MechanicalContactConstraint :
   public NodeFaceConstraint
 {
 public:
-  MechanicalContactConstraint(const std::string & name, InputParameters parameters);
+  MechanicalContactConstraint(const InputParameters & parameters);
   virtual ~MechanicalContactConstraint(){}
 
   virtual void timestepSetup();
@@ -102,8 +96,8 @@ protected:
   const Real _penalty;
   const Real _friction_coefficient;
   const Real _tension_release;
+  const Real _capture_tolerance;
   bool _update_contact_set;
-  Real _time_last_called;
 
   NumericVector<Number> & _residual_copy;
 //  std::map<Point, PenetrationInfo *> _point_to_info;
@@ -114,7 +108,7 @@ protected:
 
   const unsigned int _mesh_dimension;
 
-  RealVectorValue _vars;
+  VectorValue<unsigned> _vars;
 
   MooseVariable * _nodal_area_var;
   SystemBase & _aux_system;

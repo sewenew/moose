@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POLYCRYSTALHEXGRAINICACTION_H
 #define POLYCRYSTALHEXGRAINICACTION_H
 
@@ -10,7 +16,7 @@
 class PolycrystalHexGrainICAction: public Action
 {
 public:
-  PolycrystalHexGrainICAction(const std::string & name, InputParameters params);
+  PolycrystalHexGrainICAction(const InputParameters & params);
 
   virtual void act();
 

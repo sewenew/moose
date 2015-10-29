@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TENSORMECHANICSHARDENINGMODEL_H
 #define TENSORMECHANICSHARDENINGMODEL_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<TensorMechanicsHardeningModel>();
 class TensorMechanicsHardeningModel : public GeneralUserObject
 {
  public:
-  TensorMechanicsHardeningModel(const std::string & name, InputParameters parameters);
+  TensorMechanicsHardeningModel(const InputParameters & parameters);
 
   void initialize();
   void execute();

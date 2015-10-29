@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CoupledBEKinetic.h"
 #include "Material.h"
 
@@ -14,8 +20,8 @@ InputParameters validParams<CoupledBEKinetic>()
   return params;
 }
 
-CoupledBEKinetic::CoupledBEKinetic(const std::string & name, InputParameters parameters)
-  :Kernel(name,parameters),
+CoupledBEKinetic::CoupledBEKinetic(const InputParameters & parameters)
+  :Kernel(parameters),
    _porosity(getMaterialProperty<Real>("porosity")),
    _weight(getParam<std::vector<Real> >("weight"))
 {
@@ -54,3 +60,4 @@ Real CoupledBEKinetic::computeQpOffDiagJacobian(unsigned int jvar)
       return _sto_v1*_test[_i][_qp]*_phi[_j][_qp]/_dt;
   }
 */
+

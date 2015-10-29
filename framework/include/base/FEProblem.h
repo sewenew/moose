@@ -33,13 +33,14 @@
 #include "MultiAppWarehouse.h"
 #include "TransferWarehouse.h"
 #include "MooseEnum.h"
-#include "RestartableData.h"
 #include "Resurrector.h"
 #include "UserObjectWarehouse.h"
 #include "NonlinearSystem.h"
 #include "Restartable.h"
 #include "SolverParams.h"
 #include "OutputWarehouse.h"
+#include "MooseApp.h"
+#include "PetscSupport.h"
 
 class DisplacedProblem;
 
@@ -78,19 +79,19 @@ enum MooseLinearConvergenceReason
   // MOOSE_CONVERGED_ATOL_NORMAL        =  9,
   MOOSE_CONVERGED_RTOL                  =  2,
   MOOSE_CONVERGED_ATOL                  =  3,
-  MOOSE_CONVERGED_ITS                   =  4
+  MOOSE_CONVERGED_ITS                   =  4,
   // MOOSE_CONVERGED_CG_NEG_CURVE       =  5,
   // MOOSE_CONVERGED_CG_CONSTRAINED     =  6,
   // MOOSE_CONVERGED_STEP_LENGTH        =  7,
   // MOOSE_CONVERGED_HAPPY_BREAKDOWN    =  8,
-  // MOOSE_DIVERGED_NULL                = -2,
+  MOOSE_DIVERGED_NULL                   = -2,
   // MOOSE_DIVERGED_ITS                 = -3,
   // MOOSE_DIVERGED_DTOL                = -4,
   // MOOSE_DIVERGED_BREAKDOWN           = -5,
   // MOOSE_DIVERGED_BREAKDOWN_BICG      = -6,
   // MOOSE_DIVERGED_NONSYMMETRIC        = -7,
   // MOOSE_DIVERGED_INDEFINITE_PC       = -8,
-  // MOOSE_DIVERGED_NANORINF            = -9,
+  MOOSE_DIVERGED_NANORINF               = -9
   // MOOSE_DIVERGED_INDEFINITE_MAT      = -10
 };
 
@@ -103,7 +104,7 @@ class FEProblem :
   public Restartable
 {
 public:
-  FEProblem(const std::string & name, InputParameters parameters);
+  FEProblem(const InputParameters & parameters);
   virtual ~FEProblem();
 
   virtual EquationSystems & es() { return _eq; }
@@ -111,6 +112,7 @@ public:
 
   virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid);
   virtual void setCoordSystem(const std::vector<SubdomainName> & blocks, const MultiMooseEnum & coord_sys);
+  void setAxisymmetricCoordAxis(const MooseEnum & rz_coord_axis);
 
   /**
    * Set the coupling between variables
@@ -144,7 +146,7 @@ public:
    * @param abstol         Absolute residual convergence tolerance
    * @param nfuncs         Number of function evaluations
    * @param max_funcs      Maximum Number of function evaluations
-   * @param ref_resid      Reference residual to be used in relative convergence check
+   * @param initial_residual_before_preset_bcs      Residual norm prior to imposition of PresetBC values on solution vector
    * @param div_threshold  Maximum value of residual before triggering divergence check
    */
   virtual MooseNonlinearConvergenceReason checkNonlinearConvergence(std::string &msg,
@@ -157,11 +159,11 @@ public:
                                                                     const Real abstol,
                                                                     const PetscInt nfuncs,
                                                                     const PetscInt max_funcs,
-                                                                    const Real ref_resid,
+                                                                    const Real initial_residual_before_preset_bcs,
                                                                     const Real div_threshold);
 
   /**
-   * Check for converence of the linear solution
+   * Check for convergence of the linear solution
    * @param msg            Error message that gets sent back to the solver
    * @param n              Iteration counter
    * @param rnorm          Norm of the residual vector
@@ -178,11 +180,6 @@ public:
                                                               const Real dtol,
                                                               const PetscInt maxits);
 
-#ifdef LIBMESH_HAVE_PETSC
-  void storePetscOptions(const MultiMooseEnum & petsc_options,
-                         const std::vector<std::string> & petsc_options_inames,
-                         const std::vector<std::string> & petsc_options_values);
-#endif
 
   virtual bool hasVariable(const std::string & var_name);
   virtual MooseVariable & getVariable(THREAD_ID tid, const std::string & var_name);
@@ -226,6 +223,16 @@ public:
    */
   unsigned int getMaxQps() const;
 
+  /**
+   * @return The maximum number of quadrature points in use on any element in this problem.
+   */
+  unsigned int getMaxShapeFunctions() const;
+
+  /**
+   * @return The maximum order for all scalar variables in this problem's systems.
+   */
+  Order getMaxScalarOrder() const;
+
   virtual Assembly & assembly(THREAD_ID tid) { return *_assembly[tid]; }
 
   /**
@@ -255,6 +262,7 @@ public:
   virtual void reinitNode(const Node * node, THREAD_ID tid);
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid);
   virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid);
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid);
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid);
@@ -276,8 +284,31 @@ public:
   virtual void useFECache(bool fe_cache);
 
   virtual void init();
-  virtual void init2();
   virtual void solve();
+
+  /**
+   * Set an exception.  Usually this should not be directly called - but should be called through the mooseException() macro.
+   *
+   * @param message The error message about the exception.
+   */
+  virtual void setException(const std::string & message);
+
+  /**
+   * Whether or not an exception has occurred.
+   */
+  virtual bool hasException() { return _has_exception; }
+
+  /**
+   * Check to see if an exception has occurred on any processor and stop the solve.
+   *
+   * Note: Collective on MPI!  Must be called simultaneously by all processors!
+   *
+   * Also: This will throw a MooseException!
+   *
+   * Note: DO NOT CALL THIS IN A THREADED REGION!  This is meant to be called just after a threaded section.
+   */
+  virtual void checkExceptionAndStopSolve();
+
   virtual bool converged();
   virtual unsigned int nNonlinearIterations() { return _nl.nNonlinearIterations(); }
   virtual unsigned int nLinearIterations() { return _nl.nLinearIterations(); }
@@ -315,10 +346,49 @@ public:
 
   virtual void restoreSolutions();
 
-  virtual const std::vector<MooseObject *> & getObjectsByName(const std::string & name, THREAD_ID tid);
+  /**
+   * Output the current step.
+   * Will ensure that everything is in the proper state to be outputted.
+   * Then tell the OutputWarehouse to do its thing
+   * @param type The type execution flag (see Moose.h)
+   */
+  void outputStep(ExecFlagType type);
+
+  ///@{
+  /**
+   * Ability to enable/disable all output calls
+   *
+   * This is needed by Multiapps and applications to disable output for cases when
+   * executioners call other executions and when Multiapps are sub cycling.
+   */
+  void allowOutput(bool state);
+  template<typename T> void allowOutput(bool state);
+  ///@}
+
+  /**
+   * Indicates that the next call to outputStep should be forced
+   *
+   * This is needed by the MultiApp system, if forceOutput is called the next call to outputStep,
+   * regardless of the type supplied to the call, will be executed with EXEC_FORCED.
+   *
+   * Forced output will NOT override the allowOutput flag.
+   */
+  void forceOutput();
+
+  /**
+   * Reinitialize petsc output for proper linear/nonlinear iteration display
+   */
+  void initPetscOutput();
+
+#ifdef LIBMESH_HAVE_PETSC
+  /**
+   * Retrieve a writable reference the PETSc options (used by PetscSupport)
+   */
+  Moose::PetscSupport::PetscOptions & getPetscOptions(){ return _petsc_options; }
+#endif //LIBMESH_HAVE_PETSC
 
   // Function /////
-  virtual void addFunction(std::string type, const std::string & name, InputParameters parameters);
+  virtual void addFunction(std::string type, const std::string & name, InputParameters parameters, bool auto_parsed = false);
   virtual bool hasFunction(const std::string & name, THREAD_ID tid = 0);
   virtual Function & getFunction(const std::string & name, THREAD_ID tid = 0);
 
@@ -327,6 +397,7 @@ public:
   void addVariable(const std::string & var_name, const FEType & type, Real scale_factor, const std::set< SubdomainID > * const active_subdomains = NULL);
   void addScalarVariable(const std::string & var_name, Order order, Real scale_factor = 1., const std::set< SubdomainID > * const active_subdomains = NULL);
   void addKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
+  void addNodalKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addScalarKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
   void addBoundaryCondition(const std::string & bc_name, const std::string & name, InputParameters parameters);
   void addConstraint(const std::string & c_name, const std::string & name, InputParameters parameters);
@@ -353,18 +424,6 @@ public:
 
   // Materials /////
   void addMaterial(const std::string & kernel_name, const std::string & name, InputParameters parameters);
-
-  /**
-   * Get list of materials with specified name
-   * @param name The name of the material
-   * @param tid Thread ID
-   * @return The list of materials with the name 'name'
-   */
-  virtual const std::vector<Material*> & getMaterialsByName(const std::string & name, THREAD_ID tid);
-  virtual const std::vector<Material*> & getMaterials(SubdomainID block_id, THREAD_ID tid);
-  virtual const std::vector<Material*> & getFaceMaterials(SubdomainID block_id, THREAD_ID tid);
-  virtual const std::vector<Material*> & getBndMaterials(BoundaryID block_id, THREAD_ID tid);
-  virtual const std::vector<Material*> & getNeighborMaterials(SubdomainID block_id, THREAD_ID tid);
 
   /**
    * Add the MooseVariables that the current materials depend on to the dependency list.
@@ -433,23 +492,28 @@ public:
   /**
    * Check existence of the postprocessor.
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return true if it exists, otherwise false
    */
-  bool hasPostprocessor(const std::string & name, THREAD_ID tid = 0);
+  bool hasPostprocessor(const std::string & name);
 
   /**
    * Get a reference to the value associated with the postprocessor.
    */
-  PostprocessorValue & getPostprocessorValue(const PostprocessorName & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValue(const PostprocessorName & name);
 
   /**
    * Get the reference to the old value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
    * @return The reference to the old value
    */
-  PostprocessorValue & getPostprocessorValueOld(const std::string & name, THREAD_ID tid = 0);
+  PostprocessorValue & getPostprocessorValueOld(const std::string & name);
+
+  /**
+   * Get the reference to the older value of a post-processor
+   * @param name The name of the post-processor
+   * @return The reference to the old value
+   */
+  PostprocessorValue & getPostprocessorValueOlder(const std::string & name);
 
   /**
    * Get a reference to the PostprocessorWarehouse ExecStore object
@@ -457,9 +521,15 @@ public:
   ExecStore<PostprocessorWarehouse> & getPostprocessorWarehouse();
 
   /**
+   * Get a reference to the UserObjectWarehouse ExecStore object
+   */
+  ExecStore<UserObjectWarehouse> & getUserObjectWarehouse();
+
+  /**
    * Returns whether or not the current simulation has any multiapps
    */
   bool hasMultiApps() const { return _has_multiapps; }
+  bool hasMultiApp(const std::string & name);
 
   /**
    * Check existence of the VectorPostprocessor.
@@ -470,13 +540,16 @@ public:
 
   /**
    * Get a reference to the value associated with the VectorPostprocessor.
+   * @param name The name of the post-processor
+   * @param vector_name The name of the post-processor
+   * @return The reference to the current value
    */
   VectorPostprocessorValue & getVectorPostprocessorValue(const VectorPostprocessorName & name, const std::string & vector_name);
 
   /**
    * Get the reference to the old value of a post-processor
    * @param name The name of the post-processor
-   * @param tid Thread ID
+   * @param vector_name The name of the post-processor
    * @return The reference to the old value
    */
   VectorPostprocessorValue & getVectorPostprocessorValueOld(const std::string & name, const std::string & vector_name);
@@ -524,12 +597,23 @@ public:
   /**
    * Execute the MultiApps associated with the ExecFlagType
    */
-  void execMultiApps(ExecFlagType type, bool auto_advance = true);
+  bool execMultiApps(ExecFlagType type, bool auto_advance = true);
 
   /**
    * Advance the MultiApps associated with the ExecFlagType
    */
   void advanceMultiApps(ExecFlagType type);
+
+  /**
+   * Backup the MultiApps associated with the ExecFlagType
+   */
+  void backupMultiApps(ExecFlagType type);
+
+  /**
+   * Restore the MultiApps associated with the ExecFlagType
+   * @param force Force restoration because something went wrong with the solve
+   */
+  void restoreMultiApps(ExecFlagType type, bool force=false);
 
   /**
    * Find the smallest timestep over all MultiApps
@@ -616,6 +700,12 @@ public:
   virtual void computeBounds(NonlinearImplicitSystem & sys, NumericVector<Number> & lower, NumericVector<Number> & upper);
   virtual void computeNearNullSpace(NonlinearImplicitSystem & sys, std::vector<NumericVector<Number>*> &sp);
   virtual void computeNullSpace(NonlinearImplicitSystem & sys, std::vector<NumericVector<Number>*> &sp);
+  virtual void computePostCheck(NonlinearImplicitSystem & sys,
+                                const NumericVector<Number> & old_soln,
+                                NumericVector<Number> & search_direction,
+                                NumericVector<Number> & new_soln,
+                                bool & changed_search_direction,
+                                bool & changed_new_soln);
 
   virtual void computeIndicatorsAndMarkers();
 
@@ -656,8 +746,8 @@ public:
   virtual void prepareNeighborShapes(unsigned int var, THREAD_ID tid);
 
   // Displaced problem /////
-  virtual void initDisplacedProblem(MooseMesh * displaced_mesh, InputParameters params);
-  virtual DisplacedProblem * & getDisplacedProblem() { return _displaced_problem; }
+  virtual void addDisplacedProblem(MooseSharedPointer<DisplacedProblem> displaced_problem);
+  virtual MooseSharedPointer<DisplacedProblem> getDisplacedProblem() { return _displaced_problem; }
 
   virtual void updateGeomSearch(GeometricSearchData::GeometricSearchType type = GeometricSearchData::ALL);
 
@@ -670,28 +760,6 @@ public:
    * @param file_name The file name for restarting from
    */
   void setRestartFile(const std::string & file_name);
-
-  /**
-   * Register a piece of restartable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * @param name The full (unique) name.
-   * @param data The actual data object.
-   * @param tid The thread id of the object.  Use 0 if the object is not threaded.
-   */
-  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid);
-
-  /**
-   * Return reference to the restatable data object
-   * @return A const reference to the restatable data object
-   */
-  const RestartableDatas & getRestartableData() { return _restartable_data; }
-
-  /**
-   * Return a reference to the recoverable data object
-   * @return A const reference to the recoverable data
-   */
-  std::set<std::string> & getRecoverableData() { return _recoverable_data; }
 
   ///@{
   /**
@@ -737,6 +805,8 @@ public:
   void registerRandomInterface(RandomInterface & random_interface, const std::string & name);
 
   void setKernelCoverageCheck(bool flag) { _kernel_coverage_check = flag; }
+
+  void setMaterialCoverageCheck(bool flag) { _material_coverage_check = flag; }
 
   bool & legacyUoAuxComputation() { return _use_legacy_uo_aux_computation; }
 
@@ -796,7 +866,7 @@ public:
   /*
    * Return a reference to the MaterialWarehouse
    */
-  MaterialWarehouse & getMaterialWarehouse(THREAD_ID tid) { return _materials[tid]; }
+  MaterialWarehouse & getMaterialWarehouse(THREAD_ID tid);
 
   /*
    * Return a pointer to the MaterialData
@@ -808,11 +878,7 @@ public:
    */
   MaterialData * getBoundaryMaterialData(THREAD_ID tid) { return _bnd_material_data[tid]; }
 
-  /**
-   * Returns a short description of the active preconditioner
-   */
-  const std::string & getPreconditionerDescription() const { return _pc_description; }
-
+  ///@{
   /**
    * Will return True if the user wants to get an error when
    * a nonzero is reallocated in the Jacobian by PETSc
@@ -821,12 +887,10 @@ public:
 
   void setErrorOnJacobianNonzeroReallocation(bool state) { _error_on_jacobian_nonzero_reallocation = state; }
 
-
+  /// Returns whether or not this Problem has a TimeIntegrator
+  bool hasTimeIntegrator() const { return _has_time_integrator; }
 
 protected:
-  /// Data names that will only be read from the restart file during RECOVERY
-  std::set<std::string> _recoverable_data;
-
   MooseMesh & _mesh;
   EquationSystems _eq;
   bool _initialized;
@@ -848,9 +912,6 @@ protected:
   Real & _dt;
   Real & _dt_old;
 
-  /// Objects by names, indexing: [thread][name]->array of moose objects with name 'name'
-  std::vector<std::map<std::string, std::vector<MooseObject *> > > _objects_by_name;
-
   NonlinearSystem & _nl;
   AuxiliarySystem _aux;
 
@@ -869,8 +930,8 @@ protected:
   std::vector<InitialConditionWarehouse> _ics;
 
   // material properties
-  MaterialPropertyStorage _material_props;
-  MaterialPropertyStorage _bnd_material_props;
+  MaterialPropertyStorage & _material_props;
+  MaterialPropertyStorage & _bnd_material_props;
 
   std::vector<MaterialData *> _material_data;
   std::vector<MaterialData *> _bnd_material_data;
@@ -886,7 +947,7 @@ protected:
   std::vector<MarkerWarehouse> _markers;
 
   // postprocessors
-  std::vector<PostprocessorData*> _pps_data;
+  PostprocessorData _pps_data;
   ExecStore<PostprocessorWarehouse> _pps;
 
   // VectorPostprocessors
@@ -921,7 +982,6 @@ protected:
 
   void computeUserObjectsInternal(ExecFlagType type, UserObjectWarehouse::GROUP group);
 
-protected:
   void checkUserObjects();
 
   /// Verify that there are no element type/coordinate type conflicts
@@ -930,7 +990,7 @@ protected:
   /**
    * Call when it is possible that the needs for ghosted elements has changed.
    */
-  void reinitBecauseOfGhosting();
+  void reinitBecauseOfGhostingOrNewGeomObjects();
 
 #ifdef LIBMESH_ENABLE_AMR
   Adaptivity _adaptivity;
@@ -938,7 +998,7 @@ protected:
 
   // Displaced mesh /////
   MooseMesh * _displaced_mesh;
-  DisplacedProblem * _displaced_problem;
+  MooseSharedPointer<DisplacedProblem> _displaced_problem;
   GeometricSearchData _geometric_search_data;
 
   bool _reinit_displaced_elem;
@@ -953,7 +1013,7 @@ protected:
   /// Whether or not this system has any Constraints.
   bool _has_constraints;
 
-  /// Whether or not this systen has any multiapps
+  /// Whether or not this system has any multiapps
   bool _has_multiapps;
 
   /// Whether nor not stateful materials have been initialized
@@ -964,6 +1024,7 @@ protected:
 
   /// true if the Jacobian is constant
   bool _const_jacobian;
+
   /// Indicates if the Jacobian was computed
   bool _has_jacobian;
 
@@ -972,11 +1033,31 @@ protected:
   /// Determines whether a check to verify an active kernel on every subdomain
   bool _kernel_coverage_check;
 
+  /// Determines whether a check to verify an active material on every subdomain
+  bool _material_coverage_check;
+
   /// Maximum number of quadrature points used in the problem
   unsigned int _max_qps;
 
-  /// Preconditioner description
-  std::string _pc_description;
+  /// Maximum number of shape functions on any element in the problem
+  unsigned int _max_shape_funcs;
+
+  /// Maximum scalar variable order
+  Order _max_scalar_order;
+
+  /// Indicates whether or not this executioner has a time integrator (during setup)
+  bool _has_time_integrator;
+
+  /// Whether or not an exception has occurred
+  bool _has_exception;
+
+  /// The error message to go with an exception
+  std::string _exception_message;
+
+#ifdef LIBMESH_HAVE_PETSC
+  /// PETSc option storage
+  Moose::PetscSupport::PetscOptions _petsc_options;
+#endif //LIBMESH_HAVE_PETSC
 
 public:
   /// number of instances of FEProblem (to distinguish Systems when coupling problems together)
@@ -987,29 +1068,24 @@ private:
   bool _use_legacy_uo_initialization;
 
   bool _error_on_jacobian_nonzero_reallocation;
-
-  /**
-   * NOTE: This is an internal function meant for MOOSE use only!
-   *
-   * Register a piece of recoverable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * However, this data will ONLY get read from the restart file during a RECOVERY operation!
-   *
-   * @param name The full (unique) name.
-   */
-  virtual void registerRecoverableData(std::string name);
+  bool _fail_next_linear_convergence_check;
 
   friend class AuxiliarySystem;
   friend class NonlinearSystem;
   friend class EigenSystem;
   friend class Resurrector;
-  friend class MaterialPropertyIO;
   friend class RestartableDataIO;
   friend class ComputeInitialConditionThread;
   friend class ComputeBoundaryInitialConditionThread;
   friend class Restartable;
   friend class DisplacedProblem;
 };
+
+template<typename T>
+void
+FEProblem::allowOutput(bool state)
+{
+  _app.getOutputWarehouse().allowOutput<T>(state);
+}
 
 #endif /* FEPROBLEM_H */

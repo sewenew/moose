@@ -33,10 +33,9 @@ public:
 
   /**
    * Class constructor
-   * @param name Outputter name
    * @param parameters Outputter input file parameters
    */
-  PetscOutput(const std::string & name, InputParameters & parameters);
+  PetscOutput(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -67,7 +66,7 @@ private:
   /**
    * Internal setup function that executes at the beginning of the time step
    */
-  void timestepSetupInternal();
+  void solveSetup();
 
 #ifdef LIBMESH_HAVE_PETSC
   /**

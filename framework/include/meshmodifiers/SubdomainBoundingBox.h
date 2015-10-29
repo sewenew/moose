@@ -36,10 +36,9 @@ public:
 
   /**
    * Class constructor
-   * @param name The name of the SubdomainBoundingBox
    * @param parameters The input parameters
    */
-  SubdomainBoundingBox(const std::string & name, InputParameters parameters);
+  SubdomainBoundingBox(const InputParameters & parameters);
 
   /**
    * Class destructor

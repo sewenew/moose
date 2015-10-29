@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSGRAVITYFORCE_H
 #define NSGRAVITYFORCE_H
 
@@ -14,7 +20,7 @@ class NSGravityForce : public NSKernel
 {
 public:
 
-  NSGravityForce(const std::string & name, InputParameters parameters);
+  NSGravityForce(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

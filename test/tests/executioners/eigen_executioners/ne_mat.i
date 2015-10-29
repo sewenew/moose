@@ -64,7 +64,6 @@
   type = NonlinearEigen
 
   bx_norm = 'unorm'
-  xdiff = 'udiff'
   normalization = 'unorm'
   normal_factor = 9.990012561844
 
@@ -94,12 +93,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = ne_mat
-  interval = 1
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'failed nonlinear linear timestep_end'
-  [../]
 []

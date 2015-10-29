@@ -30,11 +30,9 @@ class NodalVariablePostprocessor :
   public MooseVariableInterface
 {
 public:
-  NodalVariablePostprocessor(const std::string & name, InputParameters parameters);
+  NodalVariablePostprocessor(const InputParameters & parameters);
 
 protected:
-  MooseVariable & _var;
-
   /// Holds the solution at current quadrature points
   VariableValue & _u;
 };

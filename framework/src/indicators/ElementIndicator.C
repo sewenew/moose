@@ -36,17 +36,17 @@ params.addParam<std::vector<SubdomainName> >("block", everywhere, "block ID or n
 }
 
 
-ElementIndicator::ElementIndicator(const std::string & name, InputParameters parameters) :
-    Indicator(name, parameters),
-    TransientInterface(parameters, name, "indicators"),
+ElementIndicator::ElementIndicator(const InputParameters & parameters) :
+    Indicator(parameters),
+    TransientInterface(parameters, "indicators"),
     PostprocessorInterface(parameters),
     Coupleable(parameters, false),
     ScalarCoupleable(parameters),
     MooseVariableInterface(parameters, false),
-    MaterialPropertyInterface(name, parameters),
+    MaterialPropertyInterface(parameters),
     ZeroInterface(parameters),
 
-    _field_var(_sys.getVariable(_tid, name)),
+    _field_var(_sys.getVariable(_tid, name())),
 
     _current_elem(_field_var.currentElem()),
     _current_elem_volume(_assembly.elemVolume()),
@@ -68,3 +68,4 @@ ElementIndicator::ElementIndicator(const std::string & name, InputParameters par
 
   addMooseVariableDependency(mooseVariable());
 }
+

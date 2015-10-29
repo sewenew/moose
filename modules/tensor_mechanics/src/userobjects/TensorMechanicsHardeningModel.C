@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 //  Hardening model base class.
 //
 #include "TensorMechanicsHardeningModel.h"
@@ -10,8 +16,8 @@ InputParameters validParams<TensorMechanicsHardeningModel>()
   return params;
 }
 
-TensorMechanicsHardeningModel::TensorMechanicsHardeningModel(const std::string & name, InputParameters parameters) :
-  GeneralUserObject(name, parameters)
+TensorMechanicsHardeningModel::TensorMechanicsHardeningModel(const InputParameters & parameters) :
+  GeneralUserObject(parameters)
 {
 }
 
@@ -37,3 +43,4 @@ TensorMechanicsHardeningModel::derivative(const Real & /*intnl*/) const
 {
   return 0.0;
 }
+

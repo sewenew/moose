@@ -41,5 +41,4 @@
 
 [Outputs]
   gmv = true
-  output_on = 'initial timestep_end'
 []

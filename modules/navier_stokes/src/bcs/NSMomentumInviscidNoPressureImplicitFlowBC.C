@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumInviscidNoPressureImplicitFlowBC.h"
 
 template<>
@@ -11,8 +17,8 @@ InputParameters validParams<NSMomentumInviscidNoPressureImplicitFlowBC>()
 
 
 
-NSMomentumInviscidNoPressureImplicitFlowBC::NSMomentumInviscidNoPressureImplicitFlowBC(const std::string & name, InputParameters parameters)
-    : NSMomentumInviscidBC(name, parameters)
+NSMomentumInviscidNoPressureImplicitFlowBC::NSMomentumInviscidNoPressureImplicitFlowBC(const InputParameters & parameters)
+    : NSMomentumInviscidBC(parameters)
 {
 }
 
@@ -50,3 +56,4 @@ Real NSMomentumInviscidNoPressureImplicitFlowBC::computeQpOffDiagJacobian(unsign
 {
   return this->convective_qp_jacobian( this->map_var_number(jvar) );
 }
+

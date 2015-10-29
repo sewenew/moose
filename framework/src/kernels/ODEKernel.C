@@ -22,8 +22,8 @@ InputParameters validParams<ODEKernel>()
   return params;
 }
 
-ODEKernel::ODEKernel(const std::string & name, InputParameters parameters) :
-    ScalarKernel(name, parameters)
+ODEKernel::ODEKernel(const InputParameters & parameters) :
+    ScalarKernel(parameters)
 {
 }
 
@@ -89,3 +89,4 @@ ODEKernel::computeQpOffDiagJacobian(unsigned int /*jvar*/)
 {
   return 0.;
 }
+

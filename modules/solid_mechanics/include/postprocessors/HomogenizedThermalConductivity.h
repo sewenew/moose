@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // See
 // Homogenization of Temperature-Dependent Thermal Conductivity in Composite
 // Materials, Journal of Thermophysics and Heat Transfer, Vol. 15, No. 1,
@@ -12,7 +18,7 @@
 class HomogenizedThermalConductivity : public ElementAverageValue
 {
 public:
-  HomogenizedThermalConductivity(const std::string & name, InputParameters parameters);
+  HomogenizedThermalConductivity(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute();
@@ -27,7 +33,7 @@ private:
   VariableGradient & _grad_temp_y;
   VariableGradient & _grad_temp_z;
   const unsigned int _component;
-  MaterialProperty<Real> & _diffusion_coefficient;
+  const MaterialProperty<Real> & _diffusion_coefficient;
   Real _volume;
   Real _integral_value;
   const Real _scale;

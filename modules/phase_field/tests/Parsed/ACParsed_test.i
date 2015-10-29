@@ -50,7 +50,7 @@
   [./ACInterface]
     type = ACInterface
     variable = eta
-    kappa_name = kappa
+    kappa_name = 1
   [../]
 []
 
@@ -58,8 +58,8 @@
   [./consts]
     type = GenericConstantMaterial
     block = 0
-    prop_names  = 'L kappa'
-    prop_values = '1 1'
+    prop_names  = 'L'
+    prop_values = '1'
   [../]
 
   [./free_energy]
@@ -68,7 +68,7 @@
     f_name = F
     args = 'eta'
     function = '2 * eta^2 * (1-eta)^2 - 0.2*eta'
-    third_derivatives = false
+    derivative_order = 2
   [../]
 []
 
@@ -91,12 +91,5 @@
 []
 
 [Outputs]
-  interval = 1
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

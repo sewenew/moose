@@ -39,12 +39,12 @@
 [UserObjects]
   [./rh_uo]
     type = RandomHitUserObject
-    execute_on = timestep_begin
+    execute_on = 'initial timestep_begin'
     num_hits = 1
   [../]
   [./rhsm]
     type = RandomHitSolutionModifier
-    execute_on = custom
+    execute_on = 'custom'
     modify = u
     random_hits = rh_uo
     amount = 1000
@@ -92,10 +92,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

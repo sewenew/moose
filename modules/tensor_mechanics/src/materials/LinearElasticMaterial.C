@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari, O. Heinonen
 
 #include "LinearElasticMaterial.h"
@@ -19,9 +25,8 @@ InputParameters validParams<LinearElasticMaterial>()
   return params;
 }
 
-LinearElasticMaterial::LinearElasticMaterial(const std::string & name,
-                                             InputParameters parameters) :
-    TensorMechanicsMaterial(name, parameters),
+LinearElasticMaterial::LinearElasticMaterial(const InputParameters & parameters) :
+    TensorMechanicsMaterial(parameters),
     _T(coupledValue("T")),
     _T0(getParam<Real>("T0")),
     _thermal_expansion_coeff(getParam<Real>("thermal_expansion_coeff")),
@@ -73,3 +78,4 @@ LinearElasticMaterial::computeStressFreeStrain()
 
   return stress_free_strain;
 }
+

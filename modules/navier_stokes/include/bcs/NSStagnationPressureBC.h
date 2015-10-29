@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSSTAGNATIONPRESSUREBC_H
 #define NSSTAGNATIONPRESSUREBC_H
 
@@ -21,7 +27,7 @@ class NSStagnationPressureBC : public NSStagnationBC
 {
 public:
   // Constructor
-  NSStagnationPressureBC(const std::string & name, InputParameters parameters);
+  NSStagnationPressureBC(const InputParameters & parameters);
 
   // Destructor, better be virtual
   virtual ~NSStagnationPressureBC(){}

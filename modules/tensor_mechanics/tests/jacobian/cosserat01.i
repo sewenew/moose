@@ -32,22 +32,23 @@
   [./cx_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_x
+    displacements = 'disp_x disp_y disp_z'
     component = 0
   [../]
   [./cy_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_y
+    displacements = 'disp_x disp_y disp_z'
     component = 1
   [../]
   [./cz_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_z
+    displacements = 'disp_x disp_y disp_z'
     component = 2
   [../]
   [./TensorMechanics]
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
+    displacements = 'wc_x wc_y wc_z'
     base_name = coupled
   [../]
   [./x_moment]
@@ -82,7 +83,6 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
     petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it -snes_type'
     petsc_options_value = 'bcgs bjacobi 1E-15 1E-10 10000 test'
   [../]

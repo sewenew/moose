@@ -14,7 +14,7 @@
 
 #include "libmesh/libmesh_config.h"
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 #include "MultiAppDTKUserObjectTransfer.h"
 
@@ -31,8 +31,8 @@ InputParameters validParams<MultiAppDTKUserObjectTransfer>()
   return params;
 }
 
-MultiAppDTKUserObjectTransfer::MultiAppDTKUserObjectTransfer(const std::string & name, InputParameters parameters) :
-    MultiAppTransfer(name, parameters),
+MultiAppDTKUserObjectTransfer::MultiAppDTKUserObjectTransfer(const InputParameters & parameters) :
+    MultiAppTransfer(parameters),
     MooseVariableInterface(parameters, true),
     _user_object_name(getParam<UserObjectName>("user_object")),
     _setup(false)
@@ -78,4 +78,4 @@ MultiAppDTKUserObjectTransfer::execute()
   _multi_app->problem()->es().update();
 }
 
-#endif //LIBMESH_HAVE_DTK
+#endif //LIBMESH_TRILINOS_HAVE_DTK

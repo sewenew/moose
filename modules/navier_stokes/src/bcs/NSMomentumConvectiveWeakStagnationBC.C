@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumConvectiveWeakStagnationBC.h"
 
 template<>
@@ -13,8 +19,8 @@ InputParameters validParams<NSMomentumConvectiveWeakStagnationBC>()
 
 
 
-NSMomentumConvectiveWeakStagnationBC::NSMomentumConvectiveWeakStagnationBC(const std::string & name, InputParameters parameters)
-    : NSWeakStagnationBC(name, parameters),
+NSMomentumConvectiveWeakStagnationBC::NSMomentumConvectiveWeakStagnationBC(const InputParameters & parameters)
+    : NSWeakStagnationBC(parameters),
 
       // Required parameters
       _component(getParam<unsigned>("component"))
@@ -54,6 +60,7 @@ Real NSMomentumConvectiveWeakStagnationBC::computeQpOffDiagJacobian(unsigned /*j
   // TODO
   return 0.;
 }
+
 
 
 

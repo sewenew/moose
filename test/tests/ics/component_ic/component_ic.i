@@ -78,22 +78,26 @@
     type = ScalarVariable
     variable = v
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./v2]
     type = ScalarVariable
     variable = v
     component = 1
+    execute_on = 'initial timestep_end'
   [../]
 
   [./a1]
     type = ScalarVariable
     variable = a
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./a2]
     type = ScalarVariable
     variable = a
     component = 1
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -103,14 +107,8 @@
 []
 
 [Outputs]
-  output_on = 'initial timestep_end'
   [./out]
     type = Exodus
-    output_scalars_on = 'none'
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
+    execute_scalars_on = none
   [../]
 []

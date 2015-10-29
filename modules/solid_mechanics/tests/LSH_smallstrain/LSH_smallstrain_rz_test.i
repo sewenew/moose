@@ -167,14 +167,8 @@
 
 [Outputs]
   file_base = out_rz
-  output_on = 'initial timestep_end'
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

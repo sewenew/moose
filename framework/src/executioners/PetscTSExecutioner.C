@@ -237,9 +237,8 @@ TimeStepper *createTimeStepper(Moose::TimeSteppingScheme scheme, FEProblem &fe_p
   }
 }
 
-PetscTSExecutioner::PetscTSExecutioner(const std::string & name, InputParameters parameters) :
-  Executioner(name, parameters),
-  _fe_problem(*parameterss.getCheckedPointerParam<FEProblem *>("_fe_problem")),
+PetscTSExecutioner::PetscTSExecutioner(const InputParameters & parameters) :
+  Executioner(parameters),
   _time_stepper(NULL)
 {
   if (!_restart_file_base.empty())

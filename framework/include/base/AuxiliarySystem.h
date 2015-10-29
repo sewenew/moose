@@ -130,7 +130,7 @@ protected:
   void computeNodalVars(ExecFlagType type);
   void computeElementalVars(ExecFlagType type);
 
-  FEProblem & _mproblem;
+  FEProblem & _fe_problem;
 
   /// solution vector from nonlinear solver
   const NumericVector<Number> * _current_solution;
@@ -158,6 +158,8 @@ protected:
   friend class ComputeIndicatorThread;
   friend class ComputeMarkerThread;
   friend class FlagElementsThread;
+  friend class ComputeNodalKernelsThread;
+  friend class ComputeNodalKernelJacobiansThread;
 };
 
 #endif /* EXPLICITSYSTEM_H */

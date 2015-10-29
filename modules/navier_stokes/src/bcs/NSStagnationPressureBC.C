@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSStagnationPressureBC.h"
 
 // Full specialization of the validParams function for this object
@@ -20,8 +26,8 @@ InputParameters validParams<NSStagnationPressureBC>()
 
 
 // Constructor, be sure to call the base class constructor first!
-NSStagnationPressureBC::NSStagnationPressureBC(const std::string & name, InputParameters parameters)
-    : NSStagnationBC(name, parameters),
+NSStagnationPressureBC::NSStagnationPressureBC(const InputParameters & parameters)
+    : NSStagnationBC(parameters),
 
       // Coupled variables
       _pressure(coupledValue("pressure")),
@@ -48,4 +54,5 @@ Real NSStagnationPressureBC::computeQpResidual()
   // and the desired.  The Dirichlet condition asserts that these should be equal.
   return computed_stagnation_pressure - _desired_stagnation_pressure;
 }
+
 

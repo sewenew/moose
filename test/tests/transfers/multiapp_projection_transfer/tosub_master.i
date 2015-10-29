@@ -65,17 +65,10 @@
   dt = 1
 
   solve_type = 'NEWTON'
-  print_linear_residuals = true
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []
 
 [Debug]
@@ -99,8 +92,6 @@
     multi_app = sub
     source_variable = u
     variable = u_nodal
-    family = LAGRANGE
-    order = FIRST
   [../]
   [./elemental_tosub]
     type = MultiAppProjectionTransfer
@@ -108,8 +99,6 @@
     multi_app = sub
     source_variable = u
     variable = u_elemental
-    order = CONSTANT
-    family = MONOMIAL
   [../]
   [./elemental_to_sub_elemental]
     type = MultiAppProjectionTransfer
@@ -117,8 +106,6 @@
     multi_app = sub
     source_variable = x
     variable = x_elemental
-    order = CONSTANT
-    family = MONOMIAL
   [../]
   [./elemental_to_sub_nodal]
     type = MultiAppProjectionTransfer
@@ -126,7 +113,5 @@
     multi_app = sub
     source_variable = x
     variable = x_nodal
-    family = LAGRANGE
-    order = FIRST
   [../]
 []

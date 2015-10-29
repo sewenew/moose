@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef DISPLACEMENTABOUTAXIS_H
 #define DISPLACEMENTABOUTAXIS_H
@@ -32,7 +26,7 @@ void addDisplacementAboutAxisParams(InputParameters& params);
 class DisplacementAboutAxis : public PresetNodalBC
 {
 public:
-  DisplacementAboutAxis(const std::string & name, InputParameters parameters);
+  DisplacementAboutAxis(const InputParameters & parameters);
 
 protected:
   /**

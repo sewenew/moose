@@ -12,8 +12,8 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-#ifndef OUTPUTBASE_H
-#define OUTPUTBASE_H
+#ifndef OUTPUT_H
+#define OUTPUT_H
 
 // MOOSE includes
 #include "MooseObject.h"
@@ -21,8 +21,8 @@
 #include "MooseTypes.h"
 #include "MooseMesh.h"
 #include "MeshChangedInterface.h"
-#include "MooseApp.h"
 #include "SetupInterface.h"
+#include "AdvancedOutputUtils.h"
 
 // libMesh
 #include "libmesh/equation_systems.h"
@@ -60,7 +60,7 @@ public:
    *
    * @see initAvailable init separate
    */
-  Output(const std::string & name, InputParameters & parameters);
+  Output(const InputParameters & parameters);
 
   /**
    * Get the output time.
@@ -94,9 +94,43 @@ public:
   virtual int timeStep();
 
   /**
+   * Get the output interval
+   */
+  const unsigned int & interval() const;
+
+  /**
+   * Get the current 'execute_on' selections for display
+   */
+  const MultiMooseEnum & executeOn() const;
+
+  /**
+   * Returns true if this object is an AdvancedOutput object
+   */
+  bool isAdvanced();
+
+  /**
+   * Returns the advanced 'execute_on' settings.
+   *
+   * Check if this is valid first with isAdvanced()
+   */
+  virtual const OutputOnWarehouse & advancedExecuteOn() const;
+
+  /**
    * Return the support output execution times
+   * @param default_type The default MultiMooseEnum option
    */
   static MultiMooseEnum getExecuteOptions(std::string default_type = "");
+
+  /**
+   * Method for controlling the allow output state
+   * @param state The state to set the allow flag to
+   */
+  void allowOutput(bool state) { _allow_output = state; }
+
+  /**
+   * A static helper for injecting deprecated parameters
+   */
+  static void addDeprecatedInputParameters(InputParameters & params);
 
 
 protected:
@@ -104,17 +138,16 @@ protected:
   /**
    * A single call to this function should output all the necessary data for a single timestep.
    * @param type The type execution flag (see Moose.h)
-   * @param force Ignore the flag and preform the output
    *
    * @see outputNodalVariables outputElementalVariables outputScalarVariables outputPostprocessors
    */
   virtual void outputStep(const ExecFlagType & type) = 0;
 
   /**
-   * A method called just prior to timestep(), this is used by PetscOutput to perform the necessary
+   * A method called just prior to the solve, this is used by PetscOutput to perform the necessary
    * setup actions for each timestep
    */
-  virtual void timestepSetupInternal();
+  virtual void solveSetup();
 
   /**
    * Handles logic for determining if a step should be output
@@ -127,6 +160,12 @@ protected:
    * \todo{Implement additional types of intervals (e.g., simulation time and real time)}
    */
   bool onInterval();
+
+  /**
+   * Initialization method.
+   * This populates the various data structures needed to control the output
+   */
+  virtual void initialSetup();
 
   /// Pointer the the FEProblem object for output object (use this)
   FEProblem * _problem_ptr;
@@ -144,15 +183,7 @@ protected:
   bool _sequence;
 
   /// The common Execution types; this is used as the default execution type for everything except system information and input
-  MultiMooseEnum _output_on;
-
-//private:
-
-  /**
-   * Initialization method.
-   * This populates the various data structures needed to control the output
-   */
-  virtual void init();
+  MultiMooseEnum _execute_on;
 
   /// The current time for output purposes
   Real & _time;
@@ -193,8 +224,19 @@ protected:
   /// True if init() has been called
   bool _initialized;
 
-  friend class OutputWarehouse;
+  /// Flag for disabling output
+  bool _allow_output;
 
+  /// Flag for advanced output testing
+  bool _is_advanced;
+
+  /// Storage for the individual component execute flags
+  // This is here rather than in AdvancedOutput to allow generic
+  // access to this data from the Console object for displaying
+  // the output settings.
+  OutputOnWarehouse _advanced_execute_on;
+
+  friend class OutputWarehouse;
 };
 
 #endif /* OUTPUT_H */

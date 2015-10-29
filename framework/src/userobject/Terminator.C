@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "Terminator.h"
 #include "MooseApp.h"
 #include "Executioner.h"
@@ -10,8 +23,8 @@ InputParameters validParams<Terminator>()
   return params;
 }
 
-Terminator::Terminator(const std::string & name, InputParameters parameters) :
-    GeneralUserObject(name, parameters),
+Terminator::Terminator(const InputParameters & parameters) :
+    GeneralUserObject(parameters),
     _pp_names(),
     _pp_values(),
     _expression(getParam<std::string>("expression")),
@@ -47,3 +60,4 @@ Terminator::execute()
   if (_fp.Eval(_params) != 0)
     _fe_problem.terminateSolve();
 }
+

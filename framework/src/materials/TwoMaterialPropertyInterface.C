@@ -15,8 +15,14 @@
 #include "TwoMaterialPropertyInterface.h"
 #include "MaterialData.h"
 
-TwoMaterialPropertyInterface::TwoMaterialPropertyInterface(const std::string & name, InputParameters & parameters) :
-    MaterialPropertyInterface(name, parameters),
+TwoMaterialPropertyInterface::TwoMaterialPropertyInterface(const InputParameters & parameters) :
+    MaterialPropertyInterface(parameters),
+    _neighbor_material_data(*parameters.get<MaterialData *>("_neighbor_material_data"))
+{
+}
+
+TwoMaterialPropertyInterface::TwoMaterialPropertyInterface(const InputParameters & parameters, const std::set<SubdomainID> & block_ids) :
+    MaterialPropertyInterface(parameters, block_ids),
     _neighbor_material_data(*parameters.get<MaterialData *>("_neighbor_material_data"))
 {
 }

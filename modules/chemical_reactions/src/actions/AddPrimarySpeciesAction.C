@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AddPrimarySpeciesAction.h"
 #include "Parser.h"
 #include "FEProblem.h"
@@ -26,8 +32,8 @@ InputParameters validParams<AddPrimarySpeciesAction>()
 }
 
 
-AddPrimarySpeciesAction::AddPrimarySpeciesAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddPrimarySpeciesAction::AddPrimarySpeciesAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
@@ -45,3 +51,4 @@ AddPrimarySpeciesAction::act()
   }
 
 }
+

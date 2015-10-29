@@ -75,7 +75,7 @@
 [Postprocessors]
   active = ''
   [./ngrains]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = bnds
     threshold = 0.7
   [../]
@@ -113,10 +113,4 @@
 [Outputs]
   file_base = hex
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

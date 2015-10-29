@@ -76,7 +76,10 @@
 
 [Executioner]
   type = Transient
-  scheme = 'rk-2'
+
+  [./TimeIntegrator]
+    type = ExplicitMidpoint
+  [../]
   solve_type = 'LINEAR'
 
   start_time = 0.0
@@ -87,5 +90,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
 []

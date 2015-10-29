@@ -10,6 +10,10 @@
   elem_type = QUAD4
 []
 
+[GlobalParams]
+  displacements = 'disp_x disp_y'
+[]
+
 [Variables]
   [./disp_x]
     order = FIRST
@@ -46,8 +50,6 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
   [../]
 []
 
@@ -55,16 +57,8 @@
   # active = 'Anisotropic'
   active = 'Anisotropic_A Anisotropic_B switching combined'
 
-  [./Anisotropic]
-    type = LinearElasticMaterial
-    block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    fill_method = symmetric9
-    C_ijkl = '1e6 1e5 1e5 1e6 0 1e6 .4e6 .2e6 .5e6'
-    applied_strain_vector = '0.1 0.05 0 0 0 0.01'
-  [../]
   [./Anisotropic_A]
+    # this material is deprecated
     type = LinearElasticMaterial
     base_name = A
     block = 0
@@ -75,6 +69,7 @@
     applied_strain_vector = '0.1 0.05 0 0 0 0.01'
   [../]
   [./Anisotropic_B]
+    # this material is deprecated
     type = LinearElasticMaterial
     base_name = B
     block = 0
@@ -94,8 +89,8 @@
     type = TwoPhaseStressMaterial
     block = 0
     base_A = A
-    base_B = A
-    outputs = exodus
+    base_B = B
+    #outputs = exodus
   [../]
 []
 
@@ -127,10 +122,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'initial timestep_end failed nonlinear linear'
-  [../]
 []

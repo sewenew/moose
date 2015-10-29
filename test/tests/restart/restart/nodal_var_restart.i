@@ -95,5 +95,4 @@
 [Outputs]
   file_base = out_nodal_var_restart
   exodus = true
-  output_on = 'initial timestep_end'
 []

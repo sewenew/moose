@@ -46,14 +46,8 @@
 
 [Outputs]
   file_base = spline
-  output_on = 'initial timestep_end'
   [./OverSampling]
     type = Exodus
     refinements = 3
-  [../]
-  [./console]
-    type = Console
-    perf_log = false
-    output_on = 'timestep_end failed nonlinear'
   [../]
 []

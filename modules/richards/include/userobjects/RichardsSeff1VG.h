@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF1VG_H
 #define RICHARDSSEFF1VG_H
@@ -24,7 +27,7 @@ InputParameters validParams<RichardsSeff1VG>();
 class RichardsSeff1VG : public RichardsSeff
 {
 public:
-  RichardsSeff1VG(const std::string & name, InputParameters parameters);
+  RichardsSeff1VG(const InputParameters & parameters);
 
   /**
    * effective saturation as a function of porepressure

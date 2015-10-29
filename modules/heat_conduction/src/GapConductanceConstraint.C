@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "GapConductanceConstraint.h"
 
 template<>
@@ -9,8 +15,8 @@ InputParameters validParams<GapConductanceConstraint>()
   return params;
 }
 
-GapConductanceConstraint::GapConductanceConstraint(const std::string & name, InputParameters parameters) :
-    FaceFaceConstraint(name, parameters),
+GapConductanceConstraint::GapConductanceConstraint(const InputParameters & parameters) :
+    FaceFaceConstraint(parameters),
     _k(getParam<Real>("k"))
 {
 }
@@ -64,3 +70,4 @@ GapConductanceConstraint::computeQpJacobianSide(Moose::ConstraintJacobianType ja
   default: return 0;
   }
 }
+

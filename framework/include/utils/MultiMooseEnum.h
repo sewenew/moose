@@ -36,7 +36,7 @@ public:
   /**
    * Constructor that takes a list of enumeration values, and a separate string to set a default for this instance
    * @param names - a list of names for this enumeration
-   * @param default_name - the default value for this enumeration instance
+   * @param default_names - the default value for this enumeration instance
    * @param allow_out_of_range - determines whether this enumeration will accept values outside of it's range of
    *                       defined values.
    */
@@ -48,8 +48,16 @@ public:
    */
   MultiMooseEnum(const MultiMooseEnum & other_enum);
 
+  /**
+   * Named constructor to build an empty MultiMooseEnum with only the
+   * valid names and the allow_out_of_range flag taken from another enumeration
+   * @param other_enum - The other enumeration to copy the validity checking data from
+   */
+  static MultiMooseEnum withNamesFrom(const MooseEnumBase & other_enum);
+
   virtual ~MultiMooseEnum();
 
+  ///@{
   /**
    * Comparison operators for comparing with character constants, MultiMooseEnums
    * or integer values
@@ -57,6 +65,8 @@ public:
    * @return bool - the truth value for the comparison
    */
   bool operator==(const MultiMooseEnum & value) const;
+  bool operator!=(const MultiMooseEnum & value) const;
+  ///@}
 
   ///@{
   /**
@@ -159,12 +169,22 @@ public:
   /// Operator for printing to iostreams
   friend std::ostream & operator<<(std::ostream & out, const MultiMooseEnum & obj);
 
+protected:
+  /// Check whether any of the current values are deprecated when called
+  virtual void checkDeprecated() const;
+
 private:
 
   /**
    * Private constructor for use by libmesh::Parameters
    */
   MultiMooseEnum();
+
+  /**
+   * Private constructor that can accept a MooseEnumBase for ::withOptionsFrom()
+   * @param other_enum - MooseEnumBase type to copy names and out-of-range data from
+   */
+  MultiMooseEnum(const MooseEnumBase & other_enum);
 
   /**
    * Helper method for all inserts and assignment operators

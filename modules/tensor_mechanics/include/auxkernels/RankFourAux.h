@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef RANKFOURAUX_H
 #define RANKFOURAUX_H
 
@@ -18,7 +24,7 @@ InputParameters validParams<RankFourAux>();
 class RankFourAux : public AuxKernel
 {
 public:
-  RankFourAux(const std::string & name, InputParameters parameters);
+  RankFourAux(const InputParameters & parameters);
 
   virtual ~ RankFourAux() {}
 

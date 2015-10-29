@@ -45,8 +45,7 @@ active = 'SMP'
 
   [./SMP]
    type = SMP
-   off_diag_row = 'w c'
-   off_diag_column = 'c w'
+   coupled_groups = 'c,w'
   [../]
 []
 
@@ -66,7 +65,7 @@ active = 'SMP'
   [../]
 
   [./time]
-    type = CoupledImplicitEuler
+    type = CoupledTimeDerivative
     variable = w
     v = c
   [../]
@@ -92,10 +91,10 @@ active = 'SMP'
 [Materials]
 
   [./constant]
-    type = PFMobility
+    type = GenericConstantMaterial
+    prop_names  = 'M kappa_c'
+    prop_values = '1.0 2.0'
     block = 0
-    mob = 1.0
-    kappa = 2.0
   [../]
 []
 
@@ -125,10 +124,4 @@ active = 'SMP'
 [Outputs]
   file_base = out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

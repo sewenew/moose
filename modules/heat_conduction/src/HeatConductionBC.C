@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "HeatConductionBC.h"
 
 template<>
@@ -8,8 +14,8 @@ InputParameters validParams<HeatConductionBC>()
   return params;
 }
 
-HeatConductionBC::HeatConductionBC(const std::string & name, InputParameters parameters) :
-    FluxBC(name, parameters),
+HeatConductionBC::HeatConductionBC(const InputParameters & parameters) :
+    FluxBC(parameters),
     _k(getMaterialProperty<Real>("thermal_conductivity"))
 {
 }
@@ -29,4 +35,5 @@ HeatConductionBC::computeQpFluxJacobian()
 {
   return -_k[_qp] * _grad_phi[_j][_qp];
 }
+
 

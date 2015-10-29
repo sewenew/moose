@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POLYCRYSTALRANDOMICACTION_H
 #define POLYCRYSTALRANDOMICACTION_H
 
@@ -10,7 +16,7 @@
 class PolycrystalRandomICAction: public Action
 {
 public:
-  PolycrystalRandomICAction(const std::string & name, InputParameters params);
+  PolycrystalRandomICAction(const InputParameters & params);
 
   virtual void act();
 

@@ -66,7 +66,7 @@ class AuxKernel :
   public MeshChangedInterface
 {
 public:
-  AuxKernel(const std::string & name, InputParameters parameters);
+  AuxKernel(const InputParameters & parameters);
 
   virtual ~AuxKernel();
 
@@ -99,11 +99,11 @@ public:
    * Override functions from MaterialPropertyInterface for error checking
    */
   template<typename T>
-  MaterialProperty<T> & getMaterialProperty(const std::string & name);
+  const MaterialProperty<T> & getMaterialProperty(const std::string & name);
   template<typename T>
-  MaterialProperty<T> & getMaterialPropertyOld(const std::string & name);
+  const MaterialProperty<T> & getMaterialPropertyOld(const std::string & name);
   template<typename T>
-  MaterialProperty<T> & getMaterialPropertyOlder(const std::string & name);
+  const MaterialProperty<T> & getMaterialPropertyOlder(const std::string & name);
 
   template<typename T>
   const T & getUserObject(const std::string & name);
@@ -111,10 +111,14 @@ public:
   const UserObject & getUserObjectBase(const std::string & name);
 
 
-  virtual PostprocessorValue & getPostprocessorValue(const std::string & name);
+  virtual const PostprocessorValue & getPostprocessorValue(const std::string & name);
   virtual const PostprocessorValue & getPostprocessorValueByName(const PostprocessorName & name);
 
 protected:
+  virtual VariableValue & coupledDot(const std::string & var_name, unsigned int comp = 0);
+
+  virtual VariableValue & coupledDotDu(const std::string & var_name, unsigned int comp = 0);
+
   virtual Real computeValue() = 0;
 
   /// Subproblem this kernel is part of
@@ -193,31 +197,31 @@ protected:
 };
 
 template<typename T>
-MaterialProperty<T> &
+const MaterialProperty<T> &
 AuxKernel::getMaterialProperty(const std::string & name)
 {
   if (isNodal())
-    mooseError("Nodal AuxKernel '" << _name << "' attempted to reference material property '" << name << "'\nConsider using an elemental auxiliary variable for '" << _var.name() << "'.");
+    mooseError("Nodal AuxKernel '" << AuxKernel::name() << "' attempted to reference material property '" << name << "'\nConsider using an elemental auxiliary variable for '" << _var.name() << "'.");
 
   return MaterialPropertyInterface::getMaterialProperty<T>(name);
 }
 
 template<typename T>
-MaterialProperty<T> &
+const MaterialProperty<T> &
 AuxKernel::getMaterialPropertyOld(const std::string & name)
 {
   if (isNodal())
-    mooseError("Nodal AuxKernel '" << _name << "' attempted to reference material property '" << name << "'\nConsider using an elemental auxiliary variable for '" << _var.name() << "'.");
+    mooseError("Nodal AuxKernel '" << AuxKernel::name() << "' attempted to reference material property '" << name << "'\nConsider using an elemental auxiliary variable for '" << _var.name() << "'.");
 
   return MaterialPropertyInterface::getMaterialPropertyOld<T>(name);
 }
 
 template<typename T>
-MaterialProperty<T> &
+const MaterialProperty<T> &
 AuxKernel::getMaterialPropertyOlder(const std::string & name)
 {
   if (isNodal())
-    mooseError("Nodal AuxKernel '" << _name << "' attempted to reference material property '" << name << "'\nConsider using an elemental auxiliary variable for '" << _var.name() << "'.");
+    mooseError("Nodal AuxKernel '" << AuxKernel::name() << "' attempted to reference material property '" << name << "'\nConsider using an elemental auxiliary variable for '" << _var.name() << "'.");
 
   return MaterialPropertyInterface::getMaterialPropertyOlder<T>(name);
 }

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMassWeakStagnationBC.h"
 
 template<>
@@ -10,8 +16,8 @@ InputParameters validParams<NSMassWeakStagnationBC>()
 
 
 
-NSMassWeakStagnationBC::NSMassWeakStagnationBC(const std::string & name, InputParameters parameters)
-    : NSWeakStagnationBC(name, parameters)
+NSMassWeakStagnationBC::NSMassWeakStagnationBC(const InputParameters & parameters)
+    : NSWeakStagnationBC(parameters)
 {
 }
 
@@ -41,6 +47,7 @@ Real NSMassWeakStagnationBC::computeQpOffDiagJacobian(unsigned /*jvar*/)
   // TODO
   return 0.;
 }
+
 
 
 

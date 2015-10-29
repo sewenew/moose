@@ -1,20 +1,11 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
-
 #include "ImageFunction.h"
 #include "MooseUtils.h"
-#include "FileRangeBuilder.h"
 #include "ImageMesh.h"
 
 template<>
@@ -22,9 +13,8 @@ InputParameters validParams<ImageFunction>()
 {
   // Define the general parameters
   InputParameters params = validParams<Function>();
-
-  // Add parameters associated with file ranges
-  addFileRangeParams(params);
+  params += validParams<FileRangeBuilder>();
+  params.addClassDescription("Function with values sampled from a given image stack");
 
   params.addParam<Point>("origin", "Origin of the image (defaults to mesh origin)");
   params.addParam<Point>("dimensions", "x,y,z dimensions of the image (defaults to mesh dimensions)");
@@ -51,8 +41,9 @@ InputParameters validParams<ImageFunction>()
   return params;
 }
 
-ImageFunction::ImageFunction(const std::string & name, InputParameters parameters) :
-    Function(name, parameters)
+ImageFunction::ImageFunction(const InputParameters & parameters) :
+    Function(parameters),
+    FileRangeBuilder(parameters)
 #ifdef LIBMESH_HAVE_VTK
     ,_data(NULL)
     ,_algorithm(NULL)
@@ -75,6 +66,7 @@ ImageFunction::initialSetup()
   // Get access to the Mesh object
   FEProblem * fe_problem = getParam<FEProblem *>("_fe_problem");
   MooseMesh & mesh = fe_problem->mesh();
+  MeshTools::BoundingBox bbox = MeshTools::bounding_box(mesh.getMesh());
 
   // Set the dimensions from the Mesh if not set by the User
   if (isParamValid("dimensions"))
@@ -82,12 +74,12 @@ ImageFunction::initialSetup()
 
   else
   {
-    _physical_dims(0) = mesh.getParam<Real>("xmax") - mesh.getParam<Real>("xmin");
+    _physical_dims(0) = bbox.max()(0) - bbox.min()(0);
 #if LIBMESH_DIM > 1
-    _physical_dims(1) = mesh.getParam<Real>("ymax") - mesh.getParam<Real>("ymin");
+    _physical_dims(1) = bbox.max()(1) - bbox.min()(1);
 #endif
 #if LIBMESH_DIM > 2
-    _physical_dims(2) = mesh.getParam<Real>("zmax") - mesh.getParam<Real>("zmin");
+    _physical_dims(2) = bbox.max()(2) - bbox.min()(2);
 #endif
   }
 
@@ -96,15 +88,14 @@ ImageFunction::initialSetup()
     _origin = getParam<Point>("origin");
   else
   {
-    _origin(0) = mesh.getParam<Real>("xmin");
+    _origin(0) = bbox.min()(0);
 #if LIBMESH_DIM > 1
-    _origin(1) = mesh.getParam<Real>("ymin");
+    _origin(1) = bbox.min()(1);
 #endif
 #if LIBMESH_DIM > 2
-    _origin(2) = mesh.getParam<Real>("zmin");
+    _origin(2) = bbox.min()(2);
 #endif
   }
-
 
   // An array of filenames, to be filled in
   std::vector<std::string> filenames;
@@ -115,9 +106,11 @@ ImageFunction::initialSetup()
   // Try to parse our own file range parameters.  If that fails, then
   // see if the associated Mesh is an ImageMesh and use its.  If that
   // also fails, then we have to throw an error...
-  int status = parseFileRange(_pars);
-
-  if (status != 0)
+  //
+  // The parseFileRange method sets parameters, thus a writable reference to the InputParameters
+  // object must be obtained from the warehouse. Generally, this should be avoided, but
+  // this is a special case.
+  if (_status != 0)
   {
     // We don't have parameters, so see if we can get them from ImageMesh
     ImageMesh * image_mesh = dynamic_cast<ImageMesh*>(&mesh);
@@ -126,15 +119,14 @@ ImageFunction::initialSetup()
 
     // Get the ImageMesh's parameters.  This should work, otherwise
     // errors would already have been thrown...
-    InputParameters & im_params = image_mesh->parameters();
-    filenames = im_params.get<std::vector<std::string> >("filenames");
-    file_suffix = im_params.get<std::string>("file_suffix");
+    filenames = image_mesh->filenames();
+    file_suffix = image_mesh->fileSuffix();
   }
   else
   {
-    // Use our own parameters
-    filenames = getParam<std::vector<std::string> >("filenames");
-    file_suffix = getParam<std::string>("file_suffix");
+    // Use our own parameters (using 'this' b/c of conflicts with filenames the local variable)
+    filenames = this->filenames();
+    file_suffix = this->fileSuffix();
   }
 
   // Storage for the file names

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumInviscidFlux.h"
 
 
@@ -19,8 +25,8 @@ InputParameters validParams<NSMomentumInviscidFlux>()
 
 
 
-NSMomentumInviscidFlux::NSMomentumInviscidFlux(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters),
+NSMomentumInviscidFlux::NSMomentumInviscidFlux(const InputParameters & parameters)
+    : NSKernel(parameters),
 
       // Coupled variables
       _pressure(coupledValue("pressure")),
@@ -115,3 +121,4 @@ Real NSMomentumInviscidFlux::compute_jacobian(unsigned m)
   return 0;
 
 }
+

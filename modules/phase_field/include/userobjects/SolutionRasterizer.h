@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLUTIONRASTERIZER_H
 #define SOLUTIONRASTERIZER_H
 
@@ -20,7 +26,7 @@ InputParameters validParams<SolutionRasterizer>();
 class SolutionRasterizer : public SolutionUserObject
 {
 public:
-  SolutionRasterizer(const std::string & name, InputParameters parameters);
+  SolutionRasterizer(const InputParameters & parameters);
 
   virtual ~SolutionRasterizer() {}
 

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSLUMPEDMASSCHANGE
 #define RICHARDSLUMPEDMASSCHANGE
@@ -29,7 +32,7 @@ class RichardsLumpedMassChange : public TimeKernel
 {
 public:
 
-  RichardsLumpedMassChange(const std::string & name, InputParameters parameters);
+  RichardsLumpedMassChange(const InputParameters & parameters);
 
 protected:
 
@@ -58,10 +61,10 @@ protected:
   unsigned int _pvar;
 
   /// current value of the porosity
-  MaterialProperty<Real> &_porosity;
+  const MaterialProperty<Real> &_porosity;
 
   /// value of the porosity at the start of the timestep
-  MaterialProperty<Real> &_porosity_old;
+  const MaterialProperty<Real> &_porosity_old;
 
   /// The userobject that computes effective saturation (as a function of porepressure(s)) for this variable
   const RichardsSeff * _seff_UO;
@@ -83,10 +86,8 @@ protected:
   /// Holds the nodal values of pressures at timestep_begin, in same way as _ps_at_nodes
   std::vector<VariableValue *> _ps_old_at_nodes;
 
-
   /// holds nodal values of d(Seff)/dP_i
   std::vector<Real> _dseff;
-
 };
 
 #endif //RICHARDSLUMPEDMASSCHANGE

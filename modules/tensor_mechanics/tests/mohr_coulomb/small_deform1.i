@@ -29,9 +29,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -242,14 +240,7 @@
 [Outputs]
   file_base = small_deform1
   exodus = false
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
 []

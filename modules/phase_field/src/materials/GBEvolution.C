@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "GBEvolution.h"
 
 template<>
@@ -19,9 +25,8 @@ InputParameters validParams<GBEvolution>()
 }
 
 
-GBEvolution::GBEvolution(const std::string & name,
-                         InputParameters parameters) :
-    Material(name, parameters),
+GBEvolution::GBEvolution(const InputParameters & parameters) :
+    Material(parameters),
     _f0s(getParam<Real>("f0s")),
     _wGB(getParam<Real>("wGB")),
     _length_scale(getParam<Real>("length_scale")),
@@ -75,3 +80,4 @@ GBEvolution::computeQpProperties()
   _tgrad_corr_mult[_qp] = _mu[_qp]*9.0/8.0;
 
 }
+

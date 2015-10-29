@@ -96,10 +96,10 @@
     block = 0
   [../]
   [./gss1]
-    type = CrystalPlasticitySlipSysAux
+    type = MaterialStdVectorAux
     variable = gss1
-    slipsysvar = gss
-    index_i = 1
+    property = gss
+    index = 0
     execute_on = timestep_end
     block = 0
   [../]
@@ -131,8 +131,8 @@
   [./crysp]
     type = FiniteStrainCrystalPlasticity
     block = 0
-    disp_y = disp_y
     disp_x = disp_x
+    disp_y = disp_y
     gtol = 1e-2
     slip_sys_file_name = input_slip_sys.txt
     C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
@@ -201,18 +201,11 @@
 [Outputs]
   file_base = crysp_user_object_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
 
 [Kernels]
   [./TensorMechanics]
-    disp_y = disp_y
-    disp_x = disp_x
+    displacements = 'disp_x disp_y'
     use_displaced_mesh = true
   [../]
 []

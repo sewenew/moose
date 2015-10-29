@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSMOMENTUM_H
 #define INSMOMENTUM_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<INSMomentum>();
 class INSMomentum : public Kernel
 {
 public:
-  INSMomentum(const std::string & name, InputParameters parameters);
+  INSMomentum(const InputParameters & parameters);
 
   virtual ~INSMomentum(){}
 

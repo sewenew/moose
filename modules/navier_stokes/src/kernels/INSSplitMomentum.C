@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSSplitMomentum.h"
 
 template<>
@@ -25,8 +31,8 @@ InputParameters validParams<INSSplitMomentum>()
 
 
 
-INSSplitMomentum::INSSplitMomentum(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSSplitMomentum::INSSplitMomentum(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Coupled variables
   _u_vel(coupledValue("u")),
@@ -187,3 +193,4 @@ Real INSSplitMomentum::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

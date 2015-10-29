@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef GAPHEATPOINTSOURCEMASTER_H
 #define GAPHEATPOINTSOURCEMASTER_H
 
@@ -14,7 +20,7 @@ InputParameters validParams<GapHeatPointSourceMaster>();
 class GapHeatPointSourceMaster : public DiracKernel
 {
 public:
-  GapHeatPointSourceMaster(const std::string & name, InputParameters parameters);
+  GapHeatPointSourceMaster(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();

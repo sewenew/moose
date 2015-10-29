@@ -32,32 +32,32 @@
 [MeshModifiers]
   [./bottom_xline1]
     type = AddExtraNodeset
-    boundary = 101
+    new_boundary = 101
     coord = '0 0 0'
   [../]
   [./bottom_xline2]
     type = AddExtraNodeset
-    boundary = 101
+    new_boundary = 101
     coord = '0.5 0 0'
   [../]
   [./bottom_xline3]
     type = AddExtraNodeset
-    boundary = 101
+    new_boundary = 101
     coord = '1 0 0'
   [../]
   [./bottom_zline1]
     type = AddExtraNodeset
-    boundary = 102
+    new_boundary = 102
     coord = '0 0 0.0'
   [../]
   [./bottom_zline2]
     type = AddExtraNodeset
-    boundary = 102
+    new_boundary = 102
     coord = '0 0 0.1'
   [../]
   [./bottom_zline3]
     type = AddExtraNodeset
-    boundary = 102
+    new_boundary = 102
     coord = '0 0 0.2'
   [../]
 []
@@ -81,42 +81,39 @@
   [./cx_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_x
+    displacements = 'disp_x disp_y disp_z'
     component = 0
   [../]
   [./cy_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_y
+    displacements = 'disp_x disp_y disp_z'
     component = 1
   [../]
   [./cz_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_z
     component = 2
+    displacements = 'disp_x disp_y disp_z'
   [../]
   [./x_couple]
     type = StressDivergenceTensors
     variable = wc_x
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
+    displacements = 'wc_x wc_y wc_z'
     component = 0
     base_name = coupled
   [../]
   [./y_couple]
     type = StressDivergenceTensors
     variable = wc_y
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
+    displacements = 'wc_x wc_y wc_z'
     component = 1
     base_name = coupled
   [../]
   [./z_couple]
     type = StressDivergenceTensors
     variable = wc_z
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
+    displacements = 'wc_x wc_y wc_z'
     component = 2
     base_name = coupled
   [../]
@@ -198,7 +195,6 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
     petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it -ksp_atol -ksp_rtol'
     petsc_options_value = 'gmres bjacobi 1E-10 1E-10 10 1E-15 1E-10'
   [../]
@@ -211,5 +207,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
 []

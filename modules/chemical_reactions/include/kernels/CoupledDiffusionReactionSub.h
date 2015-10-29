@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Kernel.h"
 
 #ifndef COUPLEDDIFFUSIONREACTIONSUB_H
@@ -27,7 +33,7 @@ public:
    * It is ok to have the definition in the .h if the function body
    * is really small.  Otherwise it should be in the .C
    */
-  CoupledDiffusionReactionSub(const std::string & name, InputParameters parameters);
+  CoupledDiffusionReactionSub(const InputParameters & parameters);
 
 protected:
   /**
@@ -60,7 +66,7 @@ private:
    * constructor!
    */
   /// Material property of dispersion-diffusion coefficient.
-  MaterialProperty<Real> & _diffusivity;
+  const MaterialProperty<Real> & _diffusivity;
 
   /// Weight of the equilibrium species concentration in the total primary species concentration.
   Real _weight;

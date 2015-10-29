@@ -31,14 +31,11 @@ InputParameters validParams<NonlinearSource>();
 class NonlinearSource : public DiracKernel
 {
 public:
-  NonlinearSource(const std::string & name, InputParameters parameters);
+  NonlinearSource(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();
   virtual Real computeQpJacobian();
-
-  // The off-diagonal Jacobian stuff is not currently implemented in
-  // DiracKernel.h... so this will not be called
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
 protected:

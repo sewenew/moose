@@ -265,5 +265,5 @@ ColumnMajorMatrix::inverse(ColumnMajorMatrix & invA) const
 #endif
 
   if (return_value)
-    mooseError("error in lapack inverse solve");
+    mooseException("Error in LAPACK matrix-inverse calculation");
 }

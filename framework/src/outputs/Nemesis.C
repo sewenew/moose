@@ -31,8 +31,8 @@ InputParameters validParams<Nemesis>()
   return params;
 }
 
-Nemesis::Nemesis(const std::string & name, InputParameters parameters) :
-    AdvancedOutput<OversampleOutput>(name, parameters),
+Nemesis::Nemesis(const InputParameters & parameters) :
+    AdvancedOutput<OversampleOutput>(parameters),
     _nemesis_io_ptr(NULL),
     _file_num(0),
     _nemesis_num(0),
@@ -49,6 +49,9 @@ Nemesis::~Nemesis()
 void
 Nemesis::initialSetup()
 {
+  // Call the base class method
+  AdvancedOutput<OversampleOutput>::initialSetup();
+
   // Make certain that a Nemesis_IO object exists
   meshChanged();
 }
@@ -84,11 +87,11 @@ void
 Nemesis::outputPostprocessors()
 {
   // List of desired postprocessor outputs
-  const std::vector<std::string> & pps = getPostprocessorOutput();
+  const std::set<std::string> & pps = getPostprocessorOutput();
 
   // Append the postprocessor data to the global name value parameters; scalar outputs
   // also append these member variables
-  for (std::vector<std::string>::const_iterator it = pps.begin(); it != pps.end(); ++it)
+  for (std::set<std::string>::const_iterator it = pps.begin(); it != pps.end(); ++it)
   {
     _global_names.push_back(*it);
     _global_values.push_back(_problem_ptr->getPostprocessorValue(*it));
@@ -99,10 +102,10 @@ void
 Nemesis::outputScalarVariables()
 {
   // List of desired scalar outputs
-  const std::vector<std::string> & out = getScalarOutput();
+  const std::set<std::string> & out = getScalarOutput();
 
   // Append the scalar to the global output lists
-  for (std::vector<std::string>::const_iterator it = out.begin(); it != out.end(); ++it)
+  for (std::set<std::string>::const_iterator it = out.begin(); it != out.end(); ++it)
   {
     VariableValue & variable = _problem_ptr->getScalarVariable(0, *it).sln();
     unsigned int n = variable.size();

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari,  O. Heinonen
 
 #ifndef FINITESTRAINRATEPLASTICMATERIAL_H
@@ -13,7 +19,7 @@ InputParameters validParams<FiniteStrainRatePlasticMaterial>();
 class FiniteStrainRatePlasticMaterial : public FiniteStrainPlasticMaterial
 {
 public:
-  FiniteStrainRatePlasticMaterial(const std::string & name, InputParameters parameters);
+  FiniteStrainRatePlasticMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeQpStress();

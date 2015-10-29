@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: M.R. Tonks
 
 #include "FiniteStrainMaterial.h"
@@ -6,19 +12,19 @@ template<>
 InputParameters validParams<FiniteStrainMaterial>()
 {
   InputParameters params = validParams<TensorMechanicsMaterial>();
+  params.addClassDescription("Computes incremental strain and deformation gradient for finite deformation");
   return params;
 }
 
-FiniteStrainMaterial::FiniteStrainMaterial(const std::string & name,
-                                           InputParameters parameters) :
-    TensorMechanicsMaterial(name, parameters),
+FiniteStrainMaterial::FiniteStrainMaterial(const InputParameters & parameters) :
+    TensorMechanicsMaterial(parameters),
     _strain_rate(declareProperty<RankTwoTensor>("strain_rate")),
     _strain_increment(declareProperty<RankTwoTensor>("strain_increment")),
     _total_strain_old(declarePropertyOld<RankTwoTensor>("total_strain")),
     _elastic_strain_old(declarePropertyOld<RankTwoTensor>("elastic_strain")),
     _stress_old(declarePropertyOld<RankTwoTensor>("stress")),
     _rotation_increment(declareProperty<RankTwoTensor>("rotation_increment")),
-    _deformation_gradient(declareProperty<RankTwoTensor>("deformation gradient"))
+    _deformation_gradient(declareProperty<RankTwoTensor>("deformation_gradient"))
 {
 }
 
@@ -109,7 +115,7 @@ FiniteStrainMaterial::computeQpStrain(const RankTwoTensor & Fhat)
   B.addIa(-0.75);
   _strain_increment[_qp] = -B*A;*/
 
-  RankTwoTensor D = _strain_increment[_qp]/_t_step;
+  RankTwoTensor D = _strain_increment[_qp]/_dt;
   _strain_rate[_qp] = D;
 
   //Calculate rotation R_incr

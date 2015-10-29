@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CoupledBEEquilibriumSub.h"
 #include "Material.h"
 
@@ -21,9 +27,9 @@ InputParameters validParams<CoupledBEEquilibriumSub>()
 }
 
 
-CoupledBEEquilibriumSub::CoupledBEEquilibriumSub(const std::string & name, InputParameters parameters)
+CoupledBEEquilibriumSub::CoupledBEEquilibriumSub(const InputParameters & parameters)
   // You must call the constructor of the base class first
-  :Kernel(name,parameters),
+  :Kernel(parameters),
    _weight(getParam<Real>("weight")),
    _log_k(getParam<Real>("log_k")),
    _sto_u(getParam<Real>("sto_u")),
@@ -111,3 +117,4 @@ Real CoupledBEEquilibriumSub::computeQpOffDiagJacobian(unsigned int jvar)
     return 0.0;
 
 }
+

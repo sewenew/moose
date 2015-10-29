@@ -1,4 +1,4 @@
-2-phase version of bh07 (go to steadystate with borehole)
+#2-phase version of bh07 (go to steadystate with borehole)
 [Mesh]
   type = FileMesh
   file = bh07_input.e
@@ -6,6 +6,12 @@
 
 [GlobalParams]
   richardsVarNames_UO = PPNames
+  density_UO = 'DensityWater DensityGas'
+  relperm_UO = 'RelPermWater RelPermGas'
+  SUPG_UO = 'SUPGwater SUPGgas'
+  sat_UO = 'SatWater SatGas'
+  seff_UO = 'SeffWater SeffGas'
+  viscosity = '1E-3 1E-5'
 []
 
 
@@ -26,12 +32,12 @@
   [../]
   [./SeffWater]
     type = RichardsSeff2waterVG
-    m = 0.8
+    m = 0.6
     al = 1E-5
   [../]
   [./SeffGas]
     type = RichardsSeff2gasVG
-    m = 0.8
+    m = 0.6
     al = 1E-5
   [../]
   [./RelPermWater]
@@ -55,12 +61,10 @@
     sum_s_res = 0.0
   [../]
   [./SUPGwater]
-    type = RichardsSUPGstandard
-    p_SUPG = 1E8
+    type = RichardsSUPGnone
   [../]
   [./SUPGgas]
-    type = RichardsSUPGstandard
-    p_SUPG = 1E8
+    type = RichardsSUPGnone
   [../]
 
   [./borehole_total_outflow_mass]
@@ -83,12 +87,12 @@
   [./water_ic]
     type = FunctionIC
     variable = pwater
-    function = initial_pressure
+    function = 1E7
   [../]
   [./gas_ic]
     type = FunctionIC
     variable = pgas
-    function = initial_pressure
+    function = 1E7
   [../]
 []
 
@@ -120,7 +124,7 @@
     variable = pwater
   [../]
   [./richardsfwater]
-    type = RichardsFlux
+    type = RichardsFullyUpwindFlux
     variable = pwater
   [../]
   [./richardstgas]
@@ -128,7 +132,7 @@
     variable = pgas
   [../]
   [./richardsfgas]
-    type = RichardsFlux
+    type = RichardsFullyUpwindFlux
     variable = pgas
   [../]
 []
@@ -148,10 +152,23 @@
     bottom_pressure = 0
     point_file = bh07.bh
     SumQuantityUO = borehole_total_outflow_mass
+    fully_upwind = true
     variable = pwater
     unit_weight = '0 0 0'
     re_constant = 0.1594
-    character = two # this is to make the length=1 borehole fill the entire z=2 height
+    character = 2 # this is to make the length 1m borehole fill the entire 2m height
+    MyNameIsAndyWilkins = false
+  [../]
+  [./bh_gas_dummy]
+    type = RichardsBorehole
+    bottom_pressure = 0
+    point_file = bh07.bh
+    SumQuantityUO = borehole_total_outflow_mass
+    fully_upwind = true
+    variable = pgas
+    unit_weight = '0 0 0'
+    re_constant = 0.1594
+    character = 2 # this is to make the length 1m borehole fill the entire 2m height
     MyNameIsAndyWilkins = false
   [../]
 []
@@ -174,17 +191,6 @@
 []
 
 
-[Functions]
-  [./initial_pressure]
-    type = ParsedFunction
-    value = 1E7
-  [../]
-  [./two]
-    type = ConstantFunction
-    value = 2
-  [../]
-[]
-
 
 [Materials]
   [./all]
@@ -192,12 +198,6 @@
     block = 1
     mat_porosity = 0.1
     mat_permeability = '1E-11 0 0  0 1E-11 0  0 0 1E-11'
-    density_UO = 'DensityWater DensityGas'
-    relperm_UO = 'RelPermWater RelPermGas'
-    SUPG_UO = 'SUPGwater SUPGgas'
-    sat_UO = 'SatWater SatGas'
-    seff_UO = 'SeffWater SeffGas'
-    viscosity = '1E-3 1E-5'
     gravity = '0 0 0'
     linear_shape_fcns = true
   [../]
@@ -221,7 +221,6 @@
   solve_type = NEWTON
 
   [./TimeStepper]
-    # get only marginally better results for smaller time steps
     type = FunctionDT
     time_dt = '1000 10000'
     time_t = '100 1000'
@@ -231,12 +230,12 @@
 
 [Outputs]
   file_base = bh27
-  interval = 10000
+  execute_on = 'initial timestep_end final'
+  interval = 100000
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
+[]
+
+
+[Problem]
+  use_legacy_uo_initialization = true
 []

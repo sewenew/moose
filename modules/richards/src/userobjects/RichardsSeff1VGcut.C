@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "cut" van-Genuchten effective saturation as a function of pressure, and its derivs wrt p
 //
@@ -16,8 +19,8 @@ InputParameters validParams<RichardsSeff1VGcut>()
   return params;
 }
 
-RichardsSeff1VGcut::RichardsSeff1VGcut(const std::string & name, InputParameters parameters) :
-    RichardsSeff1VG(name, parameters),
+RichardsSeff1VGcut::RichardsSeff1VGcut(const InputParameters & parameters) :
+    RichardsSeff1VG(parameters),
     _al(getParam<Real>("al")),
     _m(getParam<Real>("m")),
     _p_cut(getParam<Real>("p_cut")),
@@ -68,3 +71,4 @@ RichardsSeff1VGcut::d2seff(std::vector<VariableValue *> p, unsigned int qp, std:
   else
     result[0][0] = 0;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // This class is deprecated, use NSMomentumInviscidSpecifiedPressureBC instead.
 
 // #ifndef NSPRESSURENEUMANNBC_H
@@ -28,7 +34,7 @@
 // {
 // public:
 //
-//   NSPressureNeumannBC(const std::string & name, InputParameters parameters);
+//   NSPressureNeumannBC(const InputParameters & parameters);
 //
 //   virtual ~NSPressureNeumannBC(){}
 //

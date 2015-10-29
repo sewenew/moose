@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POLYCRYSTALKERNELACTION_H
 #define POLYCRYSTALKERNELACTION_H
 
@@ -6,7 +12,7 @@
 class PolycrystalKernelAction: public Action
 {
 public:
-  PolycrystalKernelAction(const std::string & name, InputParameters params);
+  PolycrystalKernelAction(const InputParameters & params);
 
   virtual void act();
 

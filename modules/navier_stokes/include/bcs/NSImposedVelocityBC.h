@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSIMPOSEDVELOCITYBC_H
 #define NSIMPOSEDVELOCITYBC_H
 
@@ -16,7 +22,7 @@ class NSImposedVelocityBC : public NodalBC
 {
 public:
   // Constructor
-  NSImposedVelocityBC(const std::string & name, InputParameters parameters);
+  NSImposedVelocityBC(const InputParameters & parameters);
 
   // Destructor, better be virtual
   virtual ~NSImposedVelocityBC(){}

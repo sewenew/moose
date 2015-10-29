@@ -13,6 +13,7 @@
     type = Transform
     transform = SCALE
     vector_value = '1e2 1e2 1e2'
+    depends_on = rotate
   [../]
 []
 
@@ -55,10 +56,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

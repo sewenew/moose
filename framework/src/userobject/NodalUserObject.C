@@ -30,18 +30,18 @@ InputParameters validParams<NodalUserObject>()
   return params;
 }
 
-NodalUserObject::NodalUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    BoundaryRestrictable(name, parameters),
-    MaterialPropertyInterface(name, parameters),
+NodalUserObject::NodalUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BlockRestrictable(parameters),
+    BoundaryRestrictable(parameters, blockIDs()),
+    MaterialPropertyInterface(parameters, blockIDs(), boundaryIDs()),
     UserObjectInterface(parameters),
     Coupleable(parameters, true),
     ScalarCoupleable(parameters),
     MooseVariableDependencyInterface(),
-    TransientInterface(parameters, name, "nodal_user_objects"),
+    TransientInterface(parameters, "nodal_user_objects"),
     PostprocessorInterface(parameters),
-    RandomInterface(name, parameters, _fe_problem, _tid, true),
+    RandomInterface(parameters, _fe_problem, _tid, true),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
     _qp(0),
@@ -51,3 +51,4 @@ NodalUserObject::NodalUserObject(const std::string & name, InputParameters param
   for (unsigned int i=0; i<coupled_vars.size(); i++)
     addMooseVariableDependency(coupled_vars[i]);
 }
+

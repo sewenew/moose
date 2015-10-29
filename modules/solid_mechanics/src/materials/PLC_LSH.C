@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PLC_LSH.h"
 
 #include "SymmIsotropicElasticityTensor.h"
@@ -32,9 +38,8 @@ InputParameters validParams<PLC_LSH>()
 }
 
 
-PLC_LSH::PLC_LSH( const std::string & name,
-                  InputParameters parameters )
-  :SolidModel( name, parameters ),
+PLC_LSH::PLC_LSH( const InputParameters & parameters)
+  :SolidModel(parameters),
    _coefficient(parameters.get<Real>("coefficient")),
    _n_exponent(parameters.get<Real>("n_exponent")),
    _m_exponent(parameters.get<Real>("m_exponent")),
@@ -349,3 +354,4 @@ PLC_LSH::computeLSH( const SymmTensor & strain_increment,
   } // end of if statement
 
 }
+

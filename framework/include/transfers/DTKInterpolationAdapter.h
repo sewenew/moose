@@ -18,7 +18,7 @@
 
 #include "libmesh/libmesh_config.h"
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 #include "libmesh/dtk_evaluator.h"
 
@@ -65,13 +65,6 @@ public:
 
 protected:
   /**
-   * Small helper function for finding the system containing the variable.
-   *
-   * Note that this implies that variable names are unique across all systems!
-   */
-  System * find_sys(std::string var_name);
-
-  /**
    * Helper that returns the DTK ElementTopology for a given Elem
    */
   DataTransferKit::DTK_ElementTopology get_element_topology(const Elem * elem);
@@ -104,6 +97,6 @@ protected:
   std::map<std::string, RCP_Evaluator> evaluators;
 };
 
-#endif // #ifdef LIBMESH_HAVE_DTK
+#endif // #ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 #endif // #define DTKINTERPOLATIONADAPTER_H

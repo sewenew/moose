@@ -63,7 +63,6 @@
   type = NonlinearEigen
 
   bx_norm = 'unorm'
-  xdiff = 'udiff'
 
   free_power_iterations = 10
   source_abs_tol = 1e-12
@@ -72,7 +71,7 @@
 # important: constant initial value set by auto_initilization does not
 # converge to the fundamental mode
   auto_initialization = false
-  output_on_final = true
+  output_after_power_iterations = false
 
   #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
@@ -97,12 +96,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = ane
-  interval = 1
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'failed nonlinear linear timestep_end'
-  [../]
 []

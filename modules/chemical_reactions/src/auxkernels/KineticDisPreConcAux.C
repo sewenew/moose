@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "KineticDisPreConcAux.h"
 
 template<>
@@ -19,8 +25,8 @@ InputParameters validParams<KineticDisPreConcAux>()
   return params;
 }
 
-KineticDisPreConcAux::KineticDisPreConcAux(const std::string & name, InputParameters parameters)
-  :AuxKernel(name, parameters),
+KineticDisPreConcAux::KineticDisPreConcAux(const InputParameters & parameters)
+  :AuxKernel(parameters),
    _log_k(getParam<Real>("log_k")),
    _r_area(getParam<Real>("r_area")),
    _ref_kconst(getParam<Real>("ref_kconst")),
@@ -66,3 +72,4 @@ KineticDisPreConcAux::computeValue()
 
   return u_new_aux;
 }
+

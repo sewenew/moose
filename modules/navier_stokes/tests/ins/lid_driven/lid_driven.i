@@ -29,7 +29,7 @@
 [MeshModifiers]
   [./corner_node]
     type = AddExtraNodeset
-    boundary = 99
+    new_boundary = 99
     nodes = '0'
   [../]
 []
@@ -245,12 +245,5 @@
 
 [Outputs]
   file_base = lid_driven_out
-  interval = 1
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

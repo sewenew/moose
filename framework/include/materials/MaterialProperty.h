@@ -19,7 +19,7 @@
 
 #include "MooseArray.h"
 #include "ColumnMajorMatrix.h"
-#include "MaterialPropertyIO.h"
+#include "DataIO.h"
 
 #include "libmesh/libmesh_common.h"
 #include "libmesh/tensor_value.h"
@@ -62,7 +62,7 @@ public:
    */
   virtual PropertyValue *init (int size) = 0;
 
-  virtual int size () = 0;
+  virtual unsigned int size () const = 0;
 
   /**
    * Resizes the property to the size n
@@ -147,7 +147,7 @@ public:
    */
   T & operator[](const unsigned int i) { return _value[i]; }
 
-  int size() { return _value.size(); }
+  unsigned int size() const { return _value.size(); }
 
   /**
    * Get element i out of the array.

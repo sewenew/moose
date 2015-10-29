@@ -386,14 +386,14 @@
   [./internalVolume]
     type = InternalVolume
     boundary = 100
-    execute_on = linear
+    execute_on = 'initial linear'
   [../]
 
   [./aveTempInterior]
     type = SideAverageValue
     boundary = 100
     variable = temp
-    execute_on = linear
+    execute_on = 'initial linear'
   [../]
   [./materialInput]
     type = SideAverageValue
@@ -406,10 +406,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

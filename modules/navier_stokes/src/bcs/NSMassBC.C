@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMassBC.h"
 
 template<>
@@ -11,8 +17,8 @@ InputParameters validParams<NSMassBC>()
 
 
 
-NSMassBC::NSMassBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters)
+NSMassBC::NSMassBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters)
 {
 }
 
@@ -104,3 +110,4 @@ Real NSMassBC::qp_jacobian(unsigned var_number)
 //   // won't get here
 //   return 0.;
 // }
+

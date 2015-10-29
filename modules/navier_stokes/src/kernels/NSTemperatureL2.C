@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSTemperatureL2.h"
 
 
@@ -16,8 +22,8 @@ InputParameters validParams<NSTemperatureL2>()
   return params;
 }
 
-NSTemperatureL2::NSTemperatureL2(const std::string & name, InputParameters parameters)
-  :Kernel(name, parameters),
+NSTemperatureL2::NSTemperatureL2(const InputParameters & parameters)
+  :Kernel(parameters),
     _p_var(coupled("p")),
     _p(coupledValue("p")),
     _pe_var(coupled("pe")),
@@ -87,3 +93,4 @@ NSTemperatureL2::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0;
 }
+

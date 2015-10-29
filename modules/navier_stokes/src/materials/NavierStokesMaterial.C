@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NavierStokesMaterial.h"
 #include "Assembly.h"
 
@@ -29,10 +35,9 @@ InputParameters validParams<NavierStokesMaterial>()
 
 
 
-NavierStokesMaterial::NavierStokesMaterial(const std::string & name,
-                                           InputParameters parameters)
+NavierStokesMaterial::NavierStokesMaterial(const InputParameters & parameters)
     :
-    Material(name, parameters),
+    Material(parameters),
     _mesh_dimension(_mesh.dimension()),
     _grad_u(coupledGradient("u")),
     _grad_v(coupledGradient("v")),
@@ -511,3 +516,4 @@ void NavierStokesMaterial::compute_strong_residuals(unsigned qp)
   // The energy equation strong residual
   _strong_residuals[qp][4] = _drhoe_dt[qp] + energy_resid;
 }
+

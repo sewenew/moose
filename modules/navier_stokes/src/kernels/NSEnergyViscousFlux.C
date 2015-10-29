@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSEnergyViscousFlux.h"
 
 
@@ -13,8 +19,8 @@ InputParameters validParams<NSEnergyViscousFlux>()
 
 
 
-NSEnergyViscousFlux::NSEnergyViscousFlux(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters),
+NSEnergyViscousFlux::NSEnergyViscousFlux(const InputParameters & parameters)
+    : NSKernel(parameters),
       _vst_derivs(*this)
 {
 }
@@ -47,7 +53,7 @@ Real NSEnergyViscousFlux::computeQpJacobian()
 Real NSEnergyViscousFlux::computeQpOffDiagJacobian(unsigned int jvar)
 {
   // Convenience variables
-  RealTensorValue & tau = _viscous_stress_tensor[_qp];
+  const RealTensorValue & tau = _viscous_stress_tensor[_qp];
 
   Real rho  = _rho[_qp];
   Real phij = _phi[_j][_qp];
@@ -117,3 +123,4 @@ Real NSEnergyViscousFlux::computeQpOffDiagJacobian(unsigned int jvar)
   mooseError("Shouldn't get here...");
   return 0.;
 }
+

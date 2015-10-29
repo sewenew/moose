@@ -70,25 +70,9 @@
 
 [Executioner]
   type = Steady
-
-#  petsc_options = '-snes_mf'
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
-#  petsc_options_iname = '-pc_type'
-#  petsc_options_value = 'lu'
 []
 
 [Outputs]
-  file_base = out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

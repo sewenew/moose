@@ -27,9 +27,7 @@
 
 OutputWarehouse::OutputWarehouse() :
     Warehouse<Output>(),
-    _multiapp_level(0),
     _output_exec_flag(EXEC_CUSTOM),
-    _allow_output(true),
     _force_output(false)
 {
   // Set the reserved names
@@ -55,10 +53,14 @@ void
 OutputWarehouse::timestepSetup()
 {
   for (std::vector<Output *>::const_iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
-  {
-    (*it)->timestepSetupInternal();
     (*it)->timestepSetup();
-  }
+}
+
+void
+OutputWarehouse::solveSetup()
+{
+  for (std::vector<Output *>::const_iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
+    (*it)->solveSetup();
 }
 
 void
@@ -80,13 +82,6 @@ OutputWarehouse::subdomainSetup()
 {
   for (std::vector<Output *>::const_iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
     (*it)->subdomainSetup();
-}
-
-void
-OutputWarehouse::init()
-{
-  for (std::vector<Output *>::const_iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
-    (*it)->init();
 }
 
 void
@@ -152,9 +147,19 @@ OutputWarehouse::outputStep(ExecFlagType type)
   if (_force_output)
     type = EXEC_FORCED;
 
-  if (type == EXEC_FORCED || _allow_output)
-    for (std::vector<Output *>::const_iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
-      (*it)->outputStep(type);
+  for (std::vector<Output *>::const_iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
+    (*it)->outputStep(type);
+
+  /**
+   * This is one of three locations where we explicitly flush the output buffers during a simulation:
+   * PetscOutput::petscNonlinearOutput()
+   * PetscOutput::petscLinearOutput()
+   * OutputWarehouse::outputStep()
+   *
+   * All other Console output _should_ be using newlines to avoid covering buffer errors
+   * and to avoid excessive I/O
+   */
+  flushConsoleBuffer();
 
   // Reset force output flag
   _force_output = false;
@@ -181,6 +186,13 @@ OutputWarehouse::mooseConsole()
     _console_buffer.clear();
     _console_buffer.str("");
   }
+}
+
+void
+OutputWarehouse::flushConsoleBuffer()
+{
+  if (!_console_buffer.str().empty())
+    mooseConsole();
 }
 
 void
@@ -258,6 +270,7 @@ OutputWarehouse::checkOutputs(const std::set<OutputName> & names)
       mooseError("The output object '" << *it << "' is not a defined output object");
 }
 
+
 const std::set<std::string> &
 OutputWarehouse::getReservedNames() const
 {
@@ -279,7 +292,8 @@ OutputWarehouse::setOutputExecutionType(ExecFlagType type)
 void
 OutputWarehouse::allowOutput(bool state)
 {
-  _allow_output = state;
+  for (std::vector<Output *>::iterator it = _all_objects.begin(); it != _all_objects.end(); ++it)
+    (*it)->allowOutput(state);
 }
 
 void

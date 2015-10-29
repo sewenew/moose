@@ -20,7 +20,7 @@
     coef = 0.125
   [../]
   [./conv]
-    type = Convection
+    type = ExampleConvection
     variable = convected
     some_variable = diffused
   [../]
@@ -60,8 +60,6 @@
 
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
 
   l_tol = 1e-3
@@ -89,11 +87,5 @@
 []
 
 [Outputs]
-  file_base = out
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

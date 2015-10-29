@@ -44,6 +44,13 @@ public:
    */
   MooseEnum(const MooseEnum & other_enum);
 
+  /**
+   * Named constructor to build an empty MooseEnum with only the valid names
+   * and the allow_out_of_range flag taken from another enumeration
+   * @param other_enum - The other enumeration to copy the validity checking data from
+   */
+  static MooseEnum withNamesFrom(const MooseEnumBase & other_enum);
+
   virtual ~MooseEnum();
 
   /**
@@ -92,12 +99,22 @@ public:
   /// Operator for printing to iostreams
   friend std::ostream & operator<<(std::ostream & out, const MooseEnum & obj) { out << obj._current_name_preserved; return out; }
 
+protected:
+  /// Check whether the current value is deprecated when called
+  virtual void checkDeprecated() const;
+
 private:
 
   /**
    * Private constructor for use by libmesh::Parameters
    */
   MooseEnum();
+
+  /**
+   * Private constructor that can accept a MooseEnumBase for ::withOptionsFrom()
+   * @param other_enum - MooseEnumBase type to copy names and out-of-range data from
+   */
+  MooseEnum(const MooseEnumBase & other_enum);
 
   /// The current id
   int _current_id;

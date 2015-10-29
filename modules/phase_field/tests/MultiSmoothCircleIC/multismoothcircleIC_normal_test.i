@@ -30,6 +30,7 @@
     numbub = 10
     radius = 10.0
     int_width = 12.0
+    rand_seed = 2000
     radius_variation = 2 #This is the standard deviation
     radius_variation_type = normal
   [../]
@@ -66,9 +67,9 @@
 
 [Postprocessors]
   [./bubbles]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = c
-    execute_on = timestep_end
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -94,11 +95,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
-

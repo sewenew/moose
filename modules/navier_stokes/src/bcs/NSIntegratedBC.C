@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSIntegratedBC.h"
 
 template<>
@@ -25,8 +31,8 @@ InputParameters validParams<NSIntegratedBC>()
 
 
 
-NSIntegratedBC::NSIntegratedBC(const std::string & name, InputParameters parameters)
-    : IntegratedBC(name, parameters),
+NSIntegratedBC::NSIntegratedBC(const InputParameters & parameters)
+    : IntegratedBC(parameters),
 
       // Coupled variables
       _u_vel(coupledValue("u")),
@@ -85,3 +91,4 @@ unsigned NSIntegratedBC::map_var_number(unsigned var)
 
   return mapped_var_number;
 }
+

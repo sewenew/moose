@@ -65,16 +65,15 @@
   [./unorm]
     type = ElementIntegralVariablePostprocessor
     variable = u
-    execute_on = timestep_end
+    execute_on = 'initial timestep_end'
   [../]
   [./u_normalized_norm]
     type = ElementIntegralVariablePostprocessor
     variable = u_normalized
-    execute_on = timestep_end
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
 []

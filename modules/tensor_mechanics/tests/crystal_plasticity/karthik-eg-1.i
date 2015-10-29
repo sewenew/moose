@@ -22,9 +22,10 @@
 
 [TensorMechanics]
   [./solid]
-    disp_x = x_disp
-    disp_y = y_disp
-    disp_z = z_disp
+#    disp_x = x_disp
+#    disp_y = y_disp
+#    disp_z = z_disp
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -171,10 +172,4 @@
   file_base = out
   exodus = true
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

@@ -25,10 +25,8 @@
 class Piecewise : public Function
 {
 public:
-  Piecewise(const std::string & name, InputParameters parameters);
+  Piecewise(const InputParameters & parameters);
   virtual ~Piecewise();
-
-  virtual Real timeDerivative(Real t, const Point & p) = 0;
 
   virtual Real functionSize();
   virtual Real domain(int i);
@@ -36,7 +34,7 @@ public:
 
 protected:
   const Real _scale_factor;
-  LinearInterpolation * _linear_interp;
+  MooseSharedPointer<LinearInterpolation> _linear_interp;
   int _axis;
   bool _has_axis;
 private:

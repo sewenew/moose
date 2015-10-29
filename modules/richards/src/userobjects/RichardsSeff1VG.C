@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  van-Genuchten effective saturation as a function of single pressure, and its derivs wrt to that pressure
 //
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsSeff1VG>()
   return params;
 }
 
-RichardsSeff1VG::RichardsSeff1VG(const std::string & name, InputParameters parameters) :
-    RichardsSeff(name, parameters),
+RichardsSeff1VG::RichardsSeff1VG(const InputParameters & parameters) :
+    RichardsSeff(parameters),
     _al(getParam<Real>("al")),
     _m(getParam<Real>("m"))
 {
@@ -42,3 +45,4 @@ RichardsSeff1VG::d2seff(std::vector<VariableValue *> p, unsigned int qp, std::ve
 {
   result[0][0] = RichardsSeffVG::d2seff((*p[0])[qp], _al, _m);
 }
+

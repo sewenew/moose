@@ -25,7 +25,7 @@
   [../]
 
   [./conv]
-    type = Convection
+    type = ExampleConvection
     variable = convected
 
     # Couple a variable into the convection kernel using local_name = simulationg_name syntax
@@ -72,19 +72,9 @@
 
 [Executioner]
   type = Steady
-
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
 []
 
 [Outputs]
-  file_base = out
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

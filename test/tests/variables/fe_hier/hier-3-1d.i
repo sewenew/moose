@@ -26,6 +26,7 @@
     type = ParsedGradFunction
     value = x*x*x
     grad_x = 3*x*x
+  [../]
 []
 
 [Variables]
@@ -104,11 +105,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

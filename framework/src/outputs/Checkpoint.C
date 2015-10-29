@@ -40,16 +40,15 @@ InputParameters validParams<Checkpoint>()
   return params;
 }
 
-Checkpoint::Checkpoint(const std::string & name, InputParameters & parameters) :
-    BasicOutput<FileOutput>(name, parameters),
+Checkpoint::Checkpoint(const InputParameters & parameters) :
+    BasicOutput<FileOutput>(parameters),
     _num_files(getParam<unsigned int>("num_files")),
     _suffix(getParam<std::string>("suffix")),
     _binary(getParam<bool>("binary")),
-    _restartable_data(_problem_ptr->getRestartableData()),
-    _recoverable_data(_problem_ptr->getRecoverableData()),
+    _restartable_data(_app.getRestartableData()),
+    _recoverable_data(_app.getRecoverableData()),
     _material_property_storage(_problem_ptr->getMaterialPropertyStorage()),
     _bnd_material_property_storage(_problem_ptr->getBndMaterialPropertyStorage()),
-    _material_property_io(MaterialPropertyIO(*_problem_ptr)),
     _restartable_data_io(RestartableDataIO(*_problem_ptr))
 {
 }
@@ -114,7 +113,6 @@ Checkpoint::output(const ExecFlagType & /*type*/)
     current_file_struct.system = current_file + ".xda";
   }
   current_file_struct.restart = current_file + ".rd";
-  current_file_struct.material = current_file + ".msmp";
 
   // Write the checkpoint file
   io.write(current_file_struct.checkpoint);
@@ -124,10 +122,6 @@ Checkpoint::output(const ExecFlagType & /*type*/)
 
   // Write the restartable data
   _restartable_data_io.writeRestartableData(current_file_struct.restart, _restartable_data, _recoverable_data);
-
-  // Write the material property data
-  if (_material_property_storage.hasStatefulProperties() || _bnd_material_property_storage.hasStatefulProperties())
-    _material_property_io.write(current_file_struct.material);
 
   // Remove old checkpoint files
   updateCheckpointFiles(current_file_struct);
@@ -183,16 +177,6 @@ Checkpoint::updateCheckpointFiles(CheckpointFileNames file_struct)
     }
 
     unsigned int n_threads = libMesh::n_threads();
-
-    // Remove material property files
-    if (_material_property_storage.hasStatefulProperties() || _bnd_material_property_storage.hasStatefulProperties())
-    {
-      std::ostringstream oss;
-      oss << delete_files.material << '-' << proc_id;
-      ret = remove(oss.str().c_str());
-      if (ret != 0)
-        mooseWarning("Error during the deletion of file '" << oss.str().c_str() << "': " << ret);
-    }
 
     // Remove the restart files (rd)
     {

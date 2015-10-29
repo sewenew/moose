@@ -72,11 +72,12 @@
 
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-  restart_file_base = uo_restart_part1_out_restart_0001
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
+[]
+
+[Problem]
+  restart_file_base = uo_restart_part1_out_restart_0001
 []

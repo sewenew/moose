@@ -28,9 +28,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -99,7 +97,7 @@
     outputs = 'console'
   [../]
   [./should_be_zero]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = should_be_zero_fcn
   [../]
 []
@@ -144,14 +142,20 @@
 []
 
 [Materials]
-  [./mc]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     fill_method = symmetric_isotropic
     C_ijkl = '0 1E7'
+  [../]
+  [./strain]
+    type = ComputeFiniteStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./mc]
+    type = ComputeMultiPlasticityStress
+    block = 0
     max_NR_iterations = 1000
     ep_plastic_tolerance = 1E-6
     plastic_models = mc
@@ -171,14 +175,7 @@
 [Outputs]
   file_base = many_deforms_cap
   exodus = false
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
 []

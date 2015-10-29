@@ -26,8 +26,8 @@ InputParameters validParams<FullSolveMultiApp>()
 }
 
 
-FullSolveMultiApp::FullSolveMultiApp(const std::string & name, InputParameters parameters):
-    MultiApp(name, parameters),
+FullSolveMultiApp::FullSolveMultiApp(const InputParameters & parameters):
+    MultiApp(parameters),
     _solved(false)
 {
 }
@@ -37,9 +37,9 @@ FullSolveMultiApp::~FullSolveMultiApp()
 }
 
 void
-FullSolveMultiApp::init()
+FullSolveMultiApp::initialSetup()
 {
-  MultiApp::init();
+  MultiApp::initialSetup();
 
   if (_has_an_app)
   {
@@ -56,6 +56,8 @@ FullSolveMultiApp::init()
       if (!ex)
         mooseError("Executioner does not exist!");
 
+      ex->init();
+
       _executioners[i] = ex;
     }
     // Swap back
@@ -63,19 +65,19 @@ FullSolveMultiApp::init()
   }
 }
 
-void
+bool
 FullSolveMultiApp::solveStep(Real /*dt*/, Real /*target_time*/, bool auto_advance)
 {
   if (!auto_advance)
     mooseError("FullSolveMultiApp is not compatible with auto_advance=false");
 
   if (!_has_an_app)
-    return;
+    return true;
 
   if (_solved)
-    return;
+    return true;
 
-  _console << "Fully Solving MultiApp " << _name << std::endl;
+  _console << "Fully Solving MultiApp " << name() << std::endl;
 
   MPI_Comm swapped = Moose::swapLibMeshComm(_my_comm);
 
@@ -86,7 +88,6 @@ FullSolveMultiApp::solveStep(Real /*dt*/, Real /*target_time*/, bool auto_advanc
   for (unsigned int i=0; i<_my_num_apps; i++)
   {
     Executioner * ex = _executioners[i];
-    ex->init();
     ex->execute();
   }
 
@@ -95,5 +96,9 @@ FullSolveMultiApp::solveStep(Real /*dt*/, Real /*target_time*/, bool auto_advanc
 
   _solved = true;
 
-  _console << "Finished Solving MultiApp " << _name << std::endl;
+  _console << "Finished Solving MultiApp " << name() << std::endl;
+
+  // TODO: Do soemthing better than this
+  return true;
 }
+

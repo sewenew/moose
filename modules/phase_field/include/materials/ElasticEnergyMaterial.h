@@ -1,7 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ELASTICENERGYMATERIAL_H
 #define ELASTICENERGYMATERIAL_H
 
-#include "DerivativeBaseMaterial.h"
+#include "DerivativeFunctionMaterialBase.h"
 
 // Forward Declaration
 class ElasticEnergyMaterial;
@@ -9,20 +15,20 @@ class RankTwoTensor;
 class ElasticityTensorR4;
 
 template<>
-InputParameters validParams<DerivativeBaseMaterial>();
+InputParameters validParams<DerivativeFunctionMaterialBase>();
 
 /**
  * Material class to compute the elastic free energy and its derivatives
  */
-class ElasticEnergyMaterial : public DerivativeBaseMaterial
+class ElasticEnergyMaterial : public DerivativeFunctionMaterialBase
 {
 public:
-  ElasticEnergyMaterial(const std::string & name, InputParameters parameters);
+  ElasticEnergyMaterial(const InputParameters & parameters);
 
 protected:
   virtual Real computeF();
-  virtual Real computeDF(unsigned int);
-  virtual Real computeD2F(unsigned int, unsigned int);
+  virtual Real computeDF(unsigned int i_var);
+  virtual Real computeD2F(unsigned int i_var, unsigned int j_var);
 
   std::string _base_name;
 

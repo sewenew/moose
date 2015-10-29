@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "HeatConductionMaterial.h"
 
 template<>
@@ -16,8 +22,8 @@ InputParameters validParams<HeatConductionMaterial>()
   return params;
 }
 
-HeatConductionMaterial::HeatConductionMaterial(const std::string & name, InputParameters parameters) :
-    Material(name, parameters),
+HeatConductionMaterial::HeatConductionMaterial(const InputParameters & parameters) :
+    Material(parameters),
 
     _has_temp(isCoupled("temp")),
     _temperature(_has_temp ? coupledValue("temp") : _zero),
@@ -54,11 +60,28 @@ HeatConductionMaterial::computeProperties()
 {
   for (unsigned int qp(0); qp < _qrule->n_points(); ++qp)
   {
+    Real qp_temperature = 0;
+    if (_has_temp)
+    {
+      qp_temperature = _temperature[qp];
+      if (_temperature[qp] < 0)
+      {
+      std::stringstream msg;
+      msg << "WARNING:  In HeatConductionMaterial:  negative temperature!\n"
+          << "\tResetting to zero.\n"
+          << "\t_qp: " << qp << "\n"
+          << "\ttemp: " << _temperature[qp] << "\n"
+          << "\telem: " << _current_elem->id() << "\n"
+          << "\tproc: " << processor_id() << "\n";
+      mooseWarning( msg.str() );
+      qp_temperature = 0;
+      }
+    }
     if (_thermal_conductivity_temperature_function)
     {
       Point p;
-      _thermal_conductivity[qp] = _thermal_conductivity_temperature_function->value(_temperature[qp], p);
-      _thermal_conductivity_dT[qp] = 0;
+      _thermal_conductivity[qp] = _thermal_conductivity_temperature_function->value(qp_temperature, p);
+      _thermal_conductivity_dT[qp] = _thermal_conductivity_temperature_function->timeDerivative(qp_temperature, p);
     }
     else
     {
@@ -69,7 +92,7 @@ HeatConductionMaterial::computeProperties()
     if (_specific_heat_temperature_function)
     {
       Point p;
-      _specific_heat[qp] = _specific_heat_temperature_function->value(_temperature[qp], p);
+      _specific_heat[qp] = _specific_heat_temperature_function->value(qp_temperature, p);
     }
     else
     {
@@ -77,3 +100,4 @@ HeatConductionMaterial::computeProperties()
     }
   }
 }
+

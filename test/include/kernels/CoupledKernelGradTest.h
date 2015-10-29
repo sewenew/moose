@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #ifndef COUPLEDKERNELGRADTEST_H
 #define COUPLEDKERNELGRADTEST_H
 
@@ -12,7 +25,7 @@ InputParameters validParams<CoupledKernelGradTest>();
 class CoupledKernelGradTest : public KernelGrad
 {
 public:
-  CoupledKernelGradTest(const std::string & name, InputParameters parameters);
+  CoupledKernelGradTest(const InputParameters & parameters);
   virtual ~CoupledKernelGradTest();
 
 protected:

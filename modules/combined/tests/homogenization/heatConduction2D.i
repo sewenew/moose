@@ -151,12 +151,6 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 [] # Outputs
 
 [Postprocessors]
@@ -166,6 +160,7 @@
     temp_x = temp_x
     temp_y = temp_y
     component = 0
+    execute_on = 'initial timestep_end'
   [../]
   [./k_yy]
     type = HomogenizedThermalConductivity
@@ -173,5 +168,6 @@
     temp_x = temp_x
     temp_y = temp_y
     component = 1
+    execute_on = 'initial timestep_end'
   [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MULTIPLASTICITYDEBUGGER_H
 #define MULTIPLASTICITYDEBUGGER_H
 
@@ -17,8 +23,7 @@ class MultiPlasticityDebugger:
   public MultiPlasticityLinearSystem
 {
 public:
-  MultiPlasticityDebugger(const std::string & name, InputParameters parameters);
-
+  MultiPlasticityDebugger(const InputParameters & parameters);
 
   /**
    * Outputs the debug parameters: _fspb_debug_stress, _fspd_debug_pm, etc
@@ -74,7 +79,7 @@ public:
    * The finite-difference derivative of yield function(s) with respect to stress
    * @param stress the stress at which to calculate the yield function
    * @param intnl vector of internal parameters
-   * @param df_dstress (output) the derivative (or derivatives in the case of multisurface plasticity).  df_dstress[alpha](i, j) = dyieldFunction[alpha]/dstress(i, j)
+   * @param[out] df_dstress the derivative (or derivatives in the case of multisurface plasticity).  df_dstress[alpha](i, j) = dyieldFunction[alpha]/dstress(i, j)
    */
   void fddyieldFunction_dstress(const RankTwoTensor & stress, const std::vector<Real> & intnl, std::vector<RankTwoTensor> & df_dstress);
 
@@ -82,7 +87,7 @@ public:
    * The finite-difference derivative of yield function(s) with respect to internal parameter(s)
    * @param stress the stress at which to calculate the yield function
    * @param intnl vector of internal parameters
-   * @param df_dintnl (output) the derivative (or derivatives in the case of multisurface plasticity).  df_dintnl[alpha] = dyieldFunction[alpha]/dintnl[alpha]
+   * @param[out] df_dintnl the derivative (or derivatives in the case of multisurface plasticity).  df_dintnl[alpha] = dyieldFunction[alpha]/dintnl[alpha]
    */
   void fddyieldFunction_dintnl(const RankTwoTensor & stress, const std::vector<Real> & intnl, std::vector<Real> & df_dintnl);
 
@@ -90,7 +95,7 @@ public:
    * The finite-difference derivative of the flow potential(s) with respect to stress
    * @param stress the stress at which to calculate the flow potential
    * @param intnl vector of internal parameters
-   * @param dr_dstress (output) the derivative.  dr_dstress[alpha](i, j, k, l) = dr[alpha](i, j)/dstress(k, l)
+   * @param[out] dr_dstress the derivative.  dr_dstress[alpha](i, j, k, l) = dr[alpha](i, j)/dstress(k, l)
    */
   virtual void fddflowPotential_dstress(const RankTwoTensor & stress, const std::vector<Real> & intnl, std::vector<RankFourTensor> & dr_dstress);
 
@@ -98,7 +103,7 @@ public:
    * The finite-difference derivative of the flow potentials with respect to internal parameters
    * @param stress the stress at which to calculate the flow potential
    * @param intnl vector of internal parameters
-   * @param dr_dintnl (output) the derivatives.  dr_dintnl[alpha](i, j) = dr[alpha](i, j)/dintnl[alpha]
+   * @param[out] dr_dintnl the derivatives.  dr_dintnl[alpha](i, j) = dr[alpha](i, j)/dintnl[alpha]
    */
   virtual void fddflowPotential_dintnl(const RankTwoTensor & stress, const std::vector<Real> & intnl, std::vector<RankTwoTensor> & dr_dintnl);
 
@@ -113,7 +118,7 @@ public:
    * @param delta_dp plastic_strain - plastic_strain_old (Jacobian is independent of this, but it is needed to do the finite-differencing cleanly)
    * @param E_inv inverse of the elasticity tensor
    * @param eliminate_ld only calculate the Jacobian for the linearly independent constraints
-   * @param jac (output) the finite-difference Jacobian
+   * @param[out] jac the finite-difference Jacobian
    */
   virtual void fdJacobian(const RankTwoTensor & stress, const std::vector<Real> & intnl_old, const std::vector<Real> & intnl, const std::vector<Real> & pm, const RankTwoTensor & delta_dp, const RankFourTensor & E_inv, bool eliminate_ld, std::vector<std::vector<Real> > & jac);
 

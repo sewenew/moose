@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF2GASVG_H
 #define RICHARDSSEFF2GASVG_H
@@ -23,7 +26,7 @@ InputParameters validParams<RichardsSeff2gasVG>();
 class RichardsSeff2gasVG : public RichardsSeff
 {
 public:
-  RichardsSeff2gasVG(const std::string & name, InputParameters parameters);
+  RichardsSeff2gasVG(const InputParameters & parameters);
 
   /**
    * gas effective saturation

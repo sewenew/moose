@@ -20,7 +20,6 @@
 #include "DiracKernelInfo.h"
 #include "Assembly.h"
 #include "GeometricSearchData.h"
-#include "RestartableData.h"
 
 // libMesh include
 #include "libmesh/equation_systems.h"
@@ -43,7 +42,7 @@ InputParameters validParams<SubProblem>();
 class SubProblem : public Problem
 {
 public:
-  SubProblem(const std::string & name, InputParameters parameters);
+  SubProblem(const InputParameters & parameters);
   virtual ~SubProblem();
 
   virtual EquationSystems & es() = 0;
@@ -106,6 +105,12 @@ public:
   virtual void prepareNeighborShapes(unsigned int var, THREAD_ID tid) = 0;
   virtual Moose::CoordinateSystemType getCoordSystem(SubdomainID sid) = 0;
 
+  /**
+   * Returns the desired radial direction for RZ coordinate transformation
+   * @return The coordinate direction for the radial direction
+   */
+  unsigned int getAxisymmetricRadialCoord();
+
   virtual DiracKernelInfo & diracKernelInfo();
   virtual Real finalNonlinearResidual();
   virtual unsigned int nNonlinearIterations();
@@ -141,6 +146,7 @@ public:
   virtual void reinitNode(const Node * node, THREAD_ID tid) = 0;
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid) = 0;
   virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid) = 0;
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid) = 0;
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid) = 0;
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid) = 0;
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid) = 0;
@@ -281,7 +287,7 @@ public:
    * @param data The actual data object.
    * @param tid The thread id of the object.  Use 0 if the object is not threaded.
    */
-  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid) = 0;
+  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid);
 
 public:
   /**
@@ -317,7 +323,6 @@ protected:
    * from boudnary/block id to multimap.  Each of the multimaps is a list of
    * requestor object names to material property names.
    */
-  /// the map of properties requested (need to be checked)
   std::map<unsigned int, std::multimap<std::string, std::string> > _map_block_material_props_check;
   std::map<unsigned int, std::multimap<std::string, std::string> > _map_boundary_material_props_check;
   ///@}
@@ -332,8 +337,8 @@ protected:
   /// Elements that should have Dofs ghosted to the local processor
   std::set<dof_id_type> _ghosted_elems;
 
-  /// Where the restartable data is held (indexed on tid)
-  RestartableDatas _restartable_data;
+  /// Storage for RZ axis selection
+  unsigned int _rz_coord_axis;
 
 private:
 
@@ -359,7 +364,7 @@ private:
    *
    * @param name The full (unique) name.
    */
-  virtual void registerRecoverableData(std::string name) = 0;
+  virtual void registerRecoverableData(std::string name);
 
   friend class Restartable;
 };

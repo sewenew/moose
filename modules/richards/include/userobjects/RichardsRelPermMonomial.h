@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSRELPERMMONOMIAL_H
 #define RICHARDSRELPERMMONOMIAL_H
@@ -23,7 +26,7 @@ InputParameters validParams<RichardsRelPermMonomial>();
 class RichardsRelPermMonomial : public RichardsRelPerm
 {
 public:
-  RichardsRelPermMonomial(const std::string & name, InputParameters parameters);
+  RichardsRelPermMonomial(const InputParameters & parameters);
 
   /**
    * Relative permeability

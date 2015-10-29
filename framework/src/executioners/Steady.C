@@ -25,9 +25,9 @@ InputParameters validParams<Steady>()
 }
 
 
-Steady::Steady(const std::string & name, InputParameters parameters) :
-    Executioner(name, parameters),
-    _problem(*parameters.getCheckedPointerParam<FEProblem *>("_fe_problem", "This might happen if you don't have a mesh")),
+Steady::Steady(const InputParameters & parameters) :
+    Executioner(parameters),
+    _problem(_fe_problem),
     _time_step(_problem.timeStep()),
     _time(_problem.time())
 {
@@ -47,12 +47,6 @@ Steady::~Steady()
 {
 }
 
-Problem &
-Steady::problem()
-{
-  return _problem;
-}
-
 void
 Steady::init()
 {
@@ -66,7 +60,7 @@ Steady::init()
   _problem.initialSetup();
 
   Moose::setup_perf_log.push("Output Initial Condition","Setup");
-  _output_warehouse.outputStep(EXEC_INITIAL);
+  _problem.outputStep(EXEC_INITIAL);
   Moose::setup_perf_log.pop("Output Initial Condition","Setup");
 }
 
@@ -77,6 +71,8 @@ Steady::execute()
     return;
 
   preExecute();
+
+  _problem.advanceState();
 
   // first step in any steady state solve is always 1 (preserving backwards compatibility)
   _time_step = 1;
@@ -92,9 +88,16 @@ Steady::execute()
     _problem.computeUserObjects(EXEC_TIMESTEP_BEGIN, UserObjectWarehouse::PRE_AUX);
     preSolve();
     _problem.timestepSetup();
+    _problem.computeAuxiliaryKernels(EXEC_TIMESTEP_BEGIN);
     _problem.computeUserObjects(EXEC_TIMESTEP_BEGIN, UserObjectWarehouse::POST_AUX);
     _problem.solve();
     postSolve();
+
+    if (!_problem.converged())
+    {
+      _console << "Aborting as solve did not converge\n";
+      break;
+    }
 
     _problem.computeUserObjects(EXEC_TIMESTEP_END, UserObjectWarehouse::PRE_AUX);
     _problem.onTimestepEnd();
@@ -103,7 +106,7 @@ Steady::execute()
     _problem.computeUserObjects(EXEC_TIMESTEP_END, UserObjectWarehouse::POST_AUX);
     _problem.computeIndicatorsAndMarkers();
 
-    _output_warehouse.outputStep(EXEC_TIMESTEP_END);
+    _problem.outputStep(EXEC_TIMESTEP_END);
 
 #ifdef LIBMESH_ENABLE_AMR
     if (r_step != steps)

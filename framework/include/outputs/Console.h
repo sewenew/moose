@@ -18,10 +18,6 @@
 // MOOSE includes
 #include "TableOutput.h"
 #include "FormattedTable.h"
-#include "Conversion.h"
-
-// libMesh includes
-#include "libmesh/string_to_enum.h"
 
 // Forward declarations
 class Console;
@@ -40,7 +36,7 @@ public:
   /**
    * Class constructor
    */
-  Console(const std::string & name, InputParameters);
+  Console(const InputParameters & parameters);
 
   /**
    * Destructor
@@ -53,12 +49,6 @@ public:
    * is printed prior to any PETSc solve information
    */
   virtual void initialSetup();
-
-  /**
-   * Timestep function
-   * Runs at the beginning of each timestep and prints the timestep, time, and dt information
-   */
-  //virtual void timestepSetup();
 
   /**
    * Customizes the order of output for the various components as well as adds additional
@@ -79,27 +69,21 @@ public:
   virtual std::string filename();
 
   /**
-   * Display the system information
-   */
-  void outputSystemInformation();
-
-  /**
    * Output string for setting up PETSC output
    */
   static void petscSetupOutput();
 
-  /** Helper function function for stringstream formatting
-   * @see outputSimulationInformation()
+  /**
+   * Performs console related printing when the mesh is changed
    */
-  static void insertNewline(std::stringstream &oss, std::streampos &begin, std::streampos &curr);
-
-  /// Width used for printing simulation information
-  static const unsigned int _field_width = 25;
-
-  /// Line length for printing simulation information
-  static const unsigned int _line_length = 100;
+  void meshChanged();
 
 protected:
+
+  /**
+   * Adds the printing of system information to the init() method
+   */
+  void init();
 
   /**
    * Print the input file at the beginning of the simulation
@@ -122,11 +106,16 @@ protected:
   virtual void outputVectorPostprocessors() { mooseError("Can't currently output VectorPostprocessors to the screen"); };
 
   /**
+   * Print system information
+   */
+  virtual void outputSystemInformation();
+
+  /**
    * A helper function for outputting norms in color
    * @param old_norm The old residual norm to compare against
    * @param norm The current residual norm
    */
-  std::string outputNorm(Real old_norm, Real norm);
+  std::string outputNorm(const Real & old_norm, const Real & norm);
 
   /**
    * Prints the time step information for the screen output
@@ -141,12 +130,6 @@ protected:
   void write(std::string message, bool indent = true);
 
   /**
-   * Apply indentation to newlines in the supplied stream
-   * @param message Reference to the message being changed
-   */
-  void indentMessage(std::string & message);
-
-/**
    * Write the file stream to the file
    * @param append Toggle for appending the file
    *
@@ -181,12 +164,6 @@ protected:
 
   /// Stream for storing information to be written to a file
   std::stringstream _file_output_stream;
-
-  /// Storage for the old linear residual (needed for color output)
-  Real _old_linear_norm;
-
-  /// Storage for the old non linear residual (needed for color output)
-  Real _old_nonlinear_norm;
 
   /// State for all performance logging
   bool _perf_log;
@@ -227,7 +204,7 @@ private:
    * @param message The message to add to the output streams
    *
    * Any call to this method will write the supplied message to the screen and/or file,
-   * following the same restrictions as outputStep and outputInitial.
+   * following the same restrictions as outputStep.
    *
    * Calls to this method should be made via OutputWarehouse::mooseConsole so that the
    * output stream buffer is cleaned up correctly. Thus, it is a private method.
@@ -237,11 +214,20 @@ private:
   /// State of the --timing command line argument from MooseApp
   bool _timing;
 
-  /// Level of indent to add to output
-  std::string _multiapp_indent;
-
   /// Reference to cached messages from calls to _console
   const std::ostringstream & _console_buffer;
+
+  /// Storage for the old linear residual (needed for color output and only when used when printing to the screen)
+  Real _old_linear_norm;
+
+  /// Storage for the old non linear residual (needed for color output and only when used when printing to the screen)
+  Real _old_nonlinear_norm;
+
+  /// Flag for printing mesh information when the mesh changes
+  bool _print_mesh_changed_info;
+
+  /// Flags for controlling the what simulations information is shown
+  MultiMooseEnum _system_info_flags;
 
   friend class OutputWarehouse;
 };

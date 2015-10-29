@@ -45,15 +45,9 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'initial linear nonlinear timestep_end'
-  [../]
-  [./debug]
+  [./debug] # This is only a test, this should be turned on via the [Debug] block
     type = TopResidualDebugOutput
     num_residuals = 1
-    output_on = 'nonlinear'
+    execute_on = nonlinear
   [../]
 []

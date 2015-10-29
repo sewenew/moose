@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "Broadbridge-White" form of effective saturation for Kn small (P Broadbridge and I White ``Constant rate rainfall infiltration: A versatile nonlinear model 1. Analytic Solution'', Water Resources Research 24 (1988) 145-154)
 //
@@ -21,8 +24,8 @@ InputParameters validParams<RichardsSeff1BWsmall>()
   return params;
 }
 
-RichardsSeff1BWsmall::RichardsSeff1BWsmall(const std::string & name, InputParameters parameters) :
-    RichardsSeff(name, parameters),
+RichardsSeff1BWsmall::RichardsSeff1BWsmall(const InputParameters & parameters) :
+    RichardsSeff(parameters),
     _sn(getParam<Real>("Sn")),
     _ss(getParam<Real>("Ss")),
     _c(getParam<Real>("C")),
@@ -148,3 +151,4 @@ RichardsSeff1BWsmall::d2seff(std::vector<VariableValue *> p, unsigned int qp, st
   Real lamw = LambertW(x);
   result[0][0] = -std::pow(_c, 3)/std::pow(_las, 2)*lamw*(1 - 2*lamw)/std::pow(1 + lamw, 5);
 }
+

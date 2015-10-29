@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSSUPGMomentum.h"
 
 template<>
@@ -13,8 +19,8 @@ InputParameters validParams<NSSUPGMomentum>()
 
 
 
-NSSUPGMomentum::NSSUPGMomentum(const std::string & name, InputParameters parameters)
-    : NSSUPGBase(name, parameters),
+NSSUPGMomentum::NSSUPGMomentum(const InputParameters & parameters)
+    : NSSUPGBase(parameters),
       _component(getParam<unsigned>("component"))
 {
 }
@@ -168,3 +174,4 @@ Real NSSUPGMomentum::compute_jacobian(unsigned var)
   // Sum up values and return
   return mass_term + mom_term + ene_term;
 }
+

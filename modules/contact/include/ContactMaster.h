@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONTACTMASTER_H
 #define CONTACTMASTER_H
 
@@ -26,7 +32,7 @@ enum ContactFormulation
 class ContactMaster : public DiracKernel
 {
 public:
-  ContactMaster(const std::string & name, InputParameters parameters);
+  ContactMaster(const InputParameters & parameters);
 
   virtual void jacobianSetup();
   virtual void timestepSetup();
@@ -41,6 +47,7 @@ public:
 protected:
 
   Real nodalArea(PenetrationInfo & pinfo);
+  Real getPenalty(PenetrationInfo & pinfo);
 
   const unsigned int _component;
   const ContactModel _model;
@@ -51,8 +58,8 @@ protected:
   const Real _penalty;
   const Real _friction_coefficient;
   const Real _tension_release;
+  const Real _capture_tolerance;
   bool _updateContactSet;
-  Real _time_last_called;
 
   NumericVector<Number> & _residual_copy;
 
@@ -64,7 +71,7 @@ protected:
 
   const unsigned int _mesh_dimension;
 
-  RealVectorValue _vars;
+  VectorValue<unsigned> _vars;
 
   MooseVariable * _nodal_area_var;
   SystemBase & _aux_system;

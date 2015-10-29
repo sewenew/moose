@@ -62,7 +62,7 @@
     tensor = stress
     variable = stress_xx
     index = 0
-    execute_on = timestep     # for efficiency, only compute at the end of a timestep
+    execute_on = timestep_end     # for efficiency, only compute at the end of a timestep
   [../]
   [./stress_yy]
     type = MaterialTensorAux
@@ -139,32 +139,28 @@
 
 
 [Executioner]
-
   type = Transient
-  # Two sets of linesearch options are for petsc 3.1 and 3.3 respectively
 
-  #Preconditioned JFNK (default)
+  # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
 
   petsc_options = '-snes_ksp_ew'
   petsc_options_iname = '-ksp_gmres_restart'
   petsc_options_value = '101'
 
-
   line_search = 'none'
 
-  l_max_its = 50
-  nl_max_its = 20
-  nl_abs_tol = 1e-5
-  l_tol = 1e-2
+  l_max_its = 100
+  nl_max_its = 10
+  nl_rel_tol = 1e-12
+  l_tol = 1e-4
 
   start_time = 0.0
   dt = 1
+  dtmin = 1 # die instead of cutting the timestep
 
   end_time = 1
   num_steps = 1
-
 []
 
 [Postprocessors]
@@ -179,17 +175,10 @@
   [./lin_its]
     type = NumLinearIterations
   [../]
-
 []
 
 
 [Outputs]
   file_base = disp_about_axis_axial_motion_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

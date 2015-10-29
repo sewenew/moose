@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSKERNEL_H
 #define NSKERNEL_H
 
@@ -20,7 +26,7 @@ InputParameters validParams<NSKernel>();
 class NSKernel : public Kernel
 {
 public:
-  NSKernel(const std::string & name, InputParameters parameters);
+  NSKernel(const InputParameters & parameters);
 
   virtual ~NSKernel(){}
 
@@ -62,8 +68,8 @@ protected:
   Real _R;
 
   // Integrated BC can use Mat. properties...
-  MaterialProperty<Real> & _dynamic_viscosity;
-  MaterialProperty<RealTensorValue> & _viscous_stress_tensor; // Includes _dynamic_viscosity
+  const MaterialProperty<Real> & _dynamic_viscosity;
+  const MaterialProperty<RealTensorValue> & _viscous_stress_tensor; // Includes _dynamic_viscosity
 
   // Helper function for mapping Moose variable numberings into
   // the "canonical" numbering for the compressible NS equations.

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF1BWSMALL_H
 #define RICHARDSSEFF1BWSMALL_H
@@ -23,7 +26,7 @@ InputParameters validParams<RichardsSeff1BWsmall>();
 class RichardsSeff1BWsmall : public RichardsSeff
 {
 public:
-  RichardsSeff1BWsmall(const std::string & name, InputParameters parameters);
+  RichardsSeff1BWsmall(const InputParameters & parameters);
 
   /**
    * LambertW function, returned value satisfies W(z)*exp(W(z))=z

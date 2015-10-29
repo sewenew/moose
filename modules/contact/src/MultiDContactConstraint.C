@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 #include "MultiDContactConstraint.h"
 
 #include "SystemBase.h"
@@ -39,8 +33,8 @@ InputParameters validParams<MultiDContactConstraint>()
   return params;
 }
 
-MultiDContactConstraint::MultiDContactConstraint(const std::string & name, InputParameters parameters) :
-    NodeFaceConstraint(name, parameters),
+MultiDContactConstraint::MultiDContactConstraint(const InputParameters & parameters) :
+    NodeFaceConstraint(parameters),
     _residual_copy(_sys.residualGhosted()),
     _jacobian_update(getParam<bool>("jacobian_update")),
     _component(getParam<unsigned int>("component")),
@@ -60,8 +54,6 @@ MultiDContactConstraint::timestepSetup()
 {
   if (_component == 0)
   {
-    _penetration_locator._unlocked_this_step.clear();
-    _penetration_locator._locked_this_step.clear();
     updateContactSet();
   }
 }
@@ -77,7 +69,6 @@ void
 MultiDContactConstraint::updateContactSet()
 {
   std::set<dof_id_type> & has_penetrated = _penetration_locator._has_penetrated;
-  std::map<dof_id_type, unsigned int> & locked_this_step = _penetration_locator._unlocked_this_step;
 
   std::map<dof_id_type, PenetrationInfo *>::iterator
     it  = _penetration_locator._penetration_info.begin(),
@@ -87,10 +78,9 @@ MultiDContactConstraint::updateContactSet()
   {
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
-    {
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _vars(_component)) < 1 )
       continue;
-    }
 
     const Node * node = pinfo->_node;
 
@@ -139,7 +129,6 @@ MultiDContactConstraint::updateContactSet()
 //      Moose::err<<std::endl<<"Locking node "<<node->id()<<" because distance: "<<pinfo->_distance<<std::endl<<std::endl;
 
       has_penetrated.insert(slave_node_num);
-      locked_this_step[slave_node_num] = true;
     }
   }
 }
@@ -287,3 +276,4 @@ MultiDContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType type)
   }
   return 0;
 }
+

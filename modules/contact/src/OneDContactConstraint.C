@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 #include "OneDContactConstraint.h"
 
 #include "SystemBase.h"
@@ -28,8 +22,8 @@ InputParameters validParams<OneDContactConstraint>()
   return params;
 }
 
-OneDContactConstraint::OneDContactConstraint(const std::string & name, InputParameters parameters) :
-    NodeFaceConstraint(name, parameters),
+OneDContactConstraint::OneDContactConstraint(const InputParameters & parameters) :
+    NodeFaceConstraint(parameters),
     _residual_copy(_sys.residualGhosted()),
     _jacobian_update(getParam<bool>("jacobian_update"))
 {}
@@ -60,10 +54,9 @@ OneDContactConstraint::updateContactSet()
   {
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
-    {
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _var.number()) < 1 )
       continue;
-    }
 
     if (pinfo->_distance > 0)
     {
@@ -128,3 +121,4 @@ OneDContactConstraint::computeQpJacobian(Moose::ConstraintJacobianType type)
   }
   return 0;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSThermalBC.h"
 
 template<>
@@ -17,8 +23,8 @@ InputParameters validParams<NSThermalBC>()
   return params;
 }
 
-NSThermalBC::NSThermalBC(const std::string & name, InputParameters parameters)
-  :NodalBC(name, parameters),
+NSThermalBC::NSThermalBC(const InputParameters & parameters)
+  :NodalBC(parameters),
    _rho_var(coupled("rho")),
    _rho(coupledValue("rho")),
    _initial(getParam<Real>("initial")),
@@ -63,3 +69,4 @@ NSThermalBC::computeQpResidual()
   Real cv = _R / (_gamma-1.);
   return _u[_qp] - (_rho[_qp] * cv * value);
 }
+

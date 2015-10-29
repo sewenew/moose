@@ -24,8 +24,8 @@ InputParameters validParams<AddSplitAction>()
 }
 
 
-AddSplitAction::AddSplitAction(const std::string & name, InputParameters params) :
-    MooseObjectAction(name, params)
+AddSplitAction::AddSplitAction(InputParameters params) :
+    MooseObjectAction(params)
 {
 }
 
@@ -33,5 +33,5 @@ void
 AddSplitAction::act()
 {
   _moose_object_pars.set<FEProblem *>("_fe_problem") = _problem.get();
-  _problem->getNonlinearSystem().addSplit(_type, getShortName(), _moose_object_pars);
+  _problem->getNonlinearSystem().addSplit(_type, _name, _moose_object_pars);
 }

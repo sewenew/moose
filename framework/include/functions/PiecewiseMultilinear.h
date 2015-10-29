@@ -39,7 +39,7 @@ public:
    * Create new PiecewiseMultilinear object.
    * This calls GriddedData to do most of the work
    */
-  PiecewiseMultilinear(const std::string & name, InputParameters parameters);
+  PiecewiseMultilinear(const InputParameters & parameters);
   virtual ~PiecewiseMultilinear();
 
   /**
@@ -50,7 +50,7 @@ public:
 private:
 
   /// object to provide function evaluations at points on the grid
-  GriddedData * _gridded_data;
+  MooseSharedPointer<GriddedData> _gridded_data;
   /// dimension of the grid
   unsigned int _dim;
 
@@ -88,7 +88,3 @@ private:
 };
 
 #endif //PIECEWISEMULTILINEAR_H
-
-
-
-

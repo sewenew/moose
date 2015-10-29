@@ -89,22 +89,10 @@
 
 [Executioner]
   type = Steady
-
-  l_max_its = 1
-  nl_max_its = 1
-
-
   solve_type = JFNK
-
 []
 
 [Outputs]
   file_base = pbp_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

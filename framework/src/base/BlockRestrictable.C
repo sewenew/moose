@@ -12,7 +12,9 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE Includes
 #include "BlockRestrictable.h"
+#include "Material.h"
 
 template<>
 InputParameters validParams<BlockRestrictable>()
@@ -23,10 +25,6 @@ InputParameters validParams<BlockRestrictable>()
   // Add the user-facing 'block' input parameter
   params.addParam<std::vector<SubdomainName> >("block", "The list of block ids (SubdomainID) that this object will be applied");
 
-  // Add the private parameter that is populated by this class that contains valid block ids for the
-  // object inheriting from this class
-  params.addPrivateParam<std::vector<SubdomainID> >("_block_ids", std::vector<SubdomainID>());
-
   // A parameter for disabling error message for objects restrictable by boundary and block,
   // if the parameter is valid it was already set so don't do anything
   if (!params.isParamValid("_dual_restrictable"))
@@ -36,13 +34,36 @@ InputParameters validParams<BlockRestrictable>()
   return params;
 }
 
-BlockRestrictable::BlockRestrictable(const std::string name, InputParameters & parameters) :
+// Standard constructor
+BlockRestrictable::BlockRestrictable(const InputParameters & parameters) :
+    _blk_material_data(NULL),
     _blk_dual_restrictable(parameters.get<bool>("_dual_restrictable")),
-    _blk_feproblem(parameters.isParamValid("_fe_problem") ?
-                   parameters.get<FEProblem *>("_fe_problem") : NULL),
-    _blk_mesh(parameters.isParamValid("_mesh") ?
-              parameters.get<MooseMesh *>("_mesh") : NULL)
+    _blk_feproblem(parameters.isParamValid("_fe_problem") ? parameters.get<FEProblem *>("_fe_problem") : NULL),
+    _blk_mesh(parameters.isParamValid("_mesh") ? parameters.get<MooseMesh *>("_mesh") : NULL),
+    _boundary_ids(_empty_boundary_ids),
+    _blk_tid(parameters.isParamValid("_tid") ? parameters.get<THREAD_ID>("_tid") : 0)
 {
+  initializeBlockRestrictable(parameters);
+}
+
+// Dual restricted constructor
+BlockRestrictable::BlockRestrictable(const InputParameters & parameters, const std::set<BoundaryID> & boundary_ids) :
+    _blk_material_data(NULL),
+    _blk_dual_restrictable(parameters.get<bool>("_dual_restrictable")),
+    _blk_feproblem(parameters.isParamValid("_fe_problem") ? parameters.get<FEProblem *>("_fe_problem") : NULL),
+    _blk_mesh(parameters.isParamValid("_mesh") ? parameters.get<MooseMesh *>("_mesh") : NULL),
+    _boundary_ids(boundary_ids),
+    _blk_tid(parameters.isParamValid("_tid") ? parameters.get<THREAD_ID>("_tid") : 0)
+{
+  initializeBlockRestrictable(parameters);
+}
+
+void
+BlockRestrictable::initializeBlockRestrictable(const InputParameters & parameters)
+{
+  // The name and id of the object
+  const std::string name = parameters.get<std::string>("_object_name");
+
   // If the mesh pointer is not defined, but FEProblem is, get it from there
   if (_blk_feproblem != NULL && _blk_mesh == NULL)
     _blk_mesh = &_blk_feproblem->mesh();
@@ -50,6 +71,10 @@ BlockRestrictable::BlockRestrictable(const std::string name, InputParameters & p
   // Check that the mesh pointer was defined, it is required for this class to operate
   if (_blk_mesh == NULL)
     mooseError("The input parameters must contain a pointer to FEProblem via '_fe_problem' or a pointer to the MooseMesh via '_mesh'");
+
+  // Populate the MaterialData pointer
+  if (_blk_feproblem != NULL)
+    _blk_material_data = _blk_feproblem->getMaterialData(_blk_tid);
 
   // The 'block' input is defined
   if (parameters.isParamValid("block"))
@@ -60,9 +85,11 @@ BlockRestrictable::BlockRestrictable(const std::string name, InputParameters & p
     // Get the IDs from the supplied names
     std::vector<SubdomainID> vec_ids = _blk_mesh->getSubdomainIDs(_blocks);
 
-    // Create a set of IDS
-    for (std::vector<SubdomainID>::const_iterator it=vec_ids.begin(); it != vec_ids.end(); ++it)
-      _blk_ids.insert(*it);
+    // Store the IDs, handling ANY_BLOCK_ID if supplied
+    if (std::find(_blocks.begin(), _blocks.end(), "ANY_BLOCK_ID") != _blocks.end())
+      _blk_ids.insert(Moose::ANY_BLOCK_ID);
+    else
+      _blk_ids.insert(vec_ids.begin(), vec_ids.end());
 
     // Check that supplied blocks are within the variable domain
     if (parameters.isParamValid("variable") &&
@@ -70,27 +97,23 @@ BlockRestrictable::BlockRestrictable(const std::string name, InputParameters & p
          parameters.have_parameter<AuxVariableName>("variable")))
     {
       // A pointer to the variable class
-      std::set<SubdomainID> var_ids = variableSubdomianIDs(parameters);
+      std::set<SubdomainID> var_ids = variableSubdomainIDs(parameters);
 
       // Test if the variable blockIDs are valid for this object
       if (!isBlockSubset(var_ids))
-        mooseError("In object " << name << " the defined blocks are outside of the domain of the variable");
+         mooseError("In object " << name << " the defined blocks are outside of the domain of the variable");
     }
   }
 
   // The 'block' input parameter is undefined, if the object contains a variable, set the subdomain ids to those of the variable
   else if (parameters.isParamValid("variable") &&
            (parameters.have_parameter<NonlinearVariableName>("variable") || parameters.have_parameter<AuxVariableName>("variable")))
-      _blk_ids = variableSubdomianIDs(parameters);
+      _blk_ids = variableSubdomainIDs(parameters);
 
-  // Produce error if the object is not allowed to be both block and boundary restrictable
-  if (!_blk_dual_restrictable && !_blk_ids.empty() && parameters.isParamValid("_boundary_ids"))
-  {
-    std::vector<BoundaryID> bnd_ids = parameters.get<std::vector<BoundaryID> >("_boundary_ids");
-    if (!bnd_ids.empty()
-        && std::find(bnd_ids.begin(), bnd_ids.end(), Moose::ANY_BOUNDARY_ID) != bnd_ids.end())
+  // Produce error if the object is not allowed to be both block and boundary restricted
+  if (!_blk_dual_restrictable && !_boundary_ids.empty() && !_boundary_ids.empty())
+    if (!_boundary_ids.empty() && _boundary_ids.find(Moose::ANY_BOUNDARY_ID) == _boundary_ids.end())
       mooseError("Attempted to restrict the object '" << name << "' to a block, but the object is already restricted by boundary");
-  }
 
   // If no blocks were defined above, specify that it is valid on all blocks
   if (_blk_ids.empty())
@@ -116,9 +139,6 @@ BlockRestrictable::BlockRestrictable(const std::string name, InputParameters & p
       mooseError(msg.str());
     }
   }
-
-  // Store the private parameter that contains the set of block ids
-  parameters.set<std::vector<SubdomainID> >("_block_ids") = std::vector<SubdomainID>(_blk_ids.begin(), _blk_ids.end());
 }
 
 const std::vector<SubdomainName> &
@@ -201,7 +221,7 @@ BlockRestrictable::isBlockSubset(std::vector<SubdomainID> ids) const
 }
 
 std::set<SubdomainID>
-BlockRestrictable::variableSubdomianIDs(InputParameters & parameters) const
+BlockRestrictable::variableSubdomainIDs(const InputParameters & parameters) const
 {
   // Return an empty set if _sys is not defined
   if (!parameters.isParamValid("_sys"))
@@ -226,22 +246,44 @@ BlockRestrictable::variableSubdomianIDs(InputParameters & parameters) const
   return sys->getSubdomainsForVar(var->number());
 }
 
-bool
-BlockRestrictable::hasBlockMaterialProperty(const std::string & name) const
-{
-  // Get reference to the blocks for the material
-  const std::set<SubdomainID> & mat_blk = _blk_feproblem->getMaterialPropertyBlocks(name);
-
-  // If material blocks are empty return false, otherwise test if the materials are a subset
-  // of the blocks for this object
-  if (mat_blk.empty())
-    return false;
-  else
-    return isBlockSubset(mat_blk);
-}
-
 const std::set<SubdomainID> &
 BlockRestrictable::meshBlockIDs()
 {
   return _blk_mesh->meshSubdomains();
+}
+
+bool
+BlockRestrictable::hasBlockMaterialPropertyHelper(const std::string & prop_name)
+{
+
+// Reference to MaterialWarehouse for testing and retrieving block ids
+  MaterialWarehouse & material_warehouse = _blk_feproblem->getMaterialWarehouse(_blk_tid);
+
+  // Complete set of ids that this object is active
+  const std::set<SubdomainID> & ids = hasBlocks(Moose::ANY_BLOCK_ID) ? meshBlockIDs() : blockIDs();
+
+  // Loop over each id for this object
+  for (std::set<SubdomainID>::const_iterator id_it = ids.begin(); id_it != ids.end(); ++id_it)
+  {
+    // Storage of material properties that have been DECLARED on this id
+    std::set<std::string> declared_props;
+
+    // If block materials exist, populated the set of properties that were declared
+    if (material_warehouse.hasMaterials(*id_it))
+    {
+      std::vector<Material *> mats = material_warehouse.getMaterials(*id_it);
+      for (std::vector<Material *>::iterator mat_it = mats.begin(); mat_it != mats.end(); ++mat_it)
+      {
+        const std::set<std::string> & mat_props = (*mat_it)->getSuppliedItems();
+        declared_props.insert(mat_props.begin(), mat_props.end());
+      }
+    }
+
+    // If the supplied property is not in the list of properties on the current id, return false
+    if (declared_props.find(prop_name) == declared_props.end())
+      return false;
+  }
+
+  // If you get here the supplied property is defined on all blocks
+  return true;
 }

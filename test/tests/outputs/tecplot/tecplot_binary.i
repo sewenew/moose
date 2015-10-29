@@ -40,7 +40,6 @@
 []
 
 [Outputs]
-  output_on = 'initial timestep_end'
   [./out]
     type = Tecplot
     binary = true

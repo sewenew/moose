@@ -27,21 +27,15 @@ template<>
 InputParameters validParams<SideSetsFromNormals>()
 {
   InputParameters params = validParams<AddSideSetsBase>();
-  params.addParam<std::vector<BoundaryName> >("new_boundary", "The name of the boundary to create");
-  params.addDeprecatedParam<std::vector<BoundaryName> >("boundary", "The name of the boundary to create", "Use 'new_boundary' instead");
+  params.addRequiredParam<std::vector<BoundaryName> >("new_boundary", "The name of the boundary to create");
   params.addRequiredParam<std::vector<Point> >("normals", "A list of normals for which to start painting sidesets");
   return params;
 }
 
-SideSetsFromNormals::SideSetsFromNormals(const std::string & name, InputParameters parameters):
-    AddSideSetsBase(name, parameters),
+SideSetsFromNormals::SideSetsFromNormals(const InputParameters & parameters):
+    AddSideSetsBase(parameters),
     _normals(getParam<std::vector<Point> >("normals"))
 {
-
-  // *** DEPRECATED SUPPORT ***
-  // Remove these two lines, make 'new_boundary' required when this is removed, and move _boundary_names to initialization list
-  if (isParamValid("boundary"))
-    _pars.set<std::vector<BoundaryName> >("new_boundary") = getParam<std::vector<BoundaryName> >("boundary");
 
   // Get the BoundaryIDs from the mesh
   _boundary_names = getParam<std::vector<BoundaryName> >("new_boundary");
@@ -107,3 +101,4 @@ SideSetsFromNormals::modify()
   for (unsigned int i = 0; i < boundary_ids.size(); ++i)
     boundary_info.sideset_name(boundary_ids[i]) = _boundary_names[i];
 }
+

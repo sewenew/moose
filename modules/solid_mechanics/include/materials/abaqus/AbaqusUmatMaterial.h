@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SolidModel.h"
 
 #ifndef ABAQUSUMATMATERIAL_H
@@ -15,8 +21,7 @@ InputParameters validParams<AbaqusUmatMaterial>();
 class AbaqusUmatMaterial : public SolidModel
 {
 public:
-  AbaqusUmatMaterial(const std::string & name,
-                  InputParameters parameters);
+  AbaqusUmatMaterial(const InputParameters & parameters);
   virtual ~AbaqusUmatMaterial();
 
 protected:

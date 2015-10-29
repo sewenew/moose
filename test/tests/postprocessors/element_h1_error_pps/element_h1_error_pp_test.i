@@ -91,24 +91,28 @@
 [Postprocessors]
   [./dofs]
     type = NumDOFs
+    execute_on = 'initial timestep_end'
   [../]
 
   [./h1_error]
     type = ElementH1Error
     variable = u
     function = u_func
+    execute_on = 'initial timestep_end'
   [../]
 
   [./h1_semi]
     type = ElementH1SemiError
     variable = u
     function = u_func
+    execute_on = 'initial timestep_end'
   [../]
 
   [./l2_error]
     type = ElementL2Error
     variable = u
     function = u_func
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -116,10 +120,4 @@
   file_base = out
   exodus = false
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

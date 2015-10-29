@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef AXISYMMETRICRZ_H
 #define AXISYMMETRICRZ_H
 
@@ -11,7 +17,7 @@ namespace SolidMechanics
 class AxisymmetricRZ : public Element
 {
 public:
-  AxisymmetricRZ(SolidModel & solid_model, const std::string & name, InputParameters parameters);
+  AxisymmetricRZ(SolidModel & solid_model, const std::string & name, const InputParameters & parameters);
   virtual ~AxisymmetricRZ();
 
 protected:

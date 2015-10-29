@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MultiPlasticityDebugger.h"
 
 template<>
@@ -14,9 +20,8 @@ InputParameters validParams<MultiPlasticityDebugger>()
   return params;
 }
 
-MultiPlasticityDebugger::MultiPlasticityDebugger(const std::string & name,
-                                         InputParameters parameters):
-    MultiPlasticityLinearSystem(name, parameters),
+MultiPlasticityDebugger::MultiPlasticityDebugger(const InputParameters & parameters):
+    MultiPlasticityLinearSystem(parameters),
     _fspb_debug(parameters.get<int>("debug_fspb")),
     _fspb_debug_stress(parameters.get<RealTensorValue>("debug_jac_at_stress")),
     _fspb_debug_pm(parameters.get<std::vector<Real> >("debug_jac_at_pm")),
@@ -519,4 +524,3 @@ MultiPlasticityDebugger::fddflowPotential_dintnl(const RankTwoTensor & stress, c
     intnlep[model] -= ep;
   }
 }
-

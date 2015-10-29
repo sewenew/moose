@@ -36,7 +36,7 @@ InputParameters validParams<MultiAppTransfer>();
 class MultiAppTransfer : public Transfer
 {
 public:
-  MultiAppTransfer(const std::string & name, InputParameters parameters);
+  MultiAppTransfer(const InputParameters & parameters);
   virtual ~MultiAppTransfer() {}
 
   enum
@@ -65,6 +65,44 @@ protected:
 
   /// Whether we're transferring to or from the MultiApp
   MooseEnum _direction;
+
+  /**
+   * This method will fill information into the convenience member variables
+   * (_to_problems, _from_meshes, etc.)
+   */
+  void getAppInfo();
+
+  std::vector<FEProblem *> _to_problems;
+  std::vector<FEProblem *> _from_problems;
+  std::vector<EquationSystems *> _to_es;
+  std::vector<EquationSystems *> _from_es;
+  std::vector<MooseMesh *> _to_meshes;
+  std::vector<MooseMesh *> _from_meshes;
+  std::vector<Point> _to_positions;
+  std::vector<Point> _from_positions;
+
+  bool _displaced_source_mesh;
+  bool _displaced_target_mesh;
+
+  /**
+   * Return the bounding boxes of all the "from" domains, including all the
+   * domains not local to this processor.
+   */
+  std::vector<MeshTools::BoundingBox> getFromBoundingBoxes();
+
+  /**
+   * Return the number of "from" domains that each processor owns.
+   */
+  std::vector<unsigned int> getFromsPerProc();
+
+  /**
+   * If we are transferring to a multiapp, return the appropriate solution
+   * vector
+   */
+  NumericVector<Real> & getTransferVector(unsigned int i_local, std::string var_name);
+
+  // Given local app index, returns global app index.
+  std::vector<unsigned int> _local2global_map;
 };
 
 #endif /* MULTIAPPTRANSFER_H */

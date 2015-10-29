@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSTHERMALINFLOWBC_H
 #define NSTHERMALINFLOWBC_H
 
@@ -18,7 +24,7 @@ class NSInflowThermalBC : public NodalBC
 {
 public:
 
-  NSInflowThermalBC(const std::string & name, InputParameters parameters);
+  NSInflowThermalBC(const InputParameters & parameters);
 
   virtual ~NSInflowThermalBC(){}
 

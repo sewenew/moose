@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsPlasticTensile.h"
 #include <math.h> // for M_PI
 
@@ -18,9 +24,8 @@ InputParameters validParams<TensorMechanicsPlasticTensile>()
   return params;
 }
 
-TensorMechanicsPlasticTensile::TensorMechanicsPlasticTensile(const std::string & name,
-                                                         InputParameters parameters) :
-    TensorMechanicsPlasticModel(name, parameters),
+TensorMechanicsPlasticTensile::TensorMechanicsPlasticTensile(const InputParameters & parameters) :
+    TensorMechanicsPlasticModel(parameters),
     _strength(getUserObject<TensorMechanicsHardeningModel>("tensile_strength")),
     _tip_scheme(getParam<MooseEnum>("tip_scheme")),
     _small_smoother2(std::pow(getParam<Real>("tensile_tip_smoother"), 2)),
@@ -245,4 +250,10 @@ TensorMechanicsPlasticTensile::d2smooth(const RankTwoTensor & stress) const
     d2smoother2 += 2*std::pow(dp_dx, 2) + 2*p*d2p_dx2;
   }
   return d2smoother2;
+}
+
+std::string
+TensorMechanicsPlasticTensile::modelName() const
+{
+  return "Tensile";
 }

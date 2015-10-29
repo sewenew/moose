@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumViscousBC.h"
 
 template<>
@@ -14,8 +20,8 @@ InputParameters validParams<NSMomentumViscousBC>()
 
 
 
-NSMomentumViscousBC::NSMomentumViscousBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters),
+NSMomentumViscousBC::NSMomentumViscousBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters),
 
       // Parameters to be specified in input file block...
       _component(getParam<unsigned>("component")),
@@ -90,3 +96,4 @@ Real NSMomentumViscousBC::computeQpOffDiagJacobian(unsigned jvar)
   // Note the sign...
   return -visc_term;
 }
+

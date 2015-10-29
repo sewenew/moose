@@ -26,8 +26,8 @@ InputParameters validParams<RandomHitSolutionModifier>()
   return params;
 }
 
-RandomHitSolutionModifier::RandomHitSolutionModifier(const std::string & name, InputParameters parameters) :
-    GeneralUserObject(name, parameters),
+RandomHitSolutionModifier::RandomHitSolutionModifier(const InputParameters & parameters) :
+    GeneralUserObject(parameters),
     _random_hits(getUserObject<RandomHitUserObject>("random_hits")),
     _mesh(_subproblem.mesh()),
     _variable(_subproblem.getVariable(0, parameters.get<VariableName>("modify"))),
@@ -37,7 +37,7 @@ RandomHitSolutionModifier::RandomHitSolutionModifier(const std::string & name, I
 void
 RandomHitSolutionModifier::execute()
 {
-  AutoPtr<PointLocatorBase> pl = _mesh.getMesh().sub_point_locator();
+  UniquePtr<PointLocatorBase> pl = _mesh.getMesh().sub_point_locator();
 
   const std::vector<Point> & hits = _random_hits.hits();
 
@@ -69,9 +69,12 @@ RandomHitSolutionModifier::execute()
         }
       }
 
-      _subproblem.reinitNode(closest_node, 0);
-      _variable.setNodalValue(_variable.getNodalValue(*closest_node) + _amount);
-      _variable.insert(_fe_problem.getNonlinearSystem().solution());
+      if (closest_node)
+      {
+        _subproblem.reinitNode(closest_node, 0);
+        _variable.setNodalValue(_variable.getNodalValue(*closest_node) + _amount);
+        _variable.insert(_fe_problem.getNonlinearSystem().solution());
+      }
     }
   }
 

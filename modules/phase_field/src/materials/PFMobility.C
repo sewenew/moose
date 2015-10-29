@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PFMobility.h"
 
 template<>
@@ -9,9 +15,8 @@ InputParameters validParams<PFMobility>()
   return params;
 }
 
-PFMobility::PFMobility(const std::string & name,
-                       InputParameters parameters) :
-    Material(name, parameters),
+PFMobility::PFMobility(const InputParameters & parameters) :
+    Material(parameters),
     _M(declareProperty<Real>("M")),
     _grad_M(declareProperty<RealGradient>("grad_M")),
     _kappa_c(declareProperty<Real>("kappa_c")),
@@ -29,3 +34,4 @@ PFMobility::computeProperties()
     _kappa_c[qp] = _kappa;
   }
 }
+

@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "DerivativeMaterialInterfaceTestProvider.h"
 
 template<>
@@ -7,9 +20,8 @@ InputParameters validParams<DerivativeMaterialInterfaceTestProvider>()
   return params;
 }
 
-DerivativeMaterialInterfaceTestProvider::DerivativeMaterialInterfaceTestProvider(const std::string & name,
-                                                                                 InputParameters parameters) :
-    DerivativeMaterialInterface<Material>(name, parameters),
+DerivativeMaterialInterfaceTestProvider::DerivativeMaterialInterfaceTestProvider(const InputParameters & parameters) :
+    DerivativeMaterialInterface<Material>(parameters),
     _prop1(declarePropertyDerivative<Real>("prop","a")),
     _prop2(declarePropertyDerivative<Real>("prop","b")),
     _prop3(declarePropertyDerivative<Real>("prop","b", "a")),

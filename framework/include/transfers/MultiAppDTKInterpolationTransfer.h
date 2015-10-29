@@ -12,7 +12,7 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 #ifndef MULTIAPPDTKINTERPOLATIONTRANSFER_H
 #define MULTIAPPDTKINTERPOLATIONTRANSFER_H
@@ -34,7 +34,7 @@ class MultiAppDTKInterpolationTransfer :
   public MultiAppTransfer
 {
 public:
-  MultiAppDTKInterpolationTransfer(const std::string & name, InputParameters parameters);
+  MultiAppDTKInterpolationTransfer(const InputParameters & parameters);
   virtual ~MultiAppDTKInterpolationTransfer() {}
 
   virtual void execute();
@@ -49,4 +49,4 @@ protected:
 
 #endif /* MULTIAPPDTKINTERPOLATIONTRANSFER_H */
 
-#endif //LIBMESH_HAVE_DTK
+#endif //LIBMESH_TRILINOS_HAVE_DTK

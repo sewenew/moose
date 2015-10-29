@@ -21,7 +21,11 @@
 
 // PETSc includes
 #include <petscerror.h>
-#include <petsc-private/dmimpl.h>
+#if !PETSC_RELEASE_LESS_THAN(3,6,0)
+# include <petsc/private/dmimpl.h>
+#else
+# include <petsc-private/dmimpl.h>
+#endif
 
 // libMesh Includes
 #include "libmesh/nonlinear_implicit_system.h"
@@ -503,7 +507,7 @@ static PetscErrorCode DMMooseGetEmbedding_Private(DM dm, IS *embedding)
       PetscBool displaced = (*dmm->contact_displaced)[it->second];
       PenetrationLocator *locator;
       if (displaced) {
-        DisplacedProblem *displaced_problem = dmm->nl->_fe_problem.getDisplacedProblem();
+        MooseSharedPointer<DisplacedProblem> displaced_problem = dmm->nl->_fe_problem.getDisplacedProblem();
         if (!displaced_problem) {
     std::ostringstream err;
     err << "Cannot use a displaced contact (" << it->second.first << "," << it->second.second << ") with an undisplaced problem";
@@ -530,7 +534,7 @@ static PetscErrorCode DMMooseGetEmbedding_Private(DM dm, IS *embedding)
       PetscBool displaced = (*dmm->uncontact_displaced)[it->second];
       PenetrationLocator *locator;
       if (displaced) {
-        DisplacedProblem *displaced_problem = dmm->nl->_fe_problem.getDisplacedProblem();
+        MooseSharedPointer<DisplacedProblem> displaced_problem = dmm->nl->_fe_problem.getDisplacedProblem();
         if (!displaced_problem) {
     std::ostringstream err;
     err << "Cannot use a displaced uncontact (" << it->second.first << "," << it->second.second << ") with an undisplaced problem";
@@ -714,22 +718,26 @@ static PetscErrorCode DMMooseFunction(DM dm, Vec x, Vec r)
   libmesh_assert(x);
   libmesh_assert(r);
 
-  NonlinearSystem* nl;
+  NonlinearSystem* nl = NULL;
   ierr = DMMooseGetNonlinearSystem(dm, nl); CHKERRQ(ierr);
   PetscVector<Number>& X_sys = *cast_ptr<PetscVector<Number>* >(nl->sys().solution.get());
-  PetscVector<Number>& R_sys = *cast_ptr<PetscVector<Number>* >(nl->sys().rhs);
   PetscVector<Number> X_global(x, nl->comm()), R(r, nl->comm());
 
-  // Use the systems update() to get a good local version of the parallel solution
+  // Use the system's update() to get a good local version of the
+  // parallel solution.  sys.update() does change the residual vector,
+  // so there's no reason to swap PETSc's residual into the system for
+  // this step.
   X_global.swap(X_sys);
-  R.swap(R_sys);
-
-  nl->sys().get_dof_map().enforce_constraints_exactly(nl->sys());
   nl->sys().update();
-
-  // Swap back
   X_global.swap(X_sys);
-  R.swap(R_sys);
+
+  // Enforce constraints (if any) exactly on the
+  // current_local_solution.  This is the solution vector that is
+  // actually used in the computation of the residual below, and is
+  // not locked by debug-enabled PETSc the way that "x" is.
+  nl->sys().get_dof_map().enforce_constraints_exactly(nl->sys(), nl->sys().current_local_solution.get());
+
+  // Zero the residual vector before assembling
   R.zero();
 
   // if the user has provided both function pointers and objects only the pointer
@@ -762,7 +770,6 @@ static PetscErrorCode DMMooseFunction(DM dm, Vec x, Vec r)
     mooseError(err.str());
   }
   R.close();
-  X_global.close();
   PetscFunctionReturn(0);
 }
 
@@ -791,7 +798,7 @@ static PetscErrorCode DMMooseJacobian(DM dm, Vec x, Mat jac, Mat pc)
 #endif
 {
   PetscErrorCode ierr;
-  NonlinearSystem *nl;
+  NonlinearSystem *nl = NULL;
 
   PetscFunctionBegin;
   ierr = DMMooseGetNonlinearSystem(dm, nl);CHKERRQ(ierr);
@@ -799,23 +806,27 @@ static PetscErrorCode DMMooseJacobian(DM dm, Vec x, Mat jac, Mat pc)
   PetscMatrix<Number>  the_pc(pc, nl->comm());
   PetscMatrix<Number>  Jac(jac, nl->comm());
   PetscVector<Number>& X_sys = *cast_ptr<PetscVector<Number>*>(nl->sys().solution.get());
-  PetscMatrix<Number>& Jac_sys = *cast_ptr<PetscMatrix<Number>*>(nl->sys().matrix);
   PetscVector<Number>  X_global(x, nl->comm());
 
   // Set the dof maps
   the_pc.attach_dof_map(nl->sys().get_dof_map());
   Jac.attach_dof_map(nl->sys().get_dof_map());
 
-  // Use the systems update() to get a good local version of the parallel solution
+  // Use the system's update() to get a good local version of the
+  // parallel solution.  sys.update() does change the Jacobian, so
+  // there's no reason to swap PETSc's Jacobian into the system for
+  // this step.
   X_global.swap(X_sys);
-  Jac.swap(Jac_sys);
-
-  nl->sys().get_dof_map().enforce_constraints_exactly(nl->sys());
   nl->sys().update();
-
   X_global.swap(X_sys);
-  Jac.swap(Jac_sys);
 
+  // Enforce constraints (if any) exactly on the
+  // current_local_solution.  This is the solution vector that is
+  // actually used in the computation of the Jacobian below, and is
+  // not locked by debug-enabled PETSc the way that "x" is.
+  nl->sys().get_dof_map().enforce_constraints_exactly(nl->sys(), nl->sys().current_local_solution.get());
+
+  // Zero out the preconditioner before computing the Jacobian.
   the_pc.zero();
 
   // if the user has provided both function pointers and objects only the pointer
@@ -849,7 +860,6 @@ static PetscErrorCode DMMooseJacobian(DM dm, Vec x, Mat jac, Mat pc)
   }
   the_pc.close();
   Jac.close();
-  X_global.close();
 #if PETSC_VERSION_LT(3,5,0)
   *msflag = SAME_NONZERO_PATTERN;
 #endif
@@ -883,7 +893,7 @@ static PetscErrorCode SNESJacobian_DMMoose(SNES,Vec x,Mat jac,Mat pc, void* ctx)
 static PetscErrorCode DMVariableBounds_Moose(DM dm, Vec xl, Vec xu)
 {
   PetscErrorCode ierr;
-  NonlinearSystem* nl;
+  NonlinearSystem* nl = NULL;
 
   PetscFunctionBegin;
   ierr = DMMooseGetNonlinearSystem(dm, nl);CHKERRQ(ierr);
@@ -1380,7 +1390,11 @@ static PetscErrorCode  DMSetUp_Moose(DM dm)
 
 #undef __FUNCT__
 #define __FUNCT__ "DMSetFromOptions_Moose"
+#if !PETSC_RELEASE_LESS_THAN(3,6,0)
+PetscErrorCode  DMSetFromOptions_Moose(PetscOptions * /*options*/, DM dm)
+#else
 PetscErrorCode  DMSetFromOptions_Moose(DM dm)
+#endif
 {
   PetscErrorCode ierr;
   PetscBool      ismoose;
@@ -1456,7 +1470,7 @@ PetscErrorCode  DMSetFromOptions_Moose(DM dm)
   }
   ierr = PetscFree(sides);CHKERRQ(ierr);
   PetscInt maxcontacts = dmm->nl->_fe_problem.geomSearchData()._penetration_locators.size();
-  DisplacedProblem *displaced_problem = dmm->nl->_fe_problem.getDisplacedProblem();
+  MooseSharedPointer<DisplacedProblem> displaced_problem = dmm->nl->_fe_problem.getDisplacedProblem();
   if (displaced_problem) {
     maxcontacts = PetscMax(maxcontacts,(PetscInt)displaced_problem->geomSearchData()._penetration_locators.size());
   }

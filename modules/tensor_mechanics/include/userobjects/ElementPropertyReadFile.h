@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ELEMENTPROPERTYREADFILE_H
 #define ELEMENTPROPERTYREADFILE_H
 
@@ -19,7 +25,7 @@ InputParameters validParams<ElementPropertyReadFile>();
 class ElementPropertyReadFile : public GeneralUserObject
 {
  public:
-  ElementPropertyReadFile(const std::string & name, InputParameters parameters);
+  ElementPropertyReadFile(const InputParameters & parameters);
   virtual ~ElementPropertyReadFile() {}
 
   virtual void initialize() {}

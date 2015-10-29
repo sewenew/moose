@@ -134,31 +134,19 @@
 [Executioner]
   type = Transient
 
-  #Preconditioned JFNK (default)
+  # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
-
-
-
-#  petsc_options_iname = '-snes_type -snes_ls -snes_linesearch_type -ksp_gmres_restart -pc_type'
-#  petsc_options_value = 'ls         basic    basic                    201                lu'
-
   petsc_options_iname = '-ksp_gmres_restart -pc_type -pc_hypre_type -pc_hypre_boomeramg_max_iter'
   petsc_options_value = '201                hypre    boomeramg      4'
 
-
   line_search = 'none'
-
-
-  nl_abs_tol = 1e-6
-  nl_rel_tol = 1e-5
-
+  nl_rel_tol = 1e-9
   l_tol = 1e-4
   l_max_its = 40
 
   start_time = 0.0
   dt = 1.0
   end_time = 1.0
-  num_steps = 100
 
   [./Quadrature]
     order = THIRD
@@ -170,20 +158,16 @@
     type = NodalSum
     variable = react_x
     boundary = 1
+    execute_on = 'initial timestep_end'
   [../]
   [./total_area]
     type = NodalSum
     variable = nodal_area_dummy_name
     boundary = 2
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "GapHeatPointSourceMaster.h"
 #include "SystemBase.h"
 #include "PenetrationInfo.h"
@@ -21,8 +27,8 @@ InputParameters validParams<GapHeatPointSourceMaster>()
   return params;
 }
 
-GapHeatPointSourceMaster::GapHeatPointSourceMaster(const std::string & name, InputParameters parameters)
-  :DiracKernel(name, parameters),
+GapHeatPointSourceMaster::GapHeatPointSourceMaster(const InputParameters & parameters)
+  :DiracKernel(parameters),
    _penetration_locator(getPenetrationLocator(getParam<BoundaryName>("boundary"), getParam<BoundaryName>("slave"), Utility::string_to_enum<Order>(getParam<MooseEnum>("order")))),
    _slave_flux(_sys.getVector("slave_flux"))
 {
@@ -55,7 +61,8 @@ GapHeatPointSourceMaster::addPoints()
   {
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _var.number()) < 1 )
       continue;
 
     addPoint(pinfo->_elem, pinfo->_closest_point);
@@ -78,3 +85,4 @@ GapHeatPointSourceMaster::computeQpJacobian()
 {
   return 0;
 }
+

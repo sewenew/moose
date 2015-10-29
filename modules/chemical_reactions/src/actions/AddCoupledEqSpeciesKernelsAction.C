@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AddCoupledEqSpeciesKernelsAction.h"
 #include "Parser.h"
 #include "FEProblem.h"
@@ -31,8 +37,8 @@ InputParameters validParams<AddCoupledEqSpeciesKernelsAction>()
 }
 
 
-AddCoupledEqSpeciesKernelsAction::AddCoupledEqSpeciesKernelsAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddCoupledEqSpeciesKernelsAction::AddCoupledEqSpeciesKernelsAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
@@ -276,3 +282,4 @@ AddCoupledEqSpeciesKernelsAction::act()
   oss << "\n";
   _console << oss.str();
 }
+

@@ -17,15 +17,15 @@
 #include "SubProblem.h"
 #include "FEProblem.h"
 
-Coupleable::Coupleable(InputParameters & parameters, bool nodal) :
+Coupleable::Coupleable(const InputParameters & parameters, bool nodal) :
     _c_fe_problem(*parameters.getCheckedPointerParam<FEProblem *>("_fe_problem")),
     _nodal(nodal),
     _c_is_implicit(parameters.have_parameter<bool>("implicit") ? parameters.get<bool>("implicit") : true),
-    _coupleable_params(parameters)
+    _coupleable_params(parameters),
+    _coupleable_neighbor(parameters.have_parameter<bool>("_neighbor") ? parameters.get<bool>("_neighbor") : false),
+    _coupleable_max_qps(_c_fe_problem.getMaxQps())
 {
   SubProblem & problem = *parameters.get<SubProblem *>("_subproblem");
-
-  _coupleable_max_qps = _c_fe_problem.getMaxQps();
 
   THREAD_ID tid = parameters.get<THREAD_ID>("_tid");
 
@@ -86,7 +86,13 @@ Coupleable::isCoupled(const std::string & var_name, unsigned int i)
   if (it != _coupled_vars.end())
     return (i < it->second.size());
   else
+  {
+    // Make sure the user originally requested this value in the InputParameter syntax
+    if (!_coupleable_params.hasCoupledValue(var_name))
+      mooseError("The coupled variable \"" << var_name << "\" was never added to this objects's InputParameters, please double-check your spelling");
+
     return false;
+  }
 }
 
 unsigned int
@@ -129,82 +135,115 @@ Coupleable::coupled(const std::string & var_name, unsigned int comp)
   mooseError("Unknown variable kind. Corrupted binary?");
 }
 
+VariableValue *
+Coupleable::getDefaultValue(const std::string & var_name)
+{
+  std::map<std::string, VariableValue *>::iterator default_value_it = _default_value.find(var_name);
+  if (default_value_it == _default_value.end())
+  {
+    VariableValue * value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
+    default_value_it = _default_value.insert(std::make_pair(var_name, value)).first;
+  }
+
+  return default_value_it->second;
+}
+
 VariableValue &
 Coupleable::coupledValue(const std::string & var_name, unsigned int comp)
 {
-  if (!isCoupled(var_name)) // Need to generate a "default value" filled VariableValue
-  {
-    VariableValue * value = _default_value[var_name];
-    if (value == NULL)
-    {
-      value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
-      _default_value[var_name] = value;
-    }
-    return *_default_value[var_name];
-  }
+  if (!isCoupled(var_name))
+    return *getDefaultValue(var_name);
 
   coupledCallback(var_name, false);
   MooseVariable * var = getVar(var_name, comp);
-  if (_nodal)
-    return (_c_is_implicit) ? var->nodalSln() : var->nodalSlnOld();
+
+  if (!_coupleable_neighbor)
+  {
+    if (_nodal)
+      return (_c_is_implicit) ? var->nodalSln() : var->nodalSlnOld();
+    else
+      return (_c_is_implicit) ? var->sln() : var->slnOld();
+  }
   else
-    return (_c_is_implicit) ? var->sln() : var->slnOld();
+  {
+    if (_nodal)
+      return (_c_is_implicit) ? var->nodalSlnNeighbor() : var->nodalSlnOldNeighbor();
+    else
+      return (_c_is_implicit) ? var->slnNeighbor() : var->slnOldNeighbor();
+  }
 }
 
 VariableValue &
 Coupleable::coupledValueOld(const std::string & var_name, unsigned int comp)
 {
-  if (!isCoupled(var_name)) // Need to generate a "default value" filled VariableValue
-  {
-    VariableValue * value = _default_value[var_name];
-    if (value == NULL)
-    {
-      value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
-      _default_value[var_name] = value;
-    }
-    return *_default_value[var_name];
-  }
+  if (!isCoupled(var_name))
+    return *getDefaultValue(var_name);
 
   validateExecutionerType(var_name);
   coupledCallback(var_name, true);
   MooseVariable * var = getVar(var_name, comp);
-  if (_nodal)
-    return (_c_is_implicit) ? var->nodalSlnOld() : var->nodalSlnOlder();
+
+  if (!_coupleable_neighbor)
+  {
+    if (_nodal)
+      return (_c_is_implicit) ? var->nodalSlnOld() : var->nodalSlnOlder();
+    else
+      return (_c_is_implicit) ? var->slnOld() : var->slnOlder();
+  }
   else
-    return (_c_is_implicit) ? var->slnOld() : var->slnOlder();
+  {
+    if (_nodal)
+      return (_c_is_implicit) ? var->nodalSlnOldNeighbor() : var->nodalSlnOlderNeighbor();
+    else
+      return (_c_is_implicit) ? var->slnOldNeighbor() : var->slnOlderNeighbor();
+  }
 }
 
 VariableValue &
 Coupleable::coupledValueOlder(const std::string & var_name, unsigned int comp)
 {
-  if (!isCoupled(var_name)) // Need to generate a "default value" filled VariableValue
-  {
-    VariableValue * value = _default_value[var_name];
-    if (value == NULL)
-    {
-      value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
-      _default_value[var_name] = value;
-    }
-    return *_default_value[var_name];
-  }
+  if (!isCoupled(var_name))
+    return *getDefaultValue(var_name);
 
   validateExecutionerType(var_name);
   coupledCallback(var_name, true);
   MooseVariable * var = getVar(var_name, comp);
-  if (_nodal)
+
+  if (!_coupleable_neighbor)
   {
-    if (_c_is_implicit)
-      return var->nodalSlnOlder();
+    if (_nodal)
+    {
+      if (_c_is_implicit)
+        return var->nodalSlnOlder();
+      else
+        mooseError("Older values not available for explicit schemes");
+    }
     else
-      mooseError("Older values not available for explicit schemes");
+    {
+      if (_c_is_implicit)
+        return var->slnOlder();
+      else
+        mooseError("Older values not available for explicit schemes");
+    }
   }
   else
   {
-    if (_c_is_implicit)
-      return var->slnOlder();
+    if (_nodal)
+    {
+      if (_c_is_implicit)
+        return var->nodalSlnOlderNeighbor();
+      else
+        mooseError("Older values not available for explicit schemes");
+    }
     else
-      mooseError("Older values not available for explicit schemes");
+    {
+      if (_c_is_implicit)
+        return var->slnOlderNeighbor();
+      else
+        mooseError("Older values not available for explicit schemes");
+    }
   }
+
 }
 
 VariableValue &
@@ -215,10 +254,21 @@ Coupleable::coupledDot(const std::string & var_name, unsigned int comp)
 
   MooseVariable * var = getVar(var_name, comp);
 
-  if (_nodal)
-    return var->nodalSlnDot();
+
+  if (!_coupleable_neighbor)
+  {
+    if (_nodal)
+      return var->nodalSlnDot();
+    else
+      return var->uDot();
+  }
   else
-    return var->uDot();
+  {
+    if (_nodal)
+      return var->nodalSlnDotNeighbor();
+    else
+      return var->uDotNeighbor();
+  }
 }
 
 VariableValue &
@@ -229,10 +279,20 @@ Coupleable::coupledDotDu(const std::string & var_name, unsigned int comp)
 
   MooseVariable * var = getVar(var_name, comp);
 
-  if (_nodal)
-    return var->nodalSlnDuDotDu();
+  if (!_coupleable_neighbor)
+  {
+    if (_nodal)
+      return var->nodalSlnDuDotDu();
+    else
+      return var->duDotDu();
+  }
   else
-    return var->duDotDu();
+  {
+    if (_nodal)
+      return var->nodalSlnDuDotDu();
+    else
+      return var->duDotDu();
+  }
 }
 
 
@@ -247,7 +307,11 @@ Coupleable::coupledGradient(const std::string & var_name, unsigned int comp)
     mooseError("Nodal variables do not have gradients");
 
   MooseVariable * var = getVar(var_name, comp);
-  return (_c_is_implicit) ? var->gradSln() : var->gradSlnOld();
+
+  if (!_coupleable_neighbor)
+    return (_c_is_implicit) ? var->gradSln() : var->gradSlnOld();
+  else
+    return (_c_is_implicit) ? var->gradSlnNeighbor() : var->gradSlnOldNeighbor();
 }
 
 VariableGradient &
@@ -262,7 +326,11 @@ Coupleable::coupledGradientOld(const std::string & var_name, unsigned int comp)
 
   validateExecutionerType(var_name);
   MooseVariable * var = getVar(var_name, comp);
-  return (_c_is_implicit) ? var->gradSlnOld() : var->gradSlnOlder();
+
+  if (!_coupleable_neighbor)
+    return (_c_is_implicit) ? var->gradSlnOld() : var->gradSlnOlder();
+  else
+    return (_c_is_implicit) ? var->gradSlnOldNeighbor() : var->gradSlnOlderNeighbor();
 }
 
 VariableGradient &
@@ -277,8 +345,14 @@ Coupleable::coupledGradientOlder(const std::string & var_name, unsigned int comp
 
   validateExecutionerType(var_name);
   MooseVariable * var = getVar(var_name, comp);
+
   if (_c_is_implicit)
-    return var->gradSlnOlder();
+  {
+    if (!_coupleable_neighbor)
+      return var->gradSlnOlder();
+    else
+      return var->gradSlnOlderNeighbor();
+  }
   else
     mooseError("Older values not available for explicit schemes");
 }
@@ -294,7 +368,11 @@ Coupleable::coupledSecond(const std::string & var_name, unsigned int comp)
     mooseError("Nodal variables do not have second derivatives");
 
   MooseVariable * var = getVar(var_name, comp);
-  return (_c_is_implicit) ? var->secondSln() : var->secondSlnOlder();
+
+  if (!_coupleable_neighbor)
+    return (_c_is_implicit) ? var->secondSln() : var->secondSlnOlder();
+  else
+    return (_c_is_implicit) ? var->secondSlnNeighbor() : var->secondSlnOlderNeighbor();
 }
 
 VariableSecond &
@@ -309,7 +387,10 @@ Coupleable::coupledSecondOld(const std::string & var_name, unsigned int comp)
 
   validateExecutionerType(var_name);
   MooseVariable * var = getVar(var_name, comp);
-  return (_c_is_implicit) ? var->secondSlnOld() : var->secondSlnOlder();
+  if (!_coupleable_neighbor)
+    return (_c_is_implicit) ? var->secondSlnOld() : var->secondSlnOlder();
+  else
+    return (_c_is_implicit) ? var->secondSlnOldNeighbor() : var->secondSlnOlderNeighbor();
 }
 
 VariableSecond &
@@ -325,7 +406,12 @@ Coupleable::coupledSecondOlder(const std::string & var_name, unsigned int comp)
   validateExecutionerType(var_name);
   MooseVariable * var = getVar(var_name, comp);
   if (_c_is_implicit)
-    return var->secondSlnOlder();
+  {
+    if (!_coupleable_neighbor)
+      return var->secondSlnOlder();
+    else
+      return var->secondSlnOlderNeighbor();
+  }
   else
     mooseError("Older values not available for explicit schemes");
 }
@@ -333,63 +419,67 @@ Coupleable::coupledSecondOlder(const std::string & var_name, unsigned int comp)
 VariableValue &
 Coupleable::coupledNodalValue(const std::string & var_name, unsigned int comp)
 {
-  if (!isCoupled(var_name)) // Need to generate a "default value" filled VariableValue
-  {
-    VariableValue * value = _default_value[var_name];
-    if (value == NULL)
-    {
-      value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
-      _default_value[var_name] = value;
-    }
-    return *_default_value[var_name];
-  }
+  if (!isCoupled(var_name))
+    return *getDefaultValue(var_name);
 
   coupledCallback(var_name, false);
   MooseVariable * var = getVar(var_name, comp);
-  return (_c_is_implicit) ? var->nodalValue() : var->nodalValueOld();
+
+  if (!_coupleable_neighbor)
+    return (_c_is_implicit) ? var->nodalValue() : var->nodalValueOld();
+  else
+    return (_c_is_implicit) ? var->nodalValueNeighbor() : var->nodalValueOldNeighbor();
 }
 
 VariableValue &
 Coupleable::coupledNodalValueOld(const std::string & var_name, unsigned int comp)
 {
-  if (!isCoupled(var_name)) // Need to generate a "default value" filled VariableValue
-  {
-    VariableValue * value = _default_value[var_name];
-    if (value == NULL)
-    {
-      value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
-      _default_value[var_name] = value;
-    }
-    return *_default_value[var_name];
-  }
+  if (!isCoupled(var_name))
+    return *getDefaultValue(var_name);
 
   validateExecutionerType(var_name);
   coupledCallback(var_name, true);
   MooseVariable * var = getVar(var_name, comp);
-  return (_c_is_implicit) ? var->nodalValueOld() : var->nodalValueOlder();
+
+  if (!_coupleable_neighbor)
+    return (_c_is_implicit) ? var->nodalValueOld() : var->nodalValueOlder();
+  else
+    return (_c_is_implicit) ? var->nodalValueOldNeighbor() : var->nodalValueOlderNeighbor();
 }
 
 VariableValue &
 Coupleable::coupledNodalValueOlder(const std::string & var_name, unsigned int comp)
 {
-  if (!isCoupled(var_name)) // Need to generate a "default value" filled VariableValue
-  {
-    VariableValue * value = _default_value[var_name];
-    if (value == NULL)
-    {
-      value = new VariableValue(_coupleable_max_qps, _coupleable_params.defaultCoupledValue(var_name));
-      _default_value[var_name] = value;
-    }
-    return *_default_value[var_name];
-  }
+  if (!isCoupled(var_name))
+    return *getDefaultValue(var_name);
 
   validateExecutionerType(var_name);
   coupledCallback(var_name, true);
   MooseVariable * var = getVar(var_name, comp);
   if (_c_is_implicit)
-    return var->nodalValueOlder();
+  {
+    if (!_coupleable_neighbor)
+      return var->nodalValueOlder();
+    else
+      return var->nodalValueOlderNeighbor();
+  }
   else
     mooseError("Older values not available for explicit schemes");
+}
+
+VariableValue &
+Coupleable::coupledNodalDot(const std::string & var_name, unsigned int comp)
+{
+  if (!isCoupled(var_name)) // Return default 0
+    return _default_value_zero;
+
+  coupledCallback(var_name, false);
+  MooseVariable * var = getVar(var_name, comp);
+
+  if (!_coupleable_neighbor)
+    return var->nodalValueDot();
+  else
+    return var->nodalValueDotNeighbor();
 }
 
 void

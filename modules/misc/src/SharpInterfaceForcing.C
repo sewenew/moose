@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SharpInterfaceForcing.h"
 
 template<>
@@ -10,8 +16,8 @@ InputParameters validParams<SharpInterfaceForcing>()
   return params;
 }
 
-SharpInterfaceForcing::SharpInterfaceForcing(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+SharpInterfaceForcing::SharpInterfaceForcing(const InputParameters & parameters) :
+    Kernel(parameters),
     _x_center(getFunction("x_center")),
     _y_center(getFunction("y_center")),
     _amplitude(getParam<Real>("amplitude"))
@@ -29,3 +35,4 @@ SharpInterfaceForcing::computeQpResidual()
   else
     return 0.0;
 }
+

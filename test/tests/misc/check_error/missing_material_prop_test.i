@@ -48,8 +48,10 @@
 
 [Materials]
   [./mat1]
-    type = Diff1Material
+    type = GenericConstantMaterial
     block = 1
+    prop_names =  'diff1'
+    prop_values = '1'
   [../]
 []
 
@@ -63,10 +65,4 @@
 [Outputs]
   file_base = out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

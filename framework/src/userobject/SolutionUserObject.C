@@ -41,7 +41,7 @@ InputParameters validParams<SolutionUserObject>()
   params.addParam<std::string>("system", "nl0", "The name of the system to pull values out of (xda only).");
 
   // When using ExodusII a specific time is extracted
-  params.addParam<int>("timestep", -1, "Index of the single timestep used (exodusII only).  If not supplied, time interpolation will occur.");
+  params.addParam<std::string>("timestep", "Index of the single timestep used or \"LATEST\" for the last timestep (exodusII only).  If not supplied, time interpolation will occur.");
 
   // Add ability to perform coordinate transformation: scale, factor
   params.addDeprecatedParam<std::vector<Real> >("coord_scale", "This name has been deprecated.",  "Please use scale instead");
@@ -61,14 +61,14 @@ InputParameters validParams<SolutionUserObject>()
   return params;
 }
 
-SolutionUserObject::SolutionUserObject(const std::string & name, InputParameters parameters) :
-    GeneralUserObject(name, parameters),
+SolutionUserObject::SolutionUserObject(const InputParameters & parameters) :
+    GeneralUserObject(parameters),
     _file_type(MooseEnum("xda=0 exodusII=1 xdr=2")),
     _mesh_file(getParam<MeshFileName>("mesh")),
     _es_file(getParam<FileName>("es")),
     _system_name(getParam<std::string>("system")),
     _system_variables(getParam<std::vector<std::string> >("system_variables")),
-    _exodus_time_index(getParam<int>("timestep")),
+    _exodus_time_index(-1),
     _interpolate_times(false),
     _mesh(NULL),
     _es(NULL),
@@ -185,14 +185,28 @@ SolutionUserObject::readExodusII()
   if (_system_name == "")
     _system_name = "SolutionUserObjectSystem";
 
-  // Interpolate between times rather than using values from a set timestep
-  if (_exodus_time_index == -1)
-    _interpolate_times = true;  // Read the file
-
   // Read the Exodus file
   _exodusII_io = new ExodusII_IO (*_mesh);
   _exodusII_io->read(_mesh_file);
   _exodus_times = &_exodusII_io->get_time_steps();
+
+  if (isParamValid("timestep"))
+  {
+    std::string s_timestep = getParam<std::string>("timestep");
+    int n_steps = _exodusII_io->get_num_time_steps();
+    if (s_timestep == "LATEST")
+      _exodus_time_index = n_steps;
+    else
+    {
+      std::istringstream ss(s_timestep);
+      if (!(ss >> _exodus_time_index) || _exodus_time_index > n_steps)
+        mooseError("Invalid value passed as \"timestep\". Expected \"LATEST\" or a valid integer less than "
+                   << n_steps << ", received " << s_timestep);
+    }
+  }
+  else
+    // Interpolate between times rather than using values from a set timestep
+    _interpolate_times = true;
 
   // Check that the number of time steps is valid
   int num_exo_times = _exodus_times->size();
@@ -632,7 +646,7 @@ SolutionUserObject::evalMeshFunction(const Point & p, std::string var_name, unsi
   {
     std::ostringstream oss;
     p.print(oss);
-    mooseError("Failed to access the data for variable '"<< var_name << "' at point " << oss.str() << " in the '" << _name << "' SolutionUserObject");
+    mooseError("Failed to access the data for variable '"<< var_name << "' at point " << oss.str() << " in the '" << name() << "' SolutionUserObject");
   }
   return output(it->second);
 }

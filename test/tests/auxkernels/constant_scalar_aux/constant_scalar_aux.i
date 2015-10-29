@@ -93,11 +93,13 @@
     type = ElementL2Error
     variable = u
     function = exact_fn
+    execute_on = 'initial timestep_end'
   [../]
 
   [./x]
     type = ScalarVariable
     variable = x
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -120,12 +122,5 @@
 []
 
 [Outputs]
-  interval = 1
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

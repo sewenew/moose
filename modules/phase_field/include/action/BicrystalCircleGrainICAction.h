@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef BICRYSTALCIRCLEGRAINICACTION_H
 #define BICRYSTALCIRCLEGRAINICACTION_H
 
@@ -10,7 +16,7 @@
 class BicrystalCircleGrainICAction: public Action
 {
 public:
-  BicrystalCircleGrainICAction(const std::string & name, InputParameters params);
+  BicrystalCircleGrainICAction(const InputParameters & params);
 
   virtual void act();
 

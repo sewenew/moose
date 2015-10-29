@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ChemicalOutFlowBC.h"
 #include "Material.h"
 
@@ -8,8 +14,8 @@ InputParameters validParams<ChemicalOutFlowBC>()
   return params;
 }
 
-ChemicalOutFlowBC::ChemicalOutFlowBC(const std::string & name, InputParameters parameters)
-  :IntegratedBC(name, parameters),
+ChemicalOutFlowBC::ChemicalOutFlowBC(const InputParameters & parameters)
+  :IntegratedBC(parameters),
    _diff(getMaterialProperty<Real>("diffusivity")),
    _porosity(getMaterialProperty<Real>("porosity"))
 {
@@ -42,3 +48,4 @@ ChemicalOutFlowBC::computeQpJacobian()
   return var;
 
 }
+

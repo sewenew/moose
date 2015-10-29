@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Methane density - a quadratic fit to expressions in:
 // "Results of (pressure, density, temperature) measurements on methane and on nitrogen in the temperature range from 273.15K to 323.15K at pressures up to 12MPa using new apparatus for accurate gas-density"
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsDensityMethane20degC>()
   return params;
 }
 
-RichardsDensityMethane20degC::RichardsDensityMethane20degC(const std::string & name, InputParameters parameters) :
-    RichardsDensity(name, parameters)
+RichardsDensityMethane20degC::RichardsDensityMethane20degC(const InputParameters & parameters) :
+    RichardsDensity(parameters)
 {}
 
 
@@ -48,4 +51,5 @@ RichardsDensityMethane20degC::d2density(Real p) const
   else
     return 0.1*std::pow(6.54576947608E-5, 2)*std::exp(6.54576947608E-5*p);
 }
+
 

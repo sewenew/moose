@@ -12,7 +12,7 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-#ifdef LIBMESH_HAVE_DTK
+#ifdef LIBMESH_TRILINOS_HAVE_DTK
 
 #ifndef MULTIAPPDTKUSEROBJECTTRANSFER_H
 #define MULTIAPPDTKUSEROBJECTTRANSFER_H
@@ -60,7 +60,7 @@ class MultiAppDTKUserObjectTransfer :
   public MooseVariableInterface
 {
 public:
-  MultiAppDTKUserObjectTransfer(const std::string & name, InputParameters parameters);
+  MultiAppDTKUserObjectTransfer(const InputParameters & parameters);
   virtual ~MultiAppDTKUserObjectTransfer() {}
 
   typedef long unsigned int GlobalOrdinal;
@@ -89,4 +89,4 @@ protected:
 
 #endif /* MULTIAPPDTKUSEROBJECTTRANSFER_H */
 
-#endif //LIBMESH_HAVE_DTK
+#endif //LIBMESH_TRILINOS_HAVE_DTK

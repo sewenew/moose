@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "Monomial" form of relative permeability
 //
@@ -18,8 +21,8 @@ InputParameters validParams<RichardsRelPermMonomial>()
   return params;
 }
 
-RichardsRelPermMonomial::RichardsRelPermMonomial(const std::string & name, InputParameters parameters) :
-    RichardsRelPerm(name, parameters),
+RichardsRelPermMonomial::RichardsRelPermMonomial(const InputParameters & parameters) :
+    RichardsRelPerm(parameters),
     _simm(getParam<Real>("simm")),
     _n(getParam<Real>("n")),
     _zero_to_the_zero(getParam<Real>("zero_to_the_zero"))
@@ -83,4 +86,5 @@ RichardsRelPermMonomial::d2relperm(Real seff) const
   Real krelpp = _n*(_n - 1)*std::pow(s_internal, _n - 2);
   return krelpp/std::pow(1.0 - _simm, 2);
 }
+
 

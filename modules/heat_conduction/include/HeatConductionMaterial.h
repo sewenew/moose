@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef HEATCONDUCTIONMATERIAL_H
 #define HEATCONDUCTIONMATERIAL_H
 
@@ -17,8 +23,7 @@ InputParameters validParams<HeatConductionMaterial>();
 class HeatConductionMaterial : public Material
 {
 public:
-  HeatConductionMaterial(const std::string & name,
-                         InputParameters parameters);
+  HeatConductionMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeProperties();
@@ -31,10 +36,10 @@ protected:
 
   MaterialProperty<Real> & _thermal_conductivity;
   MaterialProperty<Real> & _thermal_conductivity_dT;
-  Function * const _thermal_conductivity_temperature_function;
+  Function * _thermal_conductivity_temperature_function;
 
   MaterialProperty<Real> & _specific_heat;
-  Function * const _specific_heat_temperature_function;
+  Function * _specific_heat_temperature_function;
 
 };
 

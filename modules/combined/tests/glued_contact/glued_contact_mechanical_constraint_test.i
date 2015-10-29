@@ -162,10 +162,4 @@
 [Outputs]
   file_base = mechanical_constraint_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 [] # Outputs

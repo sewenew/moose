@@ -30,13 +30,13 @@ class SamplerBase
 {
 public:
   /**
-   * @param name The name of the object
    * @param parameters The parameters for the object
    * @param vpp A pointer to the child object
    * @param comm The communicator of the child
    */
-  SamplerBase(const std::string & name, InputParameters parameters, VectorPostprocessor * vpp, const libMesh::Parallel::Communicator & comm);
-
+  SamplerBase(const InputParameters & parameters, VectorPostprocessor * vpp, const libMesh::Parallel::Communicator & comm);
+  SamplerBase(const std::string & /*name*/, InputParameters parameters, VectorPostprocessor * vpp,
+              const libMesh::Parallel::Communicator & comm); // DEPRECATED CONSTRUCTOR
   virtual ~SamplerBase() {}
 
 protected:
@@ -81,7 +81,7 @@ protected:
   virtual void threadJoin(const SamplerBase & y);
 
   /// The child params
-  InputParameters _sampler_params;
+  const InputParameters & _sampler_params;
 
   /// The child VectorPostprocessor
   VectorPostprocessor * _vpp;

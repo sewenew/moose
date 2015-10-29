@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef HOMOGENIZEDELASTICCONSTANTS_H
 #define HOMOGENIZEDELASTICCONSTANTS_H
 
@@ -18,7 +24,7 @@ InputParameters validParams<HomogenizedElasticConstants>();
 class HomogenizedElasticConstants : public ElementAverageValue
 {
 public:
-  HomogenizedElasticConstants(const std::string & name, InputParameters parameters);
+  HomogenizedElasticConstants(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute();
@@ -53,7 +59,7 @@ private:
   VariableGradient & _grad_disp_y_zx;
   VariableGradient & _grad_disp_z_zx;
 
-  MaterialProperty<SymmElasticityTensor> & _elasticity_tensor;
+  const MaterialProperty<SymmElasticityTensor> & _elasticity_tensor;
   const unsigned int _column, _row;
   unsigned _I, _J;
   unsigned _l, _k;

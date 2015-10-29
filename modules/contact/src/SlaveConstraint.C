@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SlaveConstraint.h"
 #include "FrictionalContactProblem.h"
 
@@ -36,8 +42,8 @@ InputParameters validParams<SlaveConstraint>()
   return params;
 }
 
-SlaveConstraint::SlaveConstraint(const std::string & name, InputParameters parameters) :
-    DiracKernel(name, parameters),
+SlaveConstraint::SlaveConstraint(const InputParameters & parameters) :
+    DiracKernel(parameters),
     _component(getParam<unsigned int>("component")),
     _model(contactModel(getParam<std::string>("model"))),
     _formulation(contactFormulation(getParam<std::string>("formulation"))),
@@ -74,8 +80,6 @@ SlaveConstraint::addPoints()
 {
   _point_to_info.clear();
 
-  std::set<dof_id_type> & has_penetrated = _penetration_locator._has_penetrated;
-
   std::map<dof_id_type, PenetrationInfo *>::iterator
     it  = _penetration_locator._penetration_info.begin(),
     end = _penetration_locator._penetration_info.end();
@@ -83,17 +87,14 @@ SlaveConstraint::addPoints()
   {
     PenetrationInfo * pinfo = it->second;
 
-    if (!pinfo)
-    {
+    // Skip this pinfo if there are no DOFs on this node.
+    if ( ! pinfo || pinfo->_node->n_comp(_sys.number(), _vars(_component)) < 1 )
       continue;
-    }
 
     dof_id_type slave_node_num = it->first;
-
     const Node * node = pinfo->_node;
 
-    std::set<dof_id_type>::iterator hpit = has_penetrated.find(slave_node_num);
-    if (hpit != has_penetrated.end() && node->processor_id() == processor_id())
+    if (pinfo->isCaptured() && node->processor_id() == processor_id())
     {
       // Find an element that is connected to this node that and that is also on this processor
 
@@ -288,3 +289,4 @@ SlaveConstraint::nodalArea(PenetrationInfo & pinfo)
   }
   return area;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TENSORMECHANICSHARDENINGEXPONENTIAL_H
 #define TENSORMECHANICSHARDENINGEXPONENTIAL_H
 
@@ -18,7 +24,7 @@ InputParameters validParams<TensorMechanicsHardeningExponential>();
 class TensorMechanicsHardeningExponential : public TensorMechanicsHardeningModel
 {
  public:
-  TensorMechanicsHardeningExponential(const std::string & name, InputParameters parameters);
+  TensorMechanicsHardeningExponential(const InputParameters & parameters);
 
   virtual Real value(const Real & intnl) const;
 

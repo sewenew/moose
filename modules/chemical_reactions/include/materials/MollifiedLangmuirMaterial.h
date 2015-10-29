@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MOLLFIEDLANGMUIRMATERIAL_H
 #define MOLLFIEDLANGMUIRMATERIAL_H
 
@@ -16,8 +22,7 @@ InputParameters validParams<MollifiedLangmuirMaterial>();
 class MollifiedLangmuirMaterial : public Material
 {
 public:
-  MollifiedLangmuirMaterial(const std::string & name,
-                  InputParameters parameters);
+  MollifiedLangmuirMaterial(const InputParameters & parameters);
 
 protected:
 

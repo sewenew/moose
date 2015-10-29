@@ -13,26 +13,18 @@
 /****************************************************************/
 
 #include "PenetrationLocator.h"
+
 #include "ArbitraryQuadrature.h"
-#include "LineSegment.h"
-#include "NearestNodeLocator.h"
-#include "MooseMesh.h"
-#include "SubProblem.h"
+#include "Conversion.h"
 #include "GeometricSearchData.h"
+#include "LineSegment.h"
+#include "MooseMesh.h"
+#include "NearestNodeLocator.h"
 #include "PenetrationThread.h"
-#include "Moose.h"
-
-std::string _PLBoundaryFuser(unsigned int boundary1, unsigned int boundary2)
-{
-  std::stringstream ss;
-
-  ss << boundary1 << "to" << boundary2;
-
-  return ss.str();
-}
+#include "SubProblem.h"
 
 PenetrationLocator::PenetrationLocator(SubProblem & subproblem, GeometricSearchData & /*geom_search_data*/, MooseMesh & mesh, const unsigned int master_id, const unsigned int slave_id, Order order, NearestNodeLocator & nearest_node) :
-    Restartable(_PLBoundaryFuser(master_id, slave_id), "PenetrationLocator", subproblem, 0),
+    Restartable(Moose::stringify(master_id) + "to" + Moose::stringify(slave_id), "PenetrationLocator", subproblem, 0),
     _subproblem(subproblem),
     _mesh(mesh),
     _master_boundary(master_id),
@@ -41,14 +33,13 @@ PenetrationLocator::PenetrationLocator(SubProblem & subproblem, GeometricSearchD
     _nearest_node(nearest_node),
     _penetration_info(declareRestartableDataWithContext<std::map<dof_id_type, PenetrationInfo *> >("penetration_info", &_mesh)),
     _has_penetrated(declareRestartableData<std::set<dof_id_type> >("has_penetrated")),
-    _locked_this_step(declareRestartableData<std::map<dof_id_type, unsigned int> >("locked_this_step")),
-    _unlocked_this_step(declareRestartableData<std::map<dof_id_type, unsigned int> >("unlocked_this_step")),
-    _lagrange_multiplier(declareRestartableData<std::map<dof_id_type, Real> >("lagrange_multiplier")),
+    _check_whether_reasonable(true),
     _update_location(declareRestartableData<bool>("update_location", true)),
     _tangential_tolerance(0.0),
     _do_normal_smoothing(false),
     _normal_smoothing_distance(0.0),
-    _normal_smoothing_method(NSM_EDGE_BASED)
+    _normal_smoothing_method(NSM_EDGE_BASED),
+    _skip_off_process_slaves(false)
 {
   // Preconstruct an FE object for each thread we're going to use and for each lower-dimensional element
   // This is a time savings so that the thread objects don't do this themselves multiple times
@@ -103,6 +94,7 @@ PenetrationLocator::detectPenetration()
                        _master_boundary,
                        _slave_boundary,
                        _penetration_info,
+                       _check_whether_reasonable,
                        _update_location,
                        _tangential_tolerance,
                        _do_normal_smoothing,
@@ -114,7 +106,8 @@ PenetrationLocator::detectPenetration()
                        _mesh.nodeToElemMap(),
                        elem_list,
                        side_list,
-                       id_list);
+                       id_list,
+                       _skip_off_process_slaves);
 
   Threads::parallel_reduce(slave_node_range, pt);
 
@@ -126,9 +119,6 @@ PenetrationLocator::reinit()
 {
   _penetration_info.clear();
   _has_penetrated.clear();
-  _locked_this_step.clear();
-  _unlocked_this_step.clear();
-  _lagrange_multiplier.clear();
 
   detectPenetration();
 }
@@ -154,6 +144,12 @@ PenetrationLocator::penetrationNormal(dof_id_type node_id)
     return found_it->second->_normal;
   else
     return RealVectorValue(0, 0, 0);
+}
+
+void
+PenetrationLocator::setCheckWhetherReasonable(bool state)
+{
+  _check_whether_reasonable = state;
 }
 
 void
@@ -188,18 +184,7 @@ PenetrationLocator::setNormalSmoothingMethod(std::string nsmString)
   _do_normal_smoothing = true;
 }
 
-void
-PenetrationLocator::saveContactStateVars()
+void PenetrationLocator::skipOffProcessSlaveNodes( bool skip_them )
 {
-  std::map<dof_id_type, PenetrationInfo *>::iterator it = _penetration_info.begin();
-  const std::map<dof_id_type, PenetrationInfo *>::iterator it_end = _penetration_info.end();
-  for ( ; it != it_end; ++it )
-  {
-    if (it->second != NULL)
-    {
-      it->second->_contact_force_old = it->second->_contact_force;
-      it->second->_accumulated_slip_old = it->second->_accumulated_slip;
-      it->second->_frictional_energy_old = it->second->_frictional_energy;
-    }
-  }
+  _skip_off_process_slaves = skip_them;
 }

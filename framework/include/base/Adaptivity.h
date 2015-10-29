@@ -19,6 +19,7 @@
 #include "MooseError.h"
 #include "MooseEnum.h"
 #include "ConsoleStreamInterface.h"
+#include "MooseTypes.h"
 
 #ifdef LIBMESH_ENABLE_AMR
 
@@ -119,9 +120,18 @@ public:
   void initialAdaptMesh();
 
   /**
-   * Does 'level' levels of uniform refinements
+   * Performs uniform refinement of the passed Mesh object. The
+   * number of levels of refinement performed is stored in the
+   * MooseMesh object. No solution projection is performed in this
+   * version.
    */
-  void uniformRefine(unsigned int level);
+  static void uniformRefine(MooseMesh *mesh);
+
+  /**
+   * Performs uniform refinement on the meshes in the current
+   * object. Projections are performed of the solution vectors.
+   */
+  void uniformRefineWithProjection();
 
   /**
    * Is adaptivity on?
@@ -201,7 +211,8 @@ protected:
   /// Error vector for use with the error estimator.
   ErrorVector * _error;
 
-  DisplacedProblem * & _displaced_problem;
+  MooseSharedPointer<DisplacedProblem> _displaced_problem;
+
   /// A mesh refinement object for displaced mesh
   MeshRefinement * _displaced_mesh_refinement;
 

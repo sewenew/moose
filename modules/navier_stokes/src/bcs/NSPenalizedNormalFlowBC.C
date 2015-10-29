@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSPenalizedNormalFlowBC.h"
 
 template<>
@@ -16,8 +22,8 @@ InputParameters validParams<NSPenalizedNormalFlowBC>()
 
 
 
-NSPenalizedNormalFlowBC::NSPenalizedNormalFlowBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters),
+NSPenalizedNormalFlowBC::NSPenalizedNormalFlowBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters),
 
       // Required parameters
       _penalty(getParam<Real>("penalty")),
@@ -55,3 +61,4 @@ Real NSPenalizedNormalFlowBC::computeQpOffDiagJacobian(unsigned /*jvar*/)
   // TODO
   return 0.;
 }
+

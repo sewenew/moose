@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TrussMaterial.h"
 
 #include "Material.h"
@@ -20,9 +26,8 @@ InputParameters validParams<TrussMaterial>()
   return params;
 }
 
-TrussMaterial::TrussMaterial(const std::string  & name,
-                             InputParameters parameters)
-  :Material(name, parameters),
+TrussMaterial::TrussMaterial(const InputParameters & parameters)
+  :Material(parameters),
    _axial_stress(declareProperty<Real>("axial_stress")),
    _e_over_l(declareProperty<Real>("e_over_l")),
    _youngs_modulus(isParamValid("youngs_modulus") ? getParam<Real>("youngs_modulus") : 0),
@@ -145,3 +150,4 @@ TrussMaterial::computeProperties()
     _e_over_l[_qp] = youngs_modulus/orig_length;
   }
 }
+

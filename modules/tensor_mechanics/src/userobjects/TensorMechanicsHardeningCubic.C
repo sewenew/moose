@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsHardeningCubic.h"
 
 template<>
@@ -12,8 +18,8 @@ InputParameters validParams<TensorMechanicsHardeningCubic>()
   return params;
 }
 
-TensorMechanicsHardeningCubic::TensorMechanicsHardeningCubic(const std::string & name, InputParameters parameters) :
-  TensorMechanicsHardeningModel(name, parameters),
+TensorMechanicsHardeningCubic::TensorMechanicsHardeningCubic(const InputParameters & parameters) :
+  TensorMechanicsHardeningModel(parameters),
   _val_0(getParam<Real>("value_0")),
   _val_res(parameters.isParamValid("value_residual") ? getParam<Real>("value_residual") : _val_0),
   _intnl_0(getParam<Real>("internal_0")),
@@ -49,3 +55,4 @@ TensorMechanicsHardeningCubic::derivative(const Real & intnl) const
   else
     return 3*_alpha*std::pow(x - _half_intnl_limit, 2) + _beta;
 }
+

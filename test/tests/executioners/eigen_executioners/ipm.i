@@ -64,7 +64,6 @@
   Chebyshev_acceleration_on = true
   eig_check_tol = 1e-12
   k0 = 0.5
-  output_pi_history = true
 
   bx_norm = 'unorm'
   xdiff = 'udiff'
@@ -80,23 +79,17 @@
   [./unorm]
     type = ElementIntegralVariablePostprocessor
     variable = u
-    execute_on = timestep_end
+    execute_on = linear
   [../]
 
   [./udiff]
     type = ElementL2Diff
     variable = u
+    execute_on = 'linear timestep_end'
   [../]
 []
 
 [Outputs]
   file_base = ipm
-  interval = 1
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

@@ -25,8 +25,8 @@ InputParameters validParams<AdaptAndModify>()
   return params;
 }
 
-AdaptAndModify::AdaptAndModify(const std::string & name, InputParameters parameters) :
-    Transient(name, parameters),
+AdaptAndModify::AdaptAndModify(const InputParameters & parameters) :
+    Transient(parameters),
     _adapt_cycles(parameters.get<unsigned int>("adapt_cycles"))
 {}
 
@@ -79,6 +79,6 @@ AdaptAndModify::endStep(Real input_time)
       _next_interval_output_time += _time_interval_output_interval;
   }
 
-  _output_warehouse.outputStep(EXEC_TIMESTEP_END);
+  _problem.outputStep(EXEC_TIMESTEP_END);
 
 }

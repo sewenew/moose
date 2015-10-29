@@ -21,6 +21,7 @@
 #include "MooseArray.h"
 #include "MooseObject.h"
 #include "MooseUtils.h"
+#include "Output.h"
 
 // libMesh
 #include "libmesh/libmesh_common.h"
@@ -34,7 +35,6 @@
 
 class MooseVariable;
 class MooseVariableScalar;
-class Output;
 class Material;
 class Function;
 class TimePeriod;
@@ -49,19 +49,8 @@ InputParameters validParams<Problem>();
 class Problem : public MooseObject
 {
 public:
-  Problem(const std::string & name, InputParameters parameters);
+  Problem(const InputParameters & parameters);
   virtual ~Problem();
-
-  /**
-   * Get the name of this problem
-   * @return The name of this problem
-   */
-  virtual const std::string & name();
-
-  /**
-   * Get reference to all-purpose parameters
-   */
-  InputParameters & parameters() { return _pars; }
 
   virtual void init() = 0;
 

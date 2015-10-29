@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  saturation as a function of effective saturation, and its derivs wrt effective saturation
 //
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsSat>()
   return params;
 }
 
-RichardsSat::RichardsSat(const std::string & name, InputParameters parameters) :
-    GeneralUserObject(name, parameters),
+RichardsSat::RichardsSat(const InputParameters & parameters) :
+    GeneralUserObject(parameters),
     _s_res(getParam<Real>("s_res")),
     _sum_s_res(getParam<Real>("sum_s_res"))
 {
@@ -55,4 +58,5 @@ RichardsSat::d2sat(Real /*seff*/) const
 {
   return 0.0;
 }
+
 

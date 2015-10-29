@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PolycrystalReducedIC.h"
 #include "IndirectSort.h"
 #include "MooseRandom.h"
@@ -6,22 +12,18 @@ template<>
 InputParameters validParams<PolycrystalReducedIC>()
 {
   InputParameters params = validParams<InitialCondition>();
+  params.addClassDescription("Random Voronoi tesselation polycrystal (used by PolycrystalVoronoiICAction)");
   params.addRequiredParam<unsigned int>("op_num", "Number of order parameters");
   params.addRequiredParam<unsigned int>("grain_num", "Number of grains being represented by the order parameters");
   params.addRequiredParam<unsigned int>("op_index", "The index for the current order parameter");
-
   params.addParam<unsigned int>("rand_seed", 12444, "The random seed");
-
   params.addParam<bool>("cody_test", false, "Use set grain center points for Cody's test. Grain num MUST equal 10");
-
   params.addParam<bool>("columnar_3D", false, "3D microstructure will be columnar in the z-direction?");
-
   return params;
 }
 
-PolycrystalReducedIC::PolycrystalReducedIC(const std::string & name,
-                                           InputParameters parameters) :
-    InitialCondition(name, parameters),
+PolycrystalReducedIC::PolycrystalReducedIC(const InputParameters & parameters) :
+    InitialCondition(parameters),
     _mesh(_fe_problem.mesh()),
     _nl(_fe_problem.getNonlinearSystem()),
     _op_num(getParam<unsigned int>("op_num")),
@@ -58,15 +60,14 @@ PolycrystalReducedIC::initialSetup()
   _assigned_op.resize(_grain_num);
   std::vector<Real> distances(_grain_num);
 
-
   std::vector<Point> holder;
 
   if (_cody_test)
   {
     holder.resize(_grain_num);
-    holder[0] = Point(0.2, 0.85, 0.0);
-    holder[1] = Point(0.5, 0.85, 0.0);
-    holder[2] = Point(0.8, 0.85, 0.0);
+    holder[0] = Point(0.2, 0.99, 0.0);
+    holder[1] = Point(0.5, 0.99, 0.0);
+    holder[2] = Point(0.8, 0.99, 0.0);
 
     holder[3] = Point(0.2, 0.5, 0.0);
     holder[4] = Point(0.5, 0.5, 0.0);
@@ -103,7 +104,7 @@ PolycrystalReducedIC::initialSetup()
     _assigned_op[4] = 1.0;
     _assigned_op[5] = 1.0;
     _assigned_op[6] = 2.0;
-    _assigned_op[7] = 3.0;
+    _assigned_op[7] = 0.0;
     _assigned_op[8] = 2.0;
     _assigned_op[9] = 4.0;
   }
@@ -131,3 +132,4 @@ PolycrystalReducedIC::value(const Point & p)
 
   return val;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Diffusion.h"
 
 #ifndef PRIMARYDIFFUSION_H
@@ -24,7 +30,7 @@ class PrimaryDiffusion : public Diffusion
 {
 public:
 
-  PrimaryDiffusion(const std::string & name, InputParameters parameters);
+  PrimaryDiffusion(const InputParameters & parameters);
 
 protected:
   /**
@@ -49,6 +55,6 @@ protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// Material property of dispersion-diffusion coefficient.
-  MaterialProperty<Real> & _diffusivity;
+  const MaterialProperty<Real> & _diffusivity;
 };
 #endif //PRIMARYDIFFUSION_H

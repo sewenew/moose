@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef FRICTIONALCONTACTPROBLEM_H
 #define FRICTIONALCONTACTPROBLEM_H
@@ -42,7 +36,7 @@ InputParameters validParams<FrictionalContactProblem>();
 class FrictionalContactProblem : public ReferenceResidualProblem
 {
 public:
-  FrictionalContactProblem(const std::string & name, InputParameters params);
+  FrictionalContactProblem(const InputParameters & params);
   virtual ~FrictionalContactProblem();
 
   class SlipData
@@ -130,6 +124,9 @@ protected:
   int _num_slipped_too_far;
   Real _inc_slip_norm;
   Real _it_slip_norm;
+
+  /// Convenient typedef for frequently used iterator
+  typedef std::map<std::pair<unsigned int, unsigned int>, PenetrationLocator *>::iterator pl_iterator;
 };
 
 #endif /* FRICTIONALCONTACTPROBLEM_H */

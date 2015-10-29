@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SWITCHINGFUNCTIONMATERIAL_H
 #define SWITCHINGFUNCTIONMATERIAL_H
 
@@ -19,8 +25,7 @@ InputParameters validParams<SwitchingFunctionMaterial>();
 class SwitchingFunctionMaterial : public OrderParameterFunctionMaterial
 {
 public:
-  SwitchingFunctionMaterial(const std::string & name,
-                            InputParameters parameters);
+  SwitchingFunctionMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeQpProperties();

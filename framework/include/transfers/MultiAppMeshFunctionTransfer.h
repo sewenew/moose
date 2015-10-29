@@ -31,7 +31,7 @@ class MultiAppMeshFunctionTransfer :
   public MultiAppTransfer
 {
 public:
-  MultiAppMeshFunctionTransfer(const std::string & name, InputParameters parameters);
+  MultiAppMeshFunctionTransfer(const InputParameters & parameters);
   virtual ~MultiAppMeshFunctionTransfer() {}
 
   virtual void initialSetup();
@@ -41,9 +41,7 @@ public:
 protected:
   AuxVariableName _to_var_name;
   VariableName _from_var_name;
-  bool _displaced_source_mesh;
-  bool _displaced_target_mesh;
   bool _error_on_miss;
 };
 
-#endif /* MULTIAPPVARIABLEVALUESAMPLEPOSTPROCESSORTRANSFER_H */
+#endif /* MULTIAPPMESHFUNCTIONTRANSFER_H */

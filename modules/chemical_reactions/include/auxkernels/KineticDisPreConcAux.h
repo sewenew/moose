@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef KINETICDISPRECONCAUX_H
 #define KINETICDISPRECONCAUX_H
 
@@ -26,7 +32,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  KineticDisPreConcAux(const std::string & name, InputParameters parameters);
+  KineticDisPreConcAux(const InputParameters & parameters);
 
   virtual ~KineticDisPreConcAux() {}
 

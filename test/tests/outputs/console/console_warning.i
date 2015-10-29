@@ -84,18 +84,15 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   [./screen]
     type = Console
-    fit_mode = 100
-    output_on = 'failed nonlinear linear timestep_end'
   [../]
   [./screen2]
     type = Console
-    output_on = 'timestep_end failed nonlinear'
   [../]
   [./screen3]
     type = Console
-    output_on = 'timestep_end failed nonlinear'
   [../]
 []
 

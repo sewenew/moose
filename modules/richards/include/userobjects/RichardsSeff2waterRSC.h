@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF2WATERRSC_H
 #define RICHARDSSEFF2WATERRSC_H
@@ -25,7 +28,7 @@ InputParameters validParams<RichardsSeff2waterRSC>();
 class RichardsSeff2waterRSC : public RichardsSeff
 {
 public:
-  RichardsSeff2waterRSC(const std::string & name, InputParameters parameters);
+  RichardsSeff2waterRSC(const InputParameters & parameters);
 
   /**
    * water effective saturation

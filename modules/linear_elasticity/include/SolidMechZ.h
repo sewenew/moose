@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHZ
 #define SOLIDMECHZ
 
@@ -13,7 +19,7 @@ class SolidMechZ : public SolidMech
 {
 public:
 
-  SolidMechZ(const std::string & name, InputParameters parameters);
+  SolidMechZ(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

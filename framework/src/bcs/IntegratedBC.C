@@ -24,19 +24,19 @@ InputParameters validParams<IntegratedBC>()
   InputParameters params = validParams<BoundaryCondition>();
   params += validParams<RandomInterface>();
 
-  params.addParam<std::vector<AuxVariableName> >("save_in", "The name of auxiliary variables to save this Kernel's residual contributions to.  Everything about that variable must match everything about this variable (the type, what blocks it's on, etc.)");
-  params.addParam<std::vector<AuxVariableName> >("diag_save_in", "The name of auxiliary variables to save this Kernel's diagonal jacobian contributions to.  Everything about that variable must match everything about this variable (the type, what blocks it's on, etc.)");
+  params.addParam<std::vector<AuxVariableName> >("save_in", "The name of auxiliary variables to save this BC's residual contributions to.  Everything about that variable must match everything about this variable (the type, what blocks it's on, etc.)");
+  params.addParam<std::vector<AuxVariableName> >("diag_save_in", "The name of auxiliary variables to save this BC's diagonal jacobian contributions to.  Everything about that variable must match everything about this variable (the type, what blocks it's on, etc.)");
 
   params.addParamNamesToGroup("diag_save_in save_in", "Advanced");
 
   return params;
 }
 
-IntegratedBC::IntegratedBC(const std::string & name, InputParameters parameters) :
-    BoundaryCondition(name, parameters),
-    RandomInterface(name, parameters, _fe_problem, _tid, false),
+IntegratedBC::IntegratedBC(const InputParameters & parameters) :
+    BoundaryCondition(parameters),
+    RandomInterface(parameters, _fe_problem, _tid, false),
     CoupleableMooseVariableDependencyIntermediateInterface(parameters, false),
-    MaterialPropertyInterface(name, parameters),
+    MaterialPropertyInterface(parameters),
     _current_elem(_assembly.elem()),
     _current_elem_volume(_assembly.elemVolume()),
     _current_side(_assembly.side()),
@@ -70,7 +70,7 @@ IntegratedBC::IntegratedBC(const std::string & name, InputParameters parameters)
     MooseVariable * var = &_subproblem.getVariable(_tid, _save_in_strings[i]);
 
     if (var->feType() != _var.feType())
-      mooseError("Error in " + _name + ". When saving residual values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
+      mooseError("Error in " + name() + ". When saving residual values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
 
     _save_in[i] = var;
     var->sys().addVariableToZeroOnResidual(_save_in_strings[i]);
@@ -84,7 +84,7 @@ IntegratedBC::IntegratedBC(const std::string & name, InputParameters parameters)
     MooseVariable * var = &_subproblem.getVariable(_tid, _diag_save_in_strings[i]);
 
     if (var->feType() != _var.feType())
-      mooseError("Error in " + _name + ". When saving diagonal Jacobian values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
+      mooseError("Error in " + name() + ". When saving diagonal Jacobian values in an Auxiliary variable the AuxVariable must be the same type as the nonlinear variable the object is acting on.");
 
     _diag_save_in[i] = var;
     var->sys().addVariableToZeroOnJacobian(_diag_save_in_strings[i]);
@@ -189,3 +189,4 @@ IntegratedBC::computeQpOffDiagJacobian(unsigned int /*jvar*/)
 {
   return 0;
 }
+

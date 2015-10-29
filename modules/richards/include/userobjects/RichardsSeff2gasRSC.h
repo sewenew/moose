@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF2GASRSC_H
 #define RICHARDSSEFF2GASRSC_H
@@ -25,7 +28,7 @@ InputParameters validParams<RichardsSeff2gasRSC>();
 class RichardsSeff2gasRSC : public RichardsSeff
 {
 public:
-  RichardsSeff2gasRSC(const std::string & name, InputParameters parameters);
+  RichardsSeff2gasRSC(const InputParameters & parameters);
 
   /**
    * oil effective saturation

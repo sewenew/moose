@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSTEMPERATUREL2_H
 #define NSTEMPERATUREL2_H
 
@@ -19,7 +25,7 @@ class NSTemperatureL2 : public Kernel
 {
 public:
 
-  NSTemperatureL2(const std::string & name, InputParameters parameters);
+  NSTemperatureL2(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -41,7 +47,7 @@ protected:
   unsigned int _w_vel_var;
   VariableValue & _w_vel;
 
-  MaterialProperty<Real> & _c_v;
+  const MaterialProperty<Real> & _c_v;
 };
 
 #endif

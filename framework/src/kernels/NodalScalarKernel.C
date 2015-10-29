@@ -23,8 +23,8 @@ InputParameters validParams<NodalScalarKernel>()
   return params;
 }
 
-NodalScalarKernel::NodalScalarKernel(const std::string & name, InputParameters parameters) :
-    ScalarKernel(name, parameters),
+NodalScalarKernel::NodalScalarKernel(const InputParameters & parameters) :
+    ScalarKernel(parameters),
     Coupleable(parameters, true),
     MooseVariableDependencyInterface(),
     _node_ids(getParam<std::vector<dof_id_type> >("nodes"))
@@ -52,3 +52,4 @@ NodalScalarKernel::computeOffDiagJacobian(unsigned int jvar)
   if (jvar == _var.number())
     computeJacobian();
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "HeatConductionApp.h"
 #include "Moose.h"
 #include "AppFactory.h"
@@ -27,17 +33,14 @@ template<>
 InputParameters validParams<HeatConductionApp>()
 {
   InputParameters params = validParams<MooseApp>();
-  params.set<bool>("use_legacy_uo_initialization") = true;
+  params.set<bool>("use_legacy_uo_initialization") = false;
   params.set<bool>("use_legacy_uo_aux_computation") = false;
-
   return params;
 }
 
-HeatConductionApp::HeatConductionApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+HeatConductionApp::HeatConductionApp(const InputParameters & parameters) :
+    MooseApp(parameters)
 {
-  srand(processor_id());
-
   Moose::registerObjects(_factory);
   HeatConductionApp::registerObjects(_factory);
 
@@ -49,12 +52,16 @@ HeatConductionApp::~HeatConductionApp()
 {
 }
 
+// External entry point for dynamic application loading
+extern "C" void HeatConductionApp__registerApps() { HeatConductionApp::registerApps(); }
 void
 HeatConductionApp::registerApps()
 {
   registerApp(HeatConductionApp);
 }
 
+// External entry point for dynamic object registration
+extern "C" void HeatConductionApp__registerObjects(Factory & factory) { HeatConductionApp::registerObjects(factory); }
 void
 HeatConductionApp::registerObjects(Factory & factory)
 {
@@ -74,6 +81,8 @@ HeatConductionApp::registerObjects(Factory & factory)
   registerConstraint(GapConductanceConstraint);
 }
 
+// External entry point for dynamic syntax association
+extern "C" void HeatConductionApp__associateSyntax(Syntax & syntax, ActionFactory & action_factory) { HeatConductionApp::associateSyntax(syntax, action_factory); }
 void
 HeatConductionApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
 {

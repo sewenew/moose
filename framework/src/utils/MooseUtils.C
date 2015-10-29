@@ -11,43 +11,31 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
-#include "MooseError.h"
 
-#include <string>
-#include <vector>
-#include <map>
-#include <algorithm>
+// STL includes
 #include <iostream>
 #include <fstream>
 #include <istream>
 #include <iterator>
 
+// Standard Library
+#include <sys/stat.h>
+
+// MOOSE includes
+#include "MooseUtils.h"
+#include "MooseError.h"
+#include "MaterialProperty.h"
+
 // External includes
 #include "pcrecpp.h"
+#include "tinydir.h"
+
 
 namespace MooseUtils
 {
 
 void
-tokenize(const std::string &str, std::vector<std::string> &elements, unsigned int min_len, const std::string &delims)
-{
-  elements.clear();
-
-  std::string::size_type last_pos = str.find_first_not_of(delims, 0);
-  std::string::size_type pos = str.find_first_of(delims, std::min(last_pos + min_len, str.size()));
-
-  while (last_pos != std::string::npos)
-  {
-    elements.push_back(str.substr(last_pos, pos - last_pos));
-    // skip delims between tokens
-    last_pos = str.find_first_not_of(delims, pos);
-    if (last_pos == std::string::npos) break;
-    pos = str.find_first_of(delims, std::min(last_pos + min_len, str.size()));
-  }
-}
-
-void
-escape(std::string &str)
+escape(std::string & str)
 {
   std::map<char, std::string> escapes;
   escapes['\a'] = "\\a";
@@ -65,18 +53,17 @@ escape(std::string &str)
 
 
 std::string
-trim(std::string str, const std::string &white_space)
+trim(std::string str, const std::string & white_space)
 {
   std::string r = str.erase(str.find_last_not_of(white_space)+1);
   return r.erase(0,r.find_first_not_of(white_space));
 }
 
-bool pathContains(const std::string &expression,
-                          const std::string &string_to_find,
-                          const std::string &delims)
+bool pathContains(const std::string & expression,
+                  const std::string & string_to_find,
+                  const std::string & delims)
 {
   std::vector<std::string> elements;
-
   tokenize(expression, elements, 0, delims);
 
   std::vector<std::string>::iterator found_it = std::find(elements.begin(), elements.end(), string_to_find);
@@ -86,13 +73,18 @@ bool pathContains(const std::string &expression,
     return false;
 }
 
-void
-checkFileReadable(const std::string & filename, bool check_line_endings)
+bool
+checkFileReadable(const std::string & filename, bool check_line_endings, bool throw_on_unreadable)
 {
   std::ifstream in(filename.c_str(), std::ifstream::in);
   if (in.fail())
-    mooseError((std::string("Unable to open file \"") + filename
-                + std::string("\". Check to make sure that it exists and that you have read permission.")).c_str());
+  {
+    if (throw_on_unreadable)
+      mooseError((std::string("Unable to open file \"") + filename
+                  + std::string("\". Check to make sure that it exists and that you have read permission.")).c_str());
+    else
+      return false;
+  }
 
   if (check_line_endings)
   {
@@ -105,17 +97,26 @@ checkFileReadable(const std::string & filename, bool check_line_endings)
   }
 
   in.close();
+
+  return true;
 }
 
-void
-checkFileWriteable(const std::string & filename)
+bool
+checkFileWriteable(const std::string & filename, bool throw_on_unwritable)
 {
   std::ofstream out(filename.c_str(), std::ofstream::out);
   if (out.fail())
-    mooseError((std::string("Unable to open file \"") + filename
-                + std::string("\". Check to make sure that it exists and that you have write permission.")).c_str());
+  {
+    if (throw_on_unwritable)
+      mooseError((std::string("Unable to open file \"") + filename
+                  + std::string("\". Check to make sure that it exists and that you have write permission.")).c_str());
+    else
+      return false;
+  }
 
   out.close();
+
+  return true;
 }
 
 void
@@ -169,7 +170,7 @@ std::pair<std::string, std::string>
 splitFileName(std::string full_file)
 {
   // Error if path ends with /
-  if (full_file[full_file.size()-1] == '/')
+  if (full_file.empty() || *full_file.rbegin() == '/')
     mooseError("Invalid full file name: " << full_file);
 
   // Define the variables to output
@@ -195,6 +196,62 @@ splitFileName(std::string full_file)
   return std::pair<std::string, std::string>(path, file);
 }
 
+std::string
+camelCaseToUnderscore(const std::string & camel_case_name)
+{
+  string replaced = camel_case_name;
+  // Put underscores in front of each contiguous set of capital letters
+  pcrecpp::RE("(?!^)([A-Z]+)").GlobalReplace("_\\1", &replaced);
+
+  // Convert all capital letters to lower case
+  std::transform(replaced.begin(), replaced.end(), replaced.begin(), ::tolower);
+  return replaced;
+}
+
+std::string
+underscoreToCamelCase(const std::string & underscore_name, bool leading_upper_case)
+{
+  pcrecpp::StringPiece input(underscore_name);
+  pcrecpp::RE re("([^_]*)(_|$)");
+
+  std::string result;
+  std::string us, not_us;
+  bool make_upper = leading_upper_case;
+  while (re.Consume(&input, &not_us, &us))
+  {
+    if (not_us.length() > 0)
+    {
+      if (make_upper)
+      {
+        result += std::toupper(not_us[0]);
+        if (not_us.length() > 1)
+          result += not_us.substr(1);
+      }
+      else
+        result += not_us;
+    }
+    if (us == "")
+      break;
+
+    // Toggle flag so next match is upper cased
+    make_upper = true;
+  }
+
+  return result;
+}
+
+std::string
+shortName(const std::string & name)
+{
+  return name.substr(name.find_last_of('/') != std::string::npos ? name.find_last_of('/') + 1 : 0);
+}
+
+std::string
+baseName(const std::string & name)
+{
+ return name.substr(0, name.find_last_of('/') != std::string::npos ? name.find_last_of('/') : 0);
+}
+
 bool
 absoluteFuzzyEqual(const Real & var1, const Real & var2, const Real & tol)
 {
@@ -204,7 +261,7 @@ absoluteFuzzyEqual(const Real & var1, const Real & var2, const Real & tol)
 bool
 absoluteFuzzyGreaterEqual(const Real & var1, const Real & var2, const Real & tol)
 {
-  return (var1 > (var2 - tol));
+  return (var1 >= (var2 - tol));
 }
 
 bool
@@ -216,7 +273,7 @@ absoluteFuzzyGreaterThan(const Real & var1, const Real & var2, const Real & tol)
 bool
 absoluteFuzzyLessEqual(const Real & var1, const Real & var2, const Real & tol)
 {
-  return (var1 < (var2 + tol));
+  return (var1 <= (var2 + tol));
 }
 
 bool
@@ -254,5 +311,139 @@ relativeFuzzyLessThan(const Real & var1, const Real & var2, const Real & tol)
 {
   return (absoluteFuzzyLessThan(var1, var2, tol*(std::abs(var1)+std::abs(var2))));
 }
+
+void
+MaterialPropertyStorageDump(const HashMap<const libMesh::Elem *, HashMap<unsigned int, MaterialProperties> > & props)
+{
+  // Define the iterators
+  HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> >::const_iterator elem_it;
+  HashMap<unsigned int, MaterialProperties>::const_iterator side_it;
+  MaterialProperties::const_iterator prop_it;
+
+  // Loop through the elements
+  for (elem_it = props.begin(); elem_it != props.end(); ++elem_it)
+  {
+    Moose::out << "Element " << elem_it->first->id() << '\n';
+
+    // Loop through the sides
+    for (side_it = elem_it->second.begin(); side_it != elem_it->second.end(); ++side_it)
+    {
+      Moose::out << "  Side " << side_it->first << '\n';
+
+      // Loop over properties
+      unsigned int cnt = 0;
+      for (prop_it = side_it->second.begin(); prop_it != side_it->second.end(); ++prop_it)
+      {
+        MaterialProperty<Real> * mp = dynamic_cast<MaterialProperty<Real> *>(*prop_it);
+        if (mp)
+        {
+          Moose::out << "    Property " << cnt << '\n';
+          cnt++;
+
+          // Loop over quadrature points
+          for (unsigned int qp = 0; qp < mp->size(); ++qp)
+            Moose::out << "      prop[" << qp << "] = " << (*mp)[qp] << '\n';
+        }
+      }
+    }
+  }
+}
+
+void
+indentMessage(const std::string & prefix, std::string & message, const char* color/*= COLOR_CYAN*/)
+{
+  // The colored prefix
+  std::string indent = color + prefix + ": " + COLOR_DEFAULT;
+
+  // Indent all lines after the first
+  pcrecpp::RE re("\n(?!\\Z)");
+  re.GlobalReplace(std::string("\n") + indent, &message);
+
+  // Prepend indent string at the front of the message
+  message = indent + message;
+}
+
+std::list<std::string>
+getFilesInDirs(const std::list<std::string> & directory_list)
+{
+  std::list<std::string> files;
+
+  for (std::list<std::string>::const_iterator it = directory_list.begin(); it != directory_list.end(); ++it)
+  {
+    tinydir_dir dir;
+    dir.has_next = 0; // Avoid a garbage value in has_next (clang StaticAnalysis)
+    tinydir_open(&dir, it->c_str());
+
+    while (dir.has_next)
+    {
+      tinydir_file file;
+      file.is_dir = 0; // Avoid a garbage value in is_dir (clang StaticAnalysis)
+      tinydir_readfile(&dir, &file);
+
+      if (!file.is_dir)
+        files.push_back(*it + "/" + file.name);
+
+      tinydir_next(&dir);
+    }
+
+    tinydir_close(&dir);
+  }
+
+  return files;
+}
+
+std::string
+getRecoveryFileBase(const std::list<std::string> & checkpoint_files)
+{
+  // Create storage for newest restart files
+  // Note that these might have the same modification time if the simulation was fast.
+  // In that case we're going to save all of the "newest" files and sort it out momentarily
+  time_t newest_time = 0;
+  std::list<std::string> newest_restart_files;
+
+  // Loop through all possible files and store the newest
+  for (std::list<std::string>::const_iterator it = checkpoint_files.begin(); it != checkpoint_files.end(); ++it)
+  {
+      struct stat stats;
+      stat(it->c_str(), &stats);
+
+      time_t mod_time = stats.st_mtime;
+      if (mod_time > newest_time)
+      {
+        newest_restart_files.clear(); // If the modification time is greater, clear the list
+        newest_time = mod_time;
+      }
+
+      if (mod_time == newest_time)
+        newest_restart_files.push_back(*it);
+  }
+
+  // Loop through all of the newest files according the number in the file name
+  int max_file_num = -1;
+  std::string max_base;
+  pcrecpp::RE re_base_and_file_num("(.*?(\\d+))\\..*"); // Will pull out the full base and the file number simultaneously
+
+  // Now, out of the newest files find the one with the largest number in it
+  for (std::list<std::string>::const_iterator it = newest_restart_files.begin(); it != newest_restart_files.end(); ++it)
+  {
+    std::string the_base;
+    int file_num = 0;
+
+    re_base_and_file_num.FullMatch(*it, &the_base, &file_num);
+
+    if (file_num > max_file_num)
+    {
+      max_file_num = file_num;
+      max_base = the_base;
+    }
+  }
+
+  // Error if nothing was located
+  if (max_file_num == -1)
+    max_base.clear();
+
+  return max_base;
+}
+
 
 } // MooseUtils namespace

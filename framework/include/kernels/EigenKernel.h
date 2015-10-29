@@ -39,7 +39,7 @@ public:
   virtual void computeOffDiagJacobian(unsigned int /*jvar*/) {}
   virtual void computeOffDiagJacobianScalar(unsigned int /*jvar*/) {}
 
-  EigenKernel(const std::string & name, InputParameters parameters);
+  EigenKernel(const InputParameters & parameters);
   virtual bool isActive();
 
 protected:
@@ -58,10 +58,8 @@ protected:
   /// EigenKernel always lives in EigenSystem
   EigenSystem * _eigen_sys;
 
-  /// name of the postprocessor for evaluating eigenvalue
-  PostprocessorName _eigen_pp;
-
-  /// eigenvalue
+  /// A pointer to the eigenvalue that is stored in a postprocessor
+  // This is a pointer so that the method for retrieval (old vs current) may be changed
   const Real * _eigenvalue;
 };
 

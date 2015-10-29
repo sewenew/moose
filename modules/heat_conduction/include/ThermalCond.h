@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef THERMALCOND_H
 #define THERMALCOND_H
 
@@ -15,13 +21,13 @@ InputParameters validParams<ThermalCond>();
 class ThermalCond : public SideAverageValue
 {
 public:
-  ThermalCond(const std::string & name, InputParameters parameters);
+  ThermalCond(const InputParameters & parameters);
 
   virtual Real getValue();
 
   Real _dx;
-  Real _flux;
-  Real _T_hot;
+  const PostprocessorValue & _flux;
+  const PostprocessorValue & _T_hot;
   Real _length_scale;
   Real _k0;
 

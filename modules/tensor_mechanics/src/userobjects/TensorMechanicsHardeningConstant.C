@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsHardeningConstant.h"
 #include <math.h> // for M_PI
 
@@ -11,8 +17,8 @@ InputParameters validParams<TensorMechanicsHardeningConstant>()
   return params;
 }
 
-TensorMechanicsHardeningConstant::TensorMechanicsHardeningConstant(const std::string & name, InputParameters parameters) :
-  TensorMechanicsHardeningModel(name, parameters),
+TensorMechanicsHardeningConstant::TensorMechanicsHardeningConstant(const InputParameters & parameters) :
+  TensorMechanicsHardeningModel(parameters),
   _val(getParam<bool>("convert_to_radians") ? getParam<Real>("value")*M_PI/180.0 : getParam<Real>("value"))
 {
 }
@@ -28,3 +34,4 @@ TensorMechanicsHardeningConstant::derivative(const Real & /*intnl*/) const
 {
   return 0.0;
 }
+

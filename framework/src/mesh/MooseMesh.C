@@ -90,15 +90,16 @@ InputParameters validParams<MooseMesh>()
 }
 
 
-MooseMesh::MooseMesh(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    Restartable(name, parameters, "Mesh"),
+MooseMesh::MooseMesh(const InputParameters & parameters) :
+    MooseObject(parameters),
+    Restartable(parameters, "Mesh"),
     _mesh_distribution_type(getParam<MooseEnum>("distribution")),
     _use_parallel_mesh(false),
     _distribution_overridden(false),
     _mesh(NULL),
     _partitioner_name(getParam<MooseEnum>("partitioner")),
     _partitioner_overridden(false),
+    _custom_partitioner_requested(false),
     _uniform_refine_level(0),
     _is_changed(false),
     _is_nemesis(getParam<bool>("nemesis")),
@@ -155,56 +156,11 @@ MooseMesh::MooseMesh(const std::string & name, InputParameters parameters) :
   }
   else
     _mesh = new SerialMesh(_communicator, dim);
-
-  // Set the partitioner
-  switch (_partitioner_name)
-  {
-  case -3: // default
-    // We'll use the default partitioner, but notify the user of which one is being used...
-    if (_use_parallel_mesh)
-      _partitioner_name = "parmetis";
-    else
-      _partitioner_name = "metis";
-    break;
-
-  // No need to explicitily create the metis or parmetis partitioners,
-  // They are the default for serial and parallel mesh respectively
-  case -2: // metis
-  case -1: // parmetis
-    break;
-
-  case 0: // linear
-    getMesh().partitioner() = AutoPtr<Partitioner>(new LinearPartitioner);
-    break;
-  case 1: // centroid
-  {
-    if (!isParamValid("centroid_partitioner_direction"))
-      mooseError("If using the centroid partitioner you _must_ specify centroid_partitioner_direction!");
-
-    MooseEnum direction = getParam<MooseEnum>("centroid_partitioner_direction");
-
-    if (direction == "x")
-      getMesh().partitioner() = AutoPtr<Partitioner>(new CentroidPartitioner(CentroidPartitioner::X));
-    else if (direction == "y")
-      getMesh().partitioner() = AutoPtr<Partitioner>(new CentroidPartitioner(CentroidPartitioner::Y));
-    else if (direction == "z")
-      getMesh().partitioner() = AutoPtr<Partitioner>(new CentroidPartitioner(CentroidPartitioner::Z));
-    else if (direction == "radial")
-      getMesh().partitioner() = AutoPtr<Partitioner>(new CentroidPartitioner(CentroidPartitioner::RADIAL));
-    break;
-  }
-  case 2: // hilbert_sfc
-    getMesh().partitioner() = AutoPtr<Partitioner>(new HilbertSFCPartitioner);
-    break;
-  case 3: // morton_sfc
-    getMesh().partitioner() = AutoPtr<Partitioner>(new MortonSFCPartitioner);
-    break;
-  }
 }
 
 MooseMesh::MooseMesh(const MooseMesh & other_mesh) :
-    MooseObject(other_mesh._name, other_mesh._pars),
-    Restartable(_name, _pars, "Mesh"),
+    MooseObject(other_mesh._pars),
+    Restartable(_pars, "Mesh"),
     _mesh_distribution_type(other_mesh._mesh_distribution_type),
     _use_parallel_mesh(other_mesh._use_parallel_mesh),
     _distribution_overridden(other_mesh._distribution_overridden),
@@ -919,7 +875,7 @@ MooseMesh::getBoundaryID(const BoundaryName & boundary_name) const
   if (boundary_name == "ANY_BOUNDARY_ID")
     mooseError("Please use getBoundaryIDs() when passing \"ANY_BOUNDARY_ID\"");
 
-  BoundaryID id;
+  BoundaryID id = Moose::INVALID_BOUNDARY_ID;
   std::istringstream ss(boundary_name);
 
   if (!(ss >> id))
@@ -979,7 +935,7 @@ MooseMesh::getSubdomainID(const SubdomainName & subdomain_name) const
   if (subdomain_name == "ANY_BLOCK_ID")
     mooseError("Please use getSubdomainIDs() when passing \"ANY_BLOCK_ID\"");
 
-  SubdomainID id;
+  SubdomainID id = Moose::INVALID_BLOCK_ID;
   std::istringstream ss(subdomain_name);
 
   if (!(ss >> id))
@@ -999,11 +955,11 @@ MooseMesh::getSubdomainIDs(const std::vector<SubdomainName> & subdomain_name) co
     {
       ids.assign(_mesh_subdomains.begin(), _mesh_subdomains.end());
       if (i)
-        mooseWarning("You passed \"ANY_BLOCK_ID\" in addition to other sudomain_names.  This may be a logic error.");
+        mooseWarning("You passed \"ANY_BLOCK_ID\" in addition to other block names.  This may be a logic error.");
       break;
     }
 
-    SubdomainID id;
+    SubdomainID id = Moose::INVALID_BLOCK_ID;
     std::istringstream ss(subdomain_name[i]);
 
     if (!(ss >> id))
@@ -1043,9 +999,9 @@ MooseMesh::buildPeriodicNodeMap(std::multimap<dof_id_type, dof_id_type> & period
 
   periodic_node_map.clear();
 
-  MeshBase::const_element_iterator it = getMesh().active_local_elements_begin();
-  MeshBase::const_element_iterator it_end = getMesh().active_local_elements_end();
-  AutoPtr<PointLocatorBase> point_locator = getMesh().sub_point_locator();
+  MeshBase::const_element_iterator it = getMesh().active_elements_begin();
+  MeshBase::const_element_iterator it_end = getMesh().active_elements_end();
+  UniquePtr<PointLocatorBase> point_locator = getMesh().sub_point_locator();
 
   // Get a const reference to the BoundaryInfo object that we will use several times below...
   const BoundaryInfo & boundary_info = getMesh().get_boundary_info();
@@ -1071,8 +1027,8 @@ MooseMesh::buildPeriodicNodeMap(std::multimap<dof_id_type, dof_id_type> & period
           const Elem* neigh = pbs->neighbor(boundary_id, *point_locator, elem, s);
           unsigned int s_neigh = boundary_info.side_with_boundary_id (neigh, periodic->pairedboundary);
 
-          AutoPtr<Elem> elem_side = elem->build_side(s);
-          AutoPtr<Elem> neigh_side = neigh->build_side(s_neigh);
+          UniquePtr<Elem> elem_side = elem->build_side(s);
+          UniquePtr<Elem> neigh_side = neigh->build_side(s_neigh);
 
           // At this point we have matching sides - lets find matching nodes
           for (unsigned int i=0; i<elem_side->n_nodes(); ++i)
@@ -1092,7 +1048,10 @@ MooseMesh::buildPeriodicNodeMap(std::multimap<dof_id_type, dof_id_type> & period
                   if (map_it->second == slave_node->id())
                     found = true;
                 if (!found)
+                {
                   periodic_node_map.insert(std::make_pair(master_node->id(), slave_node->id()));
+                  periodic_node_map.insert(std::make_pair(slave_node->id(), master_node->id()));
+                }
               }
             }
           }
@@ -1583,11 +1542,11 @@ MooseMesh::findAdaptivityQpMaps(const Elem * template_elem,
   for (unsigned int i=0; i<template_elem->n_nodes(); i++)
     elem->set_node(i) = mesh.node_ptr(i);
 
-  AutoPtr<FEBase> fe (FEBase::build(dim, FEType()));
+  UniquePtr<FEBase> fe (FEBase::build(dim, FEType()));
   fe->get_phi();
   const std::vector<Point>& q_points_volume = fe->get_xyz();
 
-  AutoPtr<FEBase> fe_face (FEBase::build(dim, FEType()));
+  UniquePtr<FEBase> fe_face (FEBase::build(dim, FEType()));
   fe_face->get_phi();
   const std::vector<Point>& q_points_face = fe_face->get_xyz();
 
@@ -1740,10 +1699,70 @@ MooseMesh::getNormalByBoundaryID(BoundaryID id) const
 void
 MooseMesh::init()
 {
-  if (!_app.isRecovering() || !_allow_recovery)
-    buildMesh();
-  else // When recovering just read the CPR file
+  if (_custom_partitioner_requested)
+  {
+    // Check of partitioner is supplied (not allowed if custom partitioner is used)
+    if (!parameters().isParamSetByAddParam("partitioner"))
+      mooseError("If partitioner block is provided, partitioner keyword cannot be used!");
+    // Set custom partitioner
+    if (!_custom_partitioner.get())
+      mooseError("Custom partitioner requested but not set!");
+    getMesh().partitioner().reset(_custom_partitioner.release());
+  }
+  else
+  {
+    // Set standard partitioner
+    // Set the partitioner based on partitioner name
+    switch (_partitioner_name)
+    {
+    case -3: // default
+      // We'll use the default partitioner, but notify the user of which one is being used...
+      if (_use_parallel_mesh)
+        _partitioner_name = "parmetis";
+      else
+        _partitioner_name = "metis";
+      break;
+
+    // No need to explicitily create the metis or parmetis partitioners,
+    // They are the default for serial and parallel mesh respectively
+    case -2: // metis
+    case -1: // parmetis
+      break;
+
+    case 0: // linear
+      getMesh().partitioner().reset(new LinearPartitioner);
+      break;
+    case 1: // centroid
+    {
+      if (!isParamValid("centroid_partitioner_direction"))
+        mooseError("If using the centroid partitioner you _must_ specify centroid_partitioner_direction!");
+
+      MooseEnum direction = getParam<MooseEnum>("centroid_partitioner_direction");
+
+      if (direction == "x")
+        getMesh().partitioner().reset(new CentroidPartitioner(CentroidPartitioner::X));
+      else if (direction == "y")
+        getMesh().partitioner().reset(new CentroidPartitioner(CentroidPartitioner::Y));
+      else if (direction == "z")
+        getMesh().partitioner().reset(new CentroidPartitioner(CentroidPartitioner::Z));
+      else if (direction == "radial")
+        getMesh().partitioner().reset(new CentroidPartitioner(CentroidPartitioner::RADIAL));
+      break;
+    }
+    case 2: // hilbert_sfc
+      getMesh().partitioner().reset(new HilbertSFCPartitioner);
+      break;
+    case 3: // morton_sfc
+      getMesh().partitioner().reset(new MortonSFCPartitioner);
+      break;
+    }
+  }
+
+  if (_app.isRecovering() && _allow_recovery && _app.isUltimateMaster())
+    // For now, only read the recovery mesh on the Ultimate Master.. sub-apps need to just build their mesh like normal
     getMesh().read(_app.getRecoverFileBase() + "_mesh.cpr");
+  else // Normally just build the mesh
+    buildMesh();
 }
 
 unsigned int
@@ -1878,17 +1897,17 @@ MooseMesh::setBoundaryToNormalMap(std::map<BoundaryID, RealVectorValue> * bounda
   _boundary_to_normal_map.reset(boundary_map);
 }
 
-#ifdef LIBMESH_ENABLE_AMR
-unsigned int & MooseMesh::uniformRefineLevel()
+unsigned int
+MooseMesh::uniformRefineLevel() const
 {
   return _uniform_refine_level;
 }
 
-const unsigned int & MooseMesh::uniformRefineLevel() const
+void
+MooseMesh::setUniformRefineLevel(unsigned int level)
 {
-  return _uniform_refine_level;
+  _uniform_refine_level = level;
 }
-#endif // LIBMESH_ENABLE_AMR
 
 void
 MooseMesh::addGhostedBoundary(BoundaryID boundary_id)
@@ -2160,6 +2179,24 @@ MooseMesh::getMortarInterface(BoundaryID master, BoundaryID slave)
     return (*it).second;
   else
     mooseError("Requesting non-existing mortar interface (master = " << master << ", slave = " << slave << ").");
+}
+
+void
+MooseMesh::setCustomPartitioner(Partitioner * partitioner)
+{
+  _custom_partitioner = partitioner->clone();
+}
+
+bool
+MooseMesh::isCustomPartitionerRequested() const
+{
+  return _custom_partitioner_requested;
+}
+
+void
+MooseMesh::setIsCustomPartitionerRequested(bool cpr)
+{
+  _custom_partitioner_requested = cpr;
 }
 
 void

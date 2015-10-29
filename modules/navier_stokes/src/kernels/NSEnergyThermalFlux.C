@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSEnergyThermalFlux.h"
 
 template<>
@@ -15,8 +21,8 @@ InputParameters validParams<NSEnergyThermalFlux>()
 
 
 
-NSEnergyThermalFlux::NSEnergyThermalFlux(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters),
+NSEnergyThermalFlux::NSEnergyThermalFlux(const InputParameters & parameters)
+    : NSKernel(parameters),
 
       // Gradients
       _grad_temp(coupledGradient("temperature")),
@@ -104,6 +110,7 @@ Real NSEnergyThermalFlux::compute_jacobian_value(unsigned var_number)
   // Return result, don't forget to multiply by "k"!
   return _thermal_conductivity[_qp] * result;
 }
+
 
 
 

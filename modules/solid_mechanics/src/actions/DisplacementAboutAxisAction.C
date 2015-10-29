@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "DisplacementAboutAxisAction.h"
 
 #include "Factory.h"
@@ -23,8 +29,8 @@ InputParameters validParams<DisplacementAboutAxisAction>()
   return params;
 }
 
-DisplacementAboutAxisAction::DisplacementAboutAxisAction(const std::string & name, InputParameters params) :
-  Action(name, params),
+DisplacementAboutAxisAction::DisplacementAboutAxisAction(const InputParameters & params) :
+  Action(params),
   _boundary(getParam<std::vector<BoundaryName> >("boundary")),
   _disp_x(getParam<NonlinearVariableName>("disp_x")),
   _disp_y(getParam<NonlinearVariableName>("disp_y")),
@@ -90,7 +96,6 @@ DisplacementAboutAxisAction::act()
   for (std::vector<unsigned int>::iterator it = dim_vec.begin(); it != dim_vec.end(); ++it)
   {
     std::stringstream name;
-    name << "BCs/";
     name << short_name;
     name << "_";
     name << *it;

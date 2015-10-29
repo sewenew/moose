@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // See
 // Homogenization of Temperature-Dependent Thermal Conductivity in Composite
 // Materials, Journal of Thermophysics and Heat Transfer, Vol. 15, No. 1,
@@ -14,12 +20,12 @@ class HomogenizationHeatConduction : public Kernel
 {
 public:
 
-  HomogenizationHeatConduction(const std::string & name, InputParameters parameters);
+  HomogenizationHeatConduction(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
 
-  MaterialProperty<Real> & _diffusion_coefficient;
+  const MaterialProperty<Real> & _diffusion_coefficient;
 
 private:
   const unsigned int _component;

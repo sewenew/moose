@@ -35,14 +35,14 @@ InputParameters validParams<ScalarKernel>()
 }
 
 
-ScalarKernel::ScalarKernel(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
+ScalarKernel::ScalarKernel(const InputParameters & parameters) :
+    MooseObject(parameters),
     ScalarCoupleable(parameters),
     SetupInterface(parameters),
     FunctionInterface(parameters),
     UserObjectInterface(parameters),
     PostprocessorInterface(parameters),
-    TransientInterface(parameters, name, "scalar_kernel"),
+    TransientInterface(parameters, "scalar_kernel"),
     ZeroInterface(parameters),
     MeshChangedInterface(parameters),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
@@ -83,3 +83,4 @@ ScalarKernel::subProblem()
 {
   return _subproblem;
 }
+

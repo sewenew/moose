@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMassInviscidFlux.h"
 
 template<>
@@ -8,8 +14,8 @@ InputParameters validParams<NSMassInviscidFlux>()
   return params;
 }
 
-NSMassInviscidFlux::NSMassInviscidFlux(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters)
+NSMassInviscidFlux::NSMassInviscidFlux(const InputParameters & parameters)
+    : NSKernel(parameters)
 {}
 
 
@@ -77,3 +83,4 @@ NSMassInviscidFlux::computeQpOffDiagJacobian(unsigned int jvar)
   // won't get here
   return 0.;
 }
+

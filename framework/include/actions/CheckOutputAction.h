@@ -33,10 +33,9 @@ public:
 
   /**
    * Class constructor
-   * @param name Name of this action
    * @param params Input parameters for this object
    */
-  CheckOutputAction(const std::string & name, InputParameters params);
+  CheckOutputAction(InputParameters params);
 
   /**
    * Class destructor
@@ -49,6 +48,12 @@ public:
   virtual void act();
 
 private:
+
+  /**
+   * Performs check for "outputs" option for Variables and AuxVariables blocks
+   * @param task The name of the task to extract names from (add_variable or add_aux_variable)
+   */
+  void checkVariableOutput(const std::string & task);
 
   /**
    * Preforms a set of checks on each of the Material objects that the "outputs" parameters has valid values
@@ -64,11 +69,6 @@ private:
    * Performs PerfLog output settings
    */
   void checkPerfLogOutput();
-
-  /**
-   * Checks for --output-input command line parameter
-   */
-  void checkInputOutput();
 };
 
 #endif //CHECKOUTPUTACTION_H

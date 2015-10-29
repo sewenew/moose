@@ -53,12 +53,6 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'initial linear nonlinear failed timestep_end'
-  [../]
   [./checkpoint]
     type = Checkpoint
     num_files = 1

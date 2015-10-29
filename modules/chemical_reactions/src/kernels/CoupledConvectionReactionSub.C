@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CoupledConvectionReactionSub.h"
 
 #include "Material.h"
@@ -17,10 +23,10 @@ InputParameters validParams<CoupledConvectionReactionSub>()
   return params;
 }
 
-CoupledConvectionReactionSub::CoupledConvectionReactionSub(const std::string & name, InputParameters parameters)
+CoupledConvectionReactionSub::CoupledConvectionReactionSub(const InputParameters & parameters)
 
     // You must call the constructor of the base class first
-  :Kernel(name,parameters),
+  :Kernel(parameters),
 
     // coupledGradient will give us a reference to the gradient of another
     // variable in the computation.  We are going to use the gradient of p
@@ -202,3 +208,4 @@ Real CoupledConvectionReactionSub::computeQpOffDiagJacobian(unsigned int jvar)
   else
     return 0.0;
 }
+

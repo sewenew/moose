@@ -38,6 +38,9 @@ class Tester(MooseObject):
     params.addParam('vtk',           ['ALL'], "A test that runs only if VTK is detected ('ALL', 'TRUE', 'FALSE')")
     params.addParam('tecplot',       ['ALL'], "A test that runs only if Tecplot is detected ('ALL', 'TRUE', 'FALSE')")
     params.addParam('dof_id_bytes',  ['ALL'], "A test that runs only if libmesh is configured --with-dof-id-bytes = a specific number, e.g. '4', '8'")
+    params.addParam('petsc_debug',   ['ALL'], "{False,True} -> test only runs when PETSc is configured with --with-debugging={0,1}, otherwise test always runs.")
+    params.addParam('curl',          ['ALL'], "A test that runs only if CURL is detected ('ALL', 'TRUE', 'FALSE')")
+    params.addParam('tbb',           ['ALL'], "A test that runs only if TBB is available ('ALL', 'TRUE', 'FALSE')")
 
     return params
 
@@ -128,7 +131,7 @@ class Tester(MooseObject):
       reason = 'skipped (' + test_reason + ')'
       return (False, reason)
     # If were testing for SCALE_REFINE, then only run tests with a SCALE_REFINE set
-    elif options.store_time and self.specs['scale_refine'] == 0:
+    elif (options.store_time or options.scaling) and self.specs['scale_refine'] == 0:
       return (False, reason)
     # If we're testing with valgrind, then skip tests that require parallel or threads or don't meet the valgrind setting
     elif options.valgrind_mode != '':
@@ -152,7 +155,7 @@ class Tester(MooseObject):
       return (False, reason)
 
     # PETSc is being explicitly checked above
-    local_checks = ['platform', 'compiler', 'mesh_mode', 'method', 'library_mode', 'dtk', 'unique_ids', 'vtk', 'tecplot']
+    local_checks = ['platform', 'compiler', 'mesh_mode', 'method', 'library_mode', 'dtk', 'unique_ids', 'vtk', 'tecplot', 'petsc_debug', 'curl', 'tbb']
     for check in local_checks:
       test_platforms = set()
       for x in self.specs[check]:

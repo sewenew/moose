@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Richards standard SUPG
 //
@@ -16,8 +19,8 @@ InputParameters validParams<RichardsSUPGstandard>()
   return params;
 }
 
-RichardsSUPGstandard::RichardsSUPGstandard(const std::string & name, InputParameters parameters) :
-    RichardsSUPG(name, parameters),
+RichardsSUPGstandard::RichardsSUPGstandard(const InputParameters & parameters) :
+    RichardsSUPG(parameters),
     _p_SUPG(getParam<Real>("p_SUPG"))
 {
 }
@@ -177,4 +180,5 @@ RichardsSUPGstandard::SUPG_trivial() const
 {
   return false;
 }
+
 

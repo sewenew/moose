@@ -55,43 +55,40 @@
   [./cx_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_x
+    displacements = 'disp_x disp_y disp_z'
     component = 0
   [../]
   [./cy_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_y
+    displacements = 'disp_x disp_y disp_z'
     component = 1
   [../]
   [./cz_elastic]
     type = CosseratStressDivergenceTensors
     variable = disp_z
     component = 2
+    displacements = 'disp_x disp_y disp_z'
   [../]
   [./x_couple]
     type = StressDivergenceTensors
     variable = wc_x
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
+    displacements = 'wc_x wc_y wc_z'
     component = 0
     base_name = coupled
   [../]
   [./y_couple]
     type = StressDivergenceTensors
     variable = wc_y
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
     component = 1
+    displacements = 'wc_x wc_y wc_z'
     base_name = coupled
   [../]
   [./z_couple]
     type = StressDivergenceTensors
     variable = wc_z
-    disp_z = wc_z
-    disp_y = wc_y
-    disp_x = wc_x
     component = 2
+    displacements = 'wc_x wc_y wc_z'
     base_name = coupled
   [../]
   [./x_moment]
@@ -211,7 +208,6 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
     petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it -ksp_atol -ksp_rtol'
     petsc_options_value = 'gmres bjacobi 1E-10 1E-10 10 1E-15 1E-10'
   [../]
@@ -225,10 +221,6 @@
 
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

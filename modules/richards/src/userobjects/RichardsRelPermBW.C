@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "Broadbridge-White" form of relative permeability (P Broadbridge and I White ``Constant rate rainfall infiltration: A versatile nonlinear model 1. Analytic Solution'', Water Resources Research 24 (1988) 145-154)
 //
@@ -20,8 +23,8 @@ InputParameters validParams<RichardsRelPermBW>()
   return params;
 }
 
-RichardsRelPermBW::RichardsRelPermBW(const std::string & name, InputParameters parameters) :
-    RichardsRelPerm(name, parameters),
+RichardsRelPermBW::RichardsRelPermBW(const InputParameters & parameters) :
+    RichardsRelPerm(parameters),
     _sn(getParam<Real>("Sn")),
     _ss(getParam<Real>("Ss")),
     _kn(getParam<Real>("Kn")),
@@ -80,4 +83,5 @@ RichardsRelPermBW::d2relperm(Real seff) const
   Real krelpp = _coef*( 2.0/(_c - s_internal) + 4.0*s_internal/std::pow(_c - s_internal, 2) + 2*std::pow(s_internal, 2)/std::pow(_c - s_internal, 3) );
   return krelpp/std::pow(_ss - _sn, 2);
 }
+
 

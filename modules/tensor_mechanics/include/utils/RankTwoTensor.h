@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef RANKTWOTENSOR_H
 #define RANKTWOTENSOR_H
 
@@ -16,6 +22,7 @@
 #include "petscblaslapack.h"
 
 #include <vector>
+#include "MooseRandom.h"
 
 class RankTwoTensor;
 
@@ -52,6 +59,20 @@ public:
   RankTwoTensor(const InitMethod);
 
   /**
+   * To fill up the 9 entries in the 2nd-order tensor, fillFromInputVector
+   * is called with one of the following fill_methods.
+   * See the fill*FromInputVector functions for more details
+   */
+  enum FillMethod
+  {
+    autodetect = 0,
+    isotropic1 = 1,
+    diagonal3  = 3,
+    symmetric6 = 6,
+    general    = 9
+  };
+
+  /**
    * Constructor that takes in 3 vectors and uses them to create rows
    * _vals[0][i] = row1(i), _vals[1][i] = row2(i), _vals[2][i] = row3(i)
    */
@@ -84,6 +105,9 @@ public:
   /// zeroes all _vals components
   void zero();
 
+  /// Static method for use in validParams for getting the "fill_method"
+  static MooseEnum fillMethodEnum();
+
   /**
   * fillFromInputVector takes 6 or 9 inputs to fill in the Rank-2 tensor.
   * If 6 inputs, then symmetry is assumed S_ij = S_ji, and
@@ -95,7 +119,7 @@ public:
   *   _vals[0][1] = input[5]
   * If 9 inputs then input order is [0][0], [1][0], [2][0], [0][1], [1][1], ..., [2][2]
   */
-  void fillFromInputVector(const std::vector<Real> & input);
+  void fillFromInputVector(const std::vector<Real> & input, FillMethod fill_method = autodetect);
 
 public:
   /// returns _vals[r][i], ie, row r, with r = 0, 1, 2
@@ -165,6 +189,9 @@ public:
 
   /// Defines multiplication with a TypeTensor<Real>
   RankTwoTensor operator* (const TypeTensor<Real> & a) const;
+
+  /// Defines logical equality with another RankTwoTensor
+  bool operator== (const RankTwoTensor & a) const;
 
   /// returns _vals_ij * a_ij (sum on i, j)
   Real doubleContraction(const RankTwoTensor & a) const;
@@ -286,6 +313,13 @@ public:
   void symmetricEigenvalues(std::vector<Real> & eigvals) const;
 
   /**
+   * computes eigenvalues and eigenvectors, assuming tens is symmetric, and places them
+   * in ascending order in eigvals.  eigvecs is a matrix with the first column
+   * being the first eigenvector, the second column being the second, etc.
+   */
+  void symmetricEigenvaluesEigenvectors(std::vector<Real> & eigvals, RankTwoTensor & eigvecs) const;
+
+  /**
    * computes eigenvalues, and their symmetric derivatives wrt vals,
    * assuming tens is symmetric
    * @param eigvals are the eigenvalues of the matrix, in ascending order
@@ -300,8 +334,7 @@ public:
 
   /**
    * Computes second derivatives of Eigenvalues of a rank two tensor
-   * @param tens is a rank two tensor
-   * @param deriv is a second derivative of the input tensor
+   * @param deriv store second derivative of the current tensor in here
    */
   void d2symmetricEigenvalues(std::vector<RankFourTensor> & deriv) const;
 
@@ -315,6 +348,25 @@ public:
    * See code in dsymmetricEigenvalues for extracting eigenvectors from the a output.
    */
   void syev(const char * calculation_type, std::vector<PetscScalar> & eigvals, std::vector<PetscScalar> & a) const;
+
+  /**
+   * This function initializes random seed based on a user-defined number.
+   */
+  static void initRandom( unsigned int );
+
+  /**
+   * This function generates a random unsymmetric rank two tensor.
+   * The first real scales the random number.
+   * The second real offsets the uniform random number
+   */
+  static RankTwoTensor genRandomTensor( Real, Real );
+
+  /**
+   * This function generates a random symmetric rank two tensor.
+   * The first real scales the random number.
+   * The second real offsets the uniform random number
+   */
+  static RankTwoTensor genRandomSymmTensor( Real, Real );
 
 protected:
 

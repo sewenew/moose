@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSSPLITMOMENTUM_H
 #define INSSPLITMOMENTUM_H
 
@@ -22,7 +28,7 @@ InputParameters validParams<INSSplitMomentum>();
 class INSSplitMomentum : public Kernel
 {
 public:
-  INSSplitMomentum(const std::string & name, InputParameters parameters);
+  INSSplitMomentum(const InputParameters & parameters);
 
   virtual ~INSSplitMomentum(){}
 

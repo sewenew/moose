@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NAVIERSTOKESMATERIAL_H
 #define NAVIERSTOKESMATERIAL_H
 
@@ -28,7 +34,7 @@ InputParameters validParams<NavierStokesMaterial>();
 class NavierStokesMaterial : public Material
 {
 public:
-  NavierStokesMaterial(const std::string & name, InputParameters parameters);
+  NavierStokesMaterial(const InputParameters & parameters);
 
 protected:
 

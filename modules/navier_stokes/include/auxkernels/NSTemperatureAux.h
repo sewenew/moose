@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSTEMPERATUREAUX_H
 #define NSTEMPERATUREAUX_H
 
@@ -23,7 +29,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  NSTemperatureAux(const std::string & name, InputParameters parameters);
+  NSTemperatureAux(const InputParameters & parameters);
 
   virtual ~NSTemperatureAux() {}
 

@@ -60,18 +60,22 @@
 [Postprocessors]
   [./nodes]
     type = NumNodes
+    execute_on = 'initial timestep_end'
   [../]
 
   [./elements]
     type = NumElems
+    execute_on = 'initial timestep_end'
   [../]
 
   [./dofs]
     type = NumDOFs
+    execute_on = 'initial timestep_end'
   [../]
 
   [./residuals]
     type = NumResidualEvaluations
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -79,10 +83,4 @@
   file_base = out
   exodus = false
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

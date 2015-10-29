@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ElementsOnLineAux.h"
 
 template<>
@@ -15,7 +21,7 @@ InputParameters validParams<ElementsOnLineAux>()
   return params;
 }
 
-ElementsOnLineAux::ElementsOnLineAux(const std::string & name, InputParameters parameters) : AuxKernel(name, parameters),
+ElementsOnLineAux::ElementsOnLineAux(const InputParameters & parameters) : AuxKernel(parameters),
 
   _line1( getParam<RealVectorValue>("line1") ),
   _line2( getParam<RealVectorValue>("line2") ),

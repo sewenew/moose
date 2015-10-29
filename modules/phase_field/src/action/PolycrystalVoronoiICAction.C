@@ -1,7 +1,14 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PolycrystalVoronoiICAction.h"
 #include "Factory.h"
 #include "Parser.h"
 #include "FEProblem.h"
+#include "Conversion.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -20,20 +27,18 @@ template<>
 InputParameters validParams<PolycrystalVoronoiICAction>()
 {
   InputParameters params = validParams<Action>();
+  params.addClassDescription("Random Voronoi tesselation polycrystal action");
   params.addRequiredParam<unsigned int>("op_num", "number of order parameters to create");
   params.addRequiredParam<unsigned int>("grain_num", "number of grains to create, if it is going to greater than op_num");
   params.addRequiredParam<std::string>("var_name_base", "specifies the base name of the variables");
   params.addParam<unsigned int>("rand_seed", 12444, "The random seed");
-
   params.addParam<bool>("cody_test", false, "Use set grain center points for Cody's test. Grain num MUST equal 10");
-
   params.addParam<bool>("columnar_3D", false, "3D microstructure will be columnar in the z-direction?");
-
   return params;
 }
 
-PolycrystalVoronoiICAction::PolycrystalVoronoiICAction(const std::string & name, InputParameters params) :
-    Action(name, params),
+PolycrystalVoronoiICAction::PolycrystalVoronoiICAction(const InputParameters & params) :
+    Action(params),
     _op_num(getParam<unsigned int>("op_num")),
     _grain_num(getParam<unsigned int>("grain_num")),
     _var_name_base(getParam<std::string>("var_name_base"))
@@ -67,6 +72,6 @@ PolycrystalVoronoiICAction::act()
     poly_params.set<bool>("columnar_3D") = getParam<bool>("columnar_3D");
 
     //Add initial condition
-    _problem->addInitialCondition("PolycrystalReducedIC", "InitialCondition", poly_params);
+    _problem->addInitialCondition("PolycrystalReducedIC", "PolycrystalVoronoiIC_" + Moose::stringify(op), poly_params);
   }
 }

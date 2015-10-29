@@ -24,14 +24,14 @@ InputParameters validParams<SideUserObject>()
   return params;
 }
 
-SideUserObject::SideUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BoundaryRestrictable(name, parameters),
-    MaterialPropertyInterface(name, parameters),
+SideUserObject::SideUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BoundaryRestrictable(parameters),
+    MaterialPropertyInterface(parameters, boundaryIDs()),
     Coupleable(parameters, false),
     MooseVariableDependencyInterface(),
     UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "side_user_objects"),
+    TransientInterface(parameters, "side_user_objects"),
     PostprocessorInterface(parameters),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
@@ -50,3 +50,4 @@ SideUserObject::SideUserObject(const std::string & name, InputParameters paramet
   for (unsigned int i=0; i<coupled_vars.size(); i++)
     addMooseVariableDependency(coupled_vars[i]);
 }
+

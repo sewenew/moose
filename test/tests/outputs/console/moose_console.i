@@ -50,5 +50,4 @@
 [Outputs]
   exodus = true
   interval = 2
-  output_on = 'initial timestep_end'
 []

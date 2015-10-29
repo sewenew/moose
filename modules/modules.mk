@@ -7,12 +7,13 @@
 #
 # New Module Step 5.
 #       MODULENAME                := yes
+#
+# Add to list
+# MODULE_LIST := ... MODULENAME
 ###############################################################################
-
 ifeq ($(ALL_MODULES),yes)
         CHEMICAL_REACTIONS        := yes
         CONTACT                   := yes
-        FLUID_MASS_ENERGY_BALANCE := yes
         HEAT_CONDUCTION           := yes
         LINEAR_ELASTICITY         := yes
         MISC                      := yes
@@ -27,6 +28,13 @@ endif
 ifeq ($(PHASE_FIELD),yes)
         TENSOR_MECHANICS          := yes
 endif
+
+ifeq ($(SOLID_MECHANICS),yes)
+        TENSOR_MECHANICS          := yes
+endif
+
+# The master list of all moose modules
+MODULE_NAMES := "chemical_reactions contact heat_conduction linear_elasticity misc navier_stokes phase_field richards solid_mechanics tensor_mechanics water_steam_eos"
 
 ###############################################################################
 ########################## MODULE REGISTRATION ################################
@@ -52,12 +60,6 @@ endif
 ifeq ($(CONTACT),yes)
   APPLICATION_DIR    := $(MOOSE_DIR)/modules/contact
   APPLICATION_NAME   := contact
-  include $(FRAMEWORK_DIR)/app.mk
-endif
-
-ifeq ($(FLUID_MASS_ENERGY_BALANCE),yes)
-  APPLICATION_DIR    := $(MOOSE_DIR)/modules/fluid_mass_energy_balance
-  APPLICATION_NAME   := fluid_mass_energy_balance
   include $(FRAMEWORK_DIR)/app.mk
 endif
 
@@ -110,6 +112,9 @@ endif
 ifeq ($(SOLID_MECHANICS),yes)
   APPLICATION_DIR    := $(MOOSE_DIR)/modules/solid_mechanics
   APPLICATION_NAME   := solid_mechanics
+  
+  #Dependency on tensor mechanics
+  DEPEND_MODULES     := tensor_mechanics
   include $(FRAMEWORK_DIR)/app.mk
 endif
 

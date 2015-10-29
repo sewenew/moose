@@ -15,9 +15,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -201,19 +199,26 @@
     friction_angle = fric
     dilation_angle = dil
     yield_function_tolerance = 1.0 # THIS IS HIGHER THAN THE SMOOTH CASE TO AVOID PRECISION-LOSS PROBLEMS!
+    shift =  1.0
     internal_constraint_tolerance = 1E-9
   [../]
 []
 
 [Materials]
-  [./mc]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 1
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     fill_method = symmetric_isotropic
     C_ijkl = '0 5E9' # young = 10Gpa, poisson = 0.0
+  [../]
+  [./strain]
+    type = ComputeIncrementalSmallStrain
+    block = 1
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./mc]
+    type = ComputeMultiPlasticityStress
+    block = 1
     ep_plastic_tolerance = 1E-9
     plastic_models = mc
     max_NR_iterations = 100
@@ -236,7 +241,7 @@
 [Executioner]
   end_time = 1.05
   dt = 0.1
-  solve_type = PJFNK
+  solve_type = NEWTON
   type = Transient
 
   l_tol = 1E-2
@@ -253,16 +258,9 @@
 
 [Outputs]
   file_base = uni_axial3_planar
-  output_on = 'initial timestep_end'
   [./exodus]
     type = Exodus
-    interval = 1
     hide = 'stress_xx stress_xy stress_xz stress_yy stress_yz stress_zz yield_fcn s_xx s_xy s_xz s_yy s_yz s_zz f'
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
   [./csv]
     type = CSV

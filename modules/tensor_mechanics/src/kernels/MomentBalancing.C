@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MomentBalancing.h"
 
 #include "Material.h"
@@ -21,8 +27,8 @@ InputParameters validParams<MomentBalancing>()
   return params;
 }
 
-MomentBalancing::MomentBalancing(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+MomentBalancing::MomentBalancing(const InputParameters & parameters) :
+    Kernel(parameters),
     _stress(getMaterialProperty<RankTwoTensor>("stress" + getParam<std::string>("appended_property_name"))),
     _Jacobian_mult(getMaterialProperty<ElasticityTensorR4>("Jacobian_mult" + getParam<std::string>("appended_property_name"))),
     _component(getParam<unsigned int>("component")),
@@ -80,3 +86,4 @@ MomentBalancing::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0;
 }
+

@@ -32,13 +32,13 @@ InputParameters validParams<LayeredSideFluxAverage>();
 class LayeredSideFluxAverage : public LayeredSideAverage
 {
 public:
-  LayeredSideFluxAverage(const std::string & name, InputParameters parameters);
+  LayeredSideFluxAverage(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
 
   std::string _diffusivity;
-  MaterialProperty<Real> & _diffusion_coef;
+  const MaterialProperty<Real> & _diffusion_coef;
 };
 
 #endif

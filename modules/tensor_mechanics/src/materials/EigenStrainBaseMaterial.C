@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "EigenStrainBaseMaterial.h"
 
 template<>
@@ -8,9 +14,8 @@ InputParameters validParams<EigenStrainBaseMaterial>()
   return params;
 }
 
-EigenStrainBaseMaterial::EigenStrainBaseMaterial(const std::string & name,
-                                                 InputParameters parameters) :
-    DerivativeMaterialInterface<LinearElasticMaterial>(name, parameters),
+EigenStrainBaseMaterial::EigenStrainBaseMaterial(const InputParameters & parameters) :
+    DerivativeMaterialInterface<LinearElasticMaterial>(parameters),
 
     _c(coupledValue("c")),
     _c_name(getVar("c", 0)->name()),
@@ -19,8 +24,8 @@ EigenStrainBaseMaterial::EigenStrainBaseMaterial(const std::string & name,
     _eigenstrain(declareProperty<RankTwoTensor>(_eigenstrain_name)),
 
     // the derivatives of elastic strain w.r.t c are provided here
-    _deigenstrain_dc(declarePropertyDerivative<RankTwoTensor>(_base_name + "elastic_strain", _c_name)),
-    _d2eigenstrain_dc2(declarePropertyDerivative<RankTwoTensor>(_base_name + "elastic_strain", _c_name, _c_name)),
+    _delastic_strain_dc(declarePropertyDerivative<RankTwoTensor>(_base_name + "elastic_strain", _c_name)),
+    _d2elastic_strain_dc2(declarePropertyDerivative<RankTwoTensor>(_base_name + "elastic_strain", _c_name, _c_name)),
 
     _delasticity_tensor_dc(declarePropertyDerivative<ElasticityTensorR4>(_elasticity_tensor_name, _c_name)),
     _d2elasticity_tensor_dc2(declarePropertyDerivative<ElasticityTensorR4>(_elasticity_tensor_name, _c_name, _c_name))
@@ -37,3 +42,4 @@ RankTwoTensor EigenStrainBaseMaterial::computeStressFreeStrain()
 
   return stress_free_strain;
 }
+

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSRELPERMVG1_H
 #define RICHARDSRELPERMVG1_H
@@ -23,7 +26,7 @@ InputParameters validParams<RichardsRelPermVG1>();
 class RichardsRelPermVG1 : public RichardsRelPermVG
 {
 public:
-  RichardsRelPermVG1(const std::string & name, InputParameters parameters);
+  RichardsRelPermVG1(const InputParameters & parameters);
 
   /// just prints some (maybe) useful info to the console
   void initialSetup();

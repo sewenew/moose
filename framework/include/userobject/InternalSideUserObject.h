@@ -18,7 +18,7 @@
 #include "UserObject.h"
 #include "BlockRestrictable.h"
 #include "NeighborCoupleable.h"
-#include "MaterialPropertyInterface.h"
+#include "TwoMaterialPropertyInterface.h"
 #include "MooseVariableDependencyInterface.h"
 #include "UserObjectInterface.h"
 #include "TransientInterface.h"
@@ -36,7 +36,7 @@ InputParameters validParams<InternalSideUserObject>();
 class InternalSideUserObject :
   public UserObject,
   public BlockRestrictable,
-  public MaterialPropertyInterface,
+  public TwoMaterialPropertyInterface,
   public NeighborCoupleable,
   public MooseVariableDependencyInterface,
   public UserObjectInterface,
@@ -45,7 +45,7 @@ class InternalSideUserObject :
   public ZeroInterface
 {
 public:
-  InternalSideUserObject(const std::string & name, InputParameters parameters);
+  InternalSideUserObject(const InputParameters & parameters);
   virtual ~InternalSideUserObject();
 
   /**

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSProjection.h"
 
 template<>
@@ -20,8 +26,8 @@ InputParameters validParams<INSProjection>()
 
 
 
-INSProjection::INSProjection(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSProjection::INSProjection(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Coupled variables
   _a1(coupledValue("a1")),
@@ -95,3 +101,4 @@ Real INSProjection::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

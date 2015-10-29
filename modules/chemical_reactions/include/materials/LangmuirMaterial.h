@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef LANGMUIRMATERIAL_H
 #define LANGMUIRMATERIAL_H
 
@@ -16,8 +22,7 @@ InputParameters validParams<LangmuirMaterial>();
 class LangmuirMaterial : public Material
 {
 public:
-  LangmuirMaterial(const std::string & name,
-                  InputParameters parameters);
+  LangmuirMaterial(const InputParameters & parameters);
 
 protected:
 

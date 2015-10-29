@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "CrackDataSampler.h"
 #include "PostprocessorInterface.h"
@@ -32,9 +26,9 @@ InputParameters validParams<CrackDataSampler>()
   return params;
 }
 
-CrackDataSampler::CrackDataSampler(const std::string & name, InputParameters parameters) :
-    GeneralVectorPostprocessor(name, parameters),
-    SamplerBase(name, parameters, this, _communicator),
+CrackDataSampler::CrackDataSampler(const InputParameters & parameters) :
+    GeneralVectorPostprocessor(parameters),
+    SamplerBase(parameters, this, _communicator),
     _crack_front_definition(&getUserObject<CrackFrontDefinition>("crack_front_definition")),
     _position_type(getParam<MooseEnum>("position_type"))
 {
@@ -46,14 +40,14 @@ CrackDataSampler::CrackDataSampler(const std::string & name, InputParameters par
     _domain_integral_postprocessor_values.push_back(&getPostprocessorValueByName(pps_names[i]));
   }
   std::vector<std::string> var_names;
-  var_names.push_back(name);
+  var_names.push_back(name());
   SamplerBase::setupVariables(var_names);
 }
 
 void
 CrackDataSampler::initialize()
 {
-  if (_crack_front_definition->getNumCrackFrontNodes() != _domain_integral_postprocessor_values.size())
+  if (_crack_front_definition->getNumCrackFrontPoints() != _domain_integral_postprocessor_values.size())
     mooseError("In CrackDataSampler, number of crack front nodes != number of domain integral postprocessors");
   if (_position_type == "angle" && !_crack_front_definition->hasAngleAlongFront())
     mooseError("In CrackDataSampler, 'position_type = Angle' specified, but angle is not available.  "
@@ -64,19 +58,22 @@ CrackDataSampler::initialize()
 void
 CrackDataSampler::execute()
 {
-  std::vector<Real> values;
-  for (unsigned int i=0; i<_domain_integral_postprocessor_values.size(); ++i)
+  if (processor_id() == 0)
   {
-    values.clear();
-    const Point & crack_front_node = *_crack_front_definition->getCrackFrontNodePtr(i);
-    Real position;
-    if (_position_type == "Angle")
-      position = _crack_front_definition->getAngleAlongFront(i);
-    else
-      position = _crack_front_definition->getDistanceAlongFront(i);
+    std::vector<Real> values;
+    for (unsigned int i=0; i<_domain_integral_postprocessor_values.size(); ++i)
+    {
+      values.clear();
+      const Point *crack_front_point = _crack_front_definition->getCrackFrontPoint(i);
+      Real position;
+      if (_position_type == "Angle")
+        position = _crack_front_definition->getAngleAlongFront(i);
+      else
+        position = _crack_front_definition->getDistanceAlongFront(i);
 
-    values.push_back(*_domain_integral_postprocessor_values[i]);
-    addSample(crack_front_node, position, values);
+      values.push_back(*_domain_integral_postprocessor_values[i]);
+      addSample(*crack_front_point, position, values);
+    }
   }
 }
 

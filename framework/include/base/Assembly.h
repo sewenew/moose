@@ -342,6 +342,20 @@ public:
   void cacheResidual();
 
   /**
+   * Cache individual residual contributions.  These will ultimately get added to the residual when addCachedResidual() is called.
+   *
+   * @param dof The degree of freedom to add the residual contribution to
+   * @param value The value of the residual contribution.
+   * @param type Whether the contribution should go to the Time or Non-Time residual
+   */
+  void cacheResidualContribution(dof_id_type dof, Real value, Moose::KernelType type);
+
+  /**
+   * Lets an external class cache residual at a set of nodes
+   */
+  void cacheResidualNodes(DenseVector<Number> & res, std::vector<dof_id_type> & dof_index);
+
+  /**
    * Takes the values that are currently in _sub_Ke and appends them to the cached values.
    */
   void cacheResidualNeighbor();
@@ -402,17 +416,17 @@ public:
   const VariablePhiSecond & secondPhiFaceNeighbor() { return _second_phi_face_neighbor; }
 
 
-  const VariablePhiValue & fePhi(FEType type)             { buildFE(type); return _fe_shape_data[type]->_phi; }
-  const VariablePhiGradient & feGradPhi(FEType type) { buildFE(type); return _fe_shape_data[type]->_grad_phi; }
-  const VariablePhiSecond & feSecondPhi(FEType type) { buildFE(type); _need_second_derivative[type] = true; return _fe_shape_data[type]->_second_phi; }
+  const VariablePhiValue & fePhi(FEType type);
+  const VariablePhiGradient & feGradPhi(FEType type);
+  const VariablePhiSecond & feSecondPhi(FEType type);
 
-  const VariablePhiValue & fePhiFace(FEType type)             { buildFaceFE(type); return _fe_shape_data_face[type]->_phi; }
-  const VariablePhiGradient & feGradPhiFace(FEType type) { buildFaceFE(type); return _fe_shape_data_face[type]->_grad_phi; }
-  const VariablePhiSecond & feSecondPhiFace(FEType type) { buildFaceFE(type); _need_second_derivative[type] = true; return _fe_shape_data_face[type]->_second_phi; }
+  const VariablePhiValue & fePhiFace(FEType type);
+  const VariablePhiGradient & feGradPhiFace(FEType type);
+  const VariablePhiSecond & feSecondPhiFace(FEType type);
 
-  const VariablePhiValue & fePhiFaceNeighbor(FEType type)             { buildFaceNeighborFE(type); return _fe_shape_data_face_neighbor[type]->_phi; }
-  const VariablePhiGradient & feGradPhiFaceNeighbor(FEType type) { buildFaceNeighborFE(type); return _fe_shape_data_face_neighbor[type]->_grad_phi; }
-  const VariablePhiSecond & feSecondPhiFaceNeighbor(FEType type) { buildFaceNeighborFE(type); _need_second_derivative[type] = true; return _fe_shape_data_face_neighbor[type]->_second_phi; }
+  const VariablePhiValue & fePhiFaceNeighbor(FEType type);
+  const VariablePhiGradient & feGradPhiFaceNeighbor(FEType type);
+  const VariablePhiSecond & feSecondPhiFaceNeighbor(FEType type);
 
   /**
    * Invalidate any currently cached data.  In particular this will cause FE data to get recached.
@@ -420,6 +434,26 @@ public:
   void invalidateCache();
 
   std::map<FEType, bool> _need_second_derivative;
+
+  /**
+   * Caches the Jacobian entry 'value', to eventually be
+   * added/set in the (i,j) location of the matrix.
+   *
+   * We use numeric_index_type for the index arrays (rather than
+   * dof_id_type) since that is what the SparseMatrix interface uses,
+   * but at the time of this writing, those two types are equivalent.
+   */
+  void cacheJacobianContribution(numeric_index_type i, numeric_index_type j, Real value);
+
+  /**
+   * Sets previously-cached Jacobian values via SparseMatrix::set() calls.
+   */
+  void setCachedJacobianContributions(SparseMatrix<Number> & jacobian);
+
+  /**
+   * Adds previously-cached Jacobian values via SparseMatrix::add() calls.
+   */
+  void addCachedJacobianContributions(SparseMatrix<Number> & jacobian);
 
 protected:
   /**
@@ -447,6 +481,14 @@ protected:
   void setResidualBlock(NumericVector<Number> & residual, DenseVector<Number> & res_block, std::vector<dof_id_type> & dof_indices, Real scaling_factor);
 
   void addJacobianBlock(SparseMatrix<Number> & jacobian, DenseMatrix<Number> & jac_block, const std::vector<dof_id_type> & idof_indices, const std::vector<dof_id_type> & jdof_indices, Real scaling_factor);
+
+
+  /**
+   * Clear any currently cached jacobian contributions
+   *
+   * This is automatically called by setCachedJacobianContributions and addCachedJacobianContributions
+   */
+  void clearCachedJacobianContributions();
 
   SystemBase & _sys;
   /// Reference to coupling matrix
@@ -672,6 +714,13 @@ protected:
 
   /// Temporary work vector to keep from reallocating it
   std::vector<dof_id_type> _temp_dof_indices;
+
+  /**
+   * Storage for cached Jacobian entries
+   */
+  std::vector<Real> _cached_jacobian_contribution_vals;
+  std::vector<numeric_index_type> _cached_jacobian_contribution_rows;
+  std::vector<numeric_index_type> _cached_jacobian_contribution_cols;
 };
 
 #endif /* ASSEMBLY_H */

@@ -1,43 +1,40 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TotalFreeEnergy.h"
 
 template<>
 InputParameters validParams<TotalFreeEnergy>()
 {
-  InputParameters params = validParams<AuxKernel>();
-  params.addParam<std::string>("f_name", "F"," Base name of the free energy function used to name the material properties");
-  params.addRequiredCoupledVar("interfacial_vars", "Variable names that contribute to interfacial energy");
-  params.addRequiredParam< std::vector<std::string> >("kappa_names", "Name of the kappa parameters corresponding to each variable name in interfacial_vars. The order of the variable names in interfacial_vars needs to be the same as their kappas in this vector");
-
+  InputParameters params = validParams<TotalFreeEnergyBase>();
+  params.addClassDescription("Total free energy (both the bulk and gradient parts), where the bulk free energy has been defined in a material");
+  params.addParam<MaterialPropertyName>("f_name", "F"," Base name of the free energy function");
+  params.addParam< std::vector<std::string> >("kappa_names", std::vector<std::string>(), "Vector of kappa names corresponding to each variable name in interfacial_vars in the same order.");
   return params;
 }
 
-TotalFreeEnergy::TotalFreeEnergy(const std::string & name,
-                                                         InputParameters parameters) :
-    AuxKernel(name, parameters),
-    _nvars(coupledComponents("interfacial_vars")),
-    _F(getMaterialProperty<Real>(getParam<std::string>("f_name")) ),
-    _kappa_names(getParam<std::vector<std::string> >("kappa_names"))
+TotalFreeEnergy::TotalFreeEnergy(const InputParameters & parameters) :
+    TotalFreeEnergyBase(parameters),
+    _F(getMaterialProperty<Real>("f_name")),
+    _kappas(_nkappas)
 {
   //Error check to ensure size of interfacial_vars is the same as kappa_names
-  if (_nvars != _kappa_names.size())
+  if (_nvars != _nkappas)
     mooseError("Size of interfacial_vars is not equal to the size of kappa_names in TotalFreeEnergy");
 
-  _grad_vars.resize(_nvars);
-  _kappas.resize(_nvars);
-
-  //Assign values of material and variable vectors
-  for (unsigned int i = 0; i < _nvars; ++i)
-  {
-    _kappas[i] = &getMaterialProperty<Real>(_kappa_names[i]);
-    _grad_vars[i] = &coupledGradient("interfacial_vars", i);
-  }
+  // Assign kappa values
+  for (unsigned int i = 0; i < _nkappas; ++i)
+    _kappas[i] = &getMaterialPropertyByName<Real>(_kappa_names[i]);
 }
 
 Real
 TotalFreeEnergy::computeValue()
 {
-  //Include bulk energy contribution
-  Real total_energy = _F[_qp];
+  // Include bulk energy contribution and additional contributions
+  Real total_energy = _F[_qp] + _additional_free_energy[_qp];
 
   // Calculate interfacial energy of each variable
 
@@ -49,3 +46,4 @@ TotalFreeEnergy::computeValue()
 
   return total_energy;
 }
+

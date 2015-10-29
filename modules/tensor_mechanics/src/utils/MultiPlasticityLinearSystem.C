@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MultiPlasticityLinearSystem.h"
 
 // Following is for perturbing distances in eliminating linearly-dependent directions
@@ -14,9 +20,8 @@ InputParameters validParams<MultiPlasticityLinearSystem>()
   return params;
 }
 
-MultiPlasticityLinearSystem::MultiPlasticityLinearSystem(const std::string & name,
-                                         InputParameters parameters):
-    MultiPlasticityRawComponentAssembler(name, parameters),
+MultiPlasticityLinearSystem::MultiPlasticityLinearSystem(const InputParameters & parameters):
+    MultiPlasticityRawComponentAssembler(parameters),
     _svd_tol(parameters.get<Real>("linear_dependent")),
     _min_f_tol(-1.0)
 {
@@ -96,7 +101,9 @@ MultiPlasticityLinearSystem::eliminateLinearDependence(const RankTwoTensor & str
   // num_lin_dep are the number of linearly dependent
   // "r vectors", if num_active <= 6
   unsigned int num_lin_dep = 0;
-  for (unsigned i = s.size() - 1 ; i > 0 ; --i)
+
+  unsigned i = s.size();
+  while (i-- > 0)
     if (s[i] < _svd_tol*s[0])
       num_lin_dep++;
     else
@@ -161,6 +168,8 @@ MultiPlasticityLinearSystem::eliminateLinearDependence(const RankTwoTensor & str
     {
       r_tmp.push_back(r[current_yf]);
       info = singularValuesOfR(r_tmp, s);
+      if (info != 0)
+        mooseError("In finding the SVD in the return-map algorithm, the PETSC LAPACK gesvd routine returned with error code " << info);
       if (s[s.size() - 1] < _svd_tol*s[0])
       {
         scheduled_for_deactivation[current_yf] = true;

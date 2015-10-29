@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSGravityForce.h"
 
 template<>
@@ -12,8 +18,8 @@ InputParameters validParams<NSGravityForce>()
   return params;
 }
 
-NSGravityForce::NSGravityForce(const std::string & name, InputParameters parameters)
-  :NSKernel(name, parameters),
+NSGravityForce::NSGravityForce(const InputParameters & parameters)
+  :NSKernel(parameters),
     _acceleration(getParam<Real>("acceleration"))
   {}
 
@@ -42,3 +48,4 @@ NSGravityForce::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0;
 }
+

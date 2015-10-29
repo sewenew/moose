@@ -153,7 +153,7 @@
     block = 1
     variable = area
     value = 0.8
-    execute_on = timestep_begin
+    execute_on = 'initial timestep_begin'
   [../]
 []
 
@@ -258,10 +258,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

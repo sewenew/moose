@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AnisoHeatConductionMaterial.h"
 
 template<>
@@ -20,8 +26,8 @@ InputParameters validParams<AnisoHeatConductionMaterial>()
   return params;
 }
 
-AnisoHeatConductionMaterial::AnisoHeatConductionMaterial(const std::string & name, InputParameters parameters) :
-  Material(name, parameters),
+AnisoHeatConductionMaterial::AnisoHeatConductionMaterial(const InputParameters & parameters) :
+  Material(parameters),
 
   _has_temp(isCoupled("temp")),
   _temperature(_has_temp ? coupledValue("temp") : _zero),
@@ -105,3 +111,4 @@ AnisoHeatConductionMaterial::computeProperties()
     }
   }
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsPlasticWeakPlaneTensileN.h"
 #include "RotationMatrix.h" // for rotVecToZ
 
@@ -11,9 +17,8 @@ InputParameters validParams<TensorMechanicsPlasticWeakPlaneTensileN>()
   return params;
 }
 
-TensorMechanicsPlasticWeakPlaneTensileN::TensorMechanicsPlasticWeakPlaneTensileN(const std::string & name,
-                                                         InputParameters parameters) :
-    TensorMechanicsPlasticWeakPlaneTensile(name, parameters),
+TensorMechanicsPlasticWeakPlaneTensileN::TensorMechanicsPlasticWeakPlaneTensileN(const InputParameters & parameters) :
+    TensorMechanicsPlasticWeakPlaneTensile(parameters),
     _input_n(getParam<RealVectorValue>("normal_vector")),
     _df_dsig(RankTwoTensor())
 {
@@ -72,3 +77,10 @@ TensorMechanicsPlasticWeakPlaneTensileN::dflowPotential_dintnl(const RankTwoTens
 {
   return RankTwoTensor();
 }
+
+std::string
+TensorMechanicsPlasticWeakPlaneTensileN::modelName() const
+{
+  return "WeakPlaneTensileN";
+}
+

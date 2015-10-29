@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef COSSERATSTRESSDIVERGENCETENSORS_H
 #define COSSERATSTRESSDIVERGENCETENSORS_H
 
@@ -12,7 +18,7 @@ InputParameters validParams<CosseratStressDivergenceTensors>();
 class CosseratStressDivergenceTensors : public StressDivergenceTensors
 {
 public:
-  CosseratStressDivergenceTensors(const std::string & name, InputParameters parameters);
+  CosseratStressDivergenceTensors(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpOffDiagJacobian(unsigned int jvar);

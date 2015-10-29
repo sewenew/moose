@@ -39,7 +39,7 @@ InputParameters validParams<DisplacedProblem>();
 class DisplacedProblem : public SubProblem
 {
 public:
-  DisplacedProblem(FEProblem & mproblem, MooseMesh & displaced_mesh, InputParameters params);
+  DisplacedProblem(const InputParameters & parameters);
   virtual ~DisplacedProblem();
 
   virtual EquationSystems & es() { return _eq; }
@@ -97,6 +97,7 @@ public:
   virtual void reinitNode(const Node * node, THREAD_ID tid);
   virtual void reinitNodeFace(const Node * node, BoundaryID bnd_id, THREAD_ID tid);
   virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
   virtual void reinitNeighbor(const Elem * elem, unsigned int side, THREAD_ID tid);
   virtual void reinitNeighborPhys(const Elem * neighbor, unsigned int neighbor_side, const std::vector<Point> & physical_points, THREAD_ID tid);
   virtual void reinitNodeNeighbor(const Node * node, THREAD_ID tid);
@@ -165,16 +166,6 @@ public:
   virtual void ghostGhostedBoundaries();
 
   /**
-   * Register a piece of restartable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * @param name The full (unique) name.
-   * @param data The actual data object.
-   * @param tid The thread id of the object.  Use 0 if the object is not threaded.
-   */
-  virtual void registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid);
-
-  /**
    * Resets the displaced mesh to the reference mesh.  Required when
    * refining the DisplacedMesh.
    */
@@ -199,18 +190,6 @@ protected:
   GeometricSearchData _geometric_search_data;
 
 private:
-  /**
-   * NOTE: This is an internal function meant for MOOSE use only!
-   *
-   * Register a piece of recoverable data.  This is data that will get
-   * written / read to / from a restart file.
-   *
-   * However, this data will ONLY get read from the restart file during a RECOVERY operation!
-   *
-   * @param name The full (unique) name.
-   */
-  virtual void registerRecoverableData(std::string name);
-
   friend class UpdateDisplacedMeshThread;
   friend class Restartable;
 };

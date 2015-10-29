@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari, O. Heinonen
 
 #include "CosseratLinearElasticMaterial.h"
@@ -28,9 +34,8 @@ InputParameters validParams<CosseratLinearElasticMaterial>()
   return params;
 }
 
-CosseratLinearElasticMaterial::CosseratLinearElasticMaterial(const std::string & name,
-                                                             InputParameters parameters) :
-    TensorMechanicsMaterial(name, parameters),
+CosseratLinearElasticMaterial::CosseratLinearElasticMaterial(const InputParameters & parameters) :
+    TensorMechanicsMaterial(parameters),
     _eigenstrain(declareProperty<RankTwoTensor>("eigenstrain")),
     _symmetric_strain(declareProperty<RankTwoTensor>("symmetric_strain")),
     _antisymmetric_strain(declareProperty<RankTwoTensor>("antisymmetric_strain")),
@@ -121,3 +126,4 @@ void CosseratLinearElasticMaterial::computeQpElasticityTensor()
   _elastic_flexural_rigidity_tensor[_qp] = _Bijkl;
   _Jacobian_mult_couple[_qp] = _Bijkl;
 }
+

@@ -25,16 +25,15 @@ InputParameters validParams<DGMDDBC>()
   params.addRequiredParam<FunctionName>("function", "The forcing function.");
   params.addRequiredParam<Real>("epsilon", "Epsilon");
   params.addRequiredParam<Real>("sigma", "Sigma");
-  params.addRequiredParam<std::string>("prop_name", "diff1");
+  params.addRequiredParam<MaterialPropertyName>("prop_name", "diff1");
 
   return params;
 }
 
-DGMDDBC::DGMDDBC(const std::string & name, InputParameters parameters) :
-    IntegratedBC(name, parameters),
+DGMDDBC::DGMDDBC(const InputParameters & parameters) :
+    IntegratedBC(parameters),
     _func(getFunction("function")),
-    _prop_name(getParam<std::string>("prop_name")),
-    _diff(getMaterialProperty<Real>(_prop_name)),
+    _diff(getMaterialProperty<Real>("prop_name")),
     _epsilon(getParam<Real>("epsilon")),
     _sigma(getParam<Real>("sigma"))
 {}

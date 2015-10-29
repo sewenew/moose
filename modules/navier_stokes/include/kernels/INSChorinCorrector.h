@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSCHORINCORRECTOR_H
 #define INSCHORINCORRECTOR_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<INSChorinCorrector>();
 class INSChorinCorrector : public Kernel
 {
 public:
-  INSChorinCorrector(const std::string & name, InputParameters parameters);
+  INSChorinCorrector(const InputParameters & parameters);
 
   virtual ~INSChorinCorrector(){}
 

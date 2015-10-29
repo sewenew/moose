@@ -146,6 +146,7 @@
   [./internalVolume]
     type = InternalVolume
     boundary = 2
+    execute_on = 'initial timestep_end'
   [../]
   [./volStrain0]
     type = ElementalVariableValue
@@ -162,10 +163,4 @@
 [Outputs]
   exodus = true
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

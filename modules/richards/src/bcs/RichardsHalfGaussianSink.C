@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsHalfGaussianSink.h"
 #include "Material.h"
@@ -21,8 +24,8 @@ InputParameters validParams<RichardsHalfGaussianSink>()
   return params;
 }
 
-RichardsHalfGaussianSink::RichardsHalfGaussianSink(const std::string & name, InputParameters parameters) :
-    IntegratedBC(name,parameters),
+RichardsHalfGaussianSink::RichardsHalfGaussianSink(const InputParameters & parameters) :
+    IntegratedBC(parameters),
     _maximum(getParam<Real>("max")),
     _sd(getParam<Real>("sd")),
     _centre(getParam<Real>("centre")),
@@ -69,3 +72,4 @@ RichardsHalfGaussianSink::computeQpOffDiagJacobian(unsigned int jvar)
   else
     return -test_fcn_f*_maximum*(_pp[_qp][_pvar] - _centre)/std::pow(_sd, 2)*exp(-0.5*std::pow((_pp[_qp][_pvar] - _centre)/_sd, 2))*_phi[_j][_qp]*_dpp_dv[_qp][_pvar][dvar];
 }
+

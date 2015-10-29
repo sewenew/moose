@@ -19,11 +19,11 @@
 #include <vector>
 
 // MOOSE includes
+#include "Output.h"
 #include "Warehouse.h"
 #include "InputParameters.h"
 
 // Forward declarations
-class Output;
 class Checkpoint;
 class FEProblem;
 
@@ -70,12 +70,6 @@ public:
    * @param name The name of the output object for which to test for existence within the warehouse
    */
   bool hasOutput(const std::string & name) const;
-
-  /**
-   * Calls the outputStep method for each output object
-   * @param type The type execution flag (see Moose.h)
-   */
-  void outputStep(ExecFlagType type);
 
   /**
    * Calls the meshChanged method for every output object
@@ -128,13 +122,8 @@ public:
   std::set<Real> & getSyncTimes();
 
   /**
-   * Call the init() method for each of the Outputs
-   */
-  void init();
-
-  /**
    * Test that the output names exist
-   * @param A vector of names to check
+   * @param names A vector of names to check
    * This method will produce an error if any of the supplied
    * names do not exist in the warehouse. Reserved names are not considered.
    */
@@ -142,8 +131,8 @@ public:
 
   /**
    * Return an Output object by name
-   * @tparam T The Output object type to return
-   * @param The name of the output object
+   * @tparam T The Out put object type to return
+   * @param name The name of the output object
    * @return A pointer to the output object
    */
   template<typename T>
@@ -188,42 +177,45 @@ public:
   bool isReservedName(const std::string & name);
 
   /**
-   * Sends the supplied message to Console output objects
-   * @param message A string containing the message to write
+   * Send current output buffer to Console output objects
    */
   void mooseConsole();
 
   /**
-   * The multiapp level
-   * @return A writable reference to the current number of levels from the master app
-   */
-  unsigned int & multiappLevel() { return _multiapp_level; }
-
-  /**
-   * The buffered messages stream for Console objectsc
+   * The buffered messages stream for Console objects
    * @return Reference to the stream storing cached messages from calls to _console
    */
   std::ostringstream & consoleBuffer() { return _console_buffer; }
 
+
+private:
+
   /**
-   * Ability to enable/disable all output calls
+   * Calls the outputStep method for each output object
+   * @param type The type execution flag (see Moose.h)
    *
-   * This is needed by RattleSNake/YAK to disable output because of the Yo Dawg executioners calling
-   * other executioners.
+   * This is private, users should utilize FEProblem::outputStep()
+   */
+  void outputStep(ExecFlagType type);
+
+  ///@{
+  /**
+   * Ability to enable/disable output calls
+   * This is private, users should utilize FEProblem::allowOutput()
+   * @see FEProblem::allowOutput()
    */
   void allowOutput(bool state);
+  template <typename T> void allowOutput(bool state);
+  ///@}
+
 
   /**
    * Indicates that the next call to outputStep should be forced
-   *
-   * This is needed by the MultiApp system, if forceOutput is called the next call to outputStep,
-   * regardless of the type supplied to the call, will be executed with EXEC_FORCED.
-   *
-   * Forced output will NOT override the allowOutput flag
+   * This is private, users should utilize FEProblem::forceOutput()
+   * @see FEProblem::forceOutput()
    */
   void forceOutput();
 
-private:
   /**
    * We are using MooseSharedPointer to handle the cleanup of the pointers at the end of execution.
    * This is necessary since several warehouses might be sharing a single instance of a MooseObject.
@@ -234,7 +226,6 @@ private:
    * Adds the file name to the list of filenames being output
    * The main function of this object is to test that the same output file
    * does not already exist to protect against output files overwriting each other
-   * @param ptr Pointer to the Output object
    * @param filename Name of an output file (extracted from filename() method of the objects)
    */
   void addOutputFilename(const OutFileBase & filename);
@@ -250,6 +241,12 @@ private:
    * @see FEProblem::timestepSetup()
    */
   void timestepSetup();
+
+  /**
+   * Calls the timestepSetup function for each of the output objects
+   * @see FEProblem::solve()
+   */
+  void solveSetup();
 
   /**
    * Calls the jacobianSetup function for each of the output objects
@@ -270,9 +267,9 @@ private:
   void subdomainSetup();
 
   /**
-   * Insert a variable name for hiding via the OutoutInterface
+   * Insert variable names for hiding via the OutoutInterface
    * @param output_name The name of the output object on which the variable is to be hidden
-   * @param variable_name The name of the variable to be hidden
+   * @param variable_names The names of the variables to be hidden
    *
    * This is a private method used by the OutputInterface system, it is not intended for any
    * other purpose.
@@ -285,6 +282,13 @@ private:
    * This is a private method used by FEProblem, it is not intended for any other purpose
    */
   void setOutputExecutionType(ExecFlagType type);
+
+  /**
+   * If content exists in the buffer, write it.
+   * This is used by Console to make sure PETSc related output does not dump
+   * before buffered content. It is private because people shouldn't be messing with it.
+   */
+  void flushConsoleBuffer();
 
   /// A map of the output pointers
   std::map<OutputName, Output *> _object_map;
@@ -313,10 +317,7 @@ private:
   /// List of reserved names
   std::set<std::string> _reserved;
 
-  /// Level of multiapp, the master is level 0. This used by the Console to indent output
-  unsigned int _multiapp_level;
-
-  /// Stream for holding messages passed to _console prior to Output object construction
+  /// The stream for holding messages passed to _console prior to Output object construction
   std::ostringstream _console_buffer;
 
   /// Storage for variables to hide as prescribed by the object via the OutputInterface
@@ -325,19 +326,21 @@ private:
   /// The current output execution flag
   ExecFlagType _output_exec_flag;
 
-  /// Flag for enabling/disabling all output
-  bool _allow_output;
-
   /// Flag indicating that next call to outputStep is forced
   bool _force_output;
 
   // Allow complete access:
-  //  (1) FEProblem for calling initial/timestepSetup functions
-  //  (2) MaterialOutputAction for calling addInterfaceHideVariables
-  //  (3) OutputInterface for calling addInterfaceHideVariables
+  // FEProblem for calling initial, timestepSetup, outputStep, etc. methods
   friend class FEProblem;
+
+  // MaterialOutputAction for calling addInterfaceHideVariables
   friend class MaterialOutputAction;
+
+  // OutputInterface for calling addInterfaceHideVariables
   friend class OutputInterface;
+
+  // Console for calling flushConsoleBuffer()
+  friend class PetscOutput;
 };
 
 template<typename T>
@@ -393,11 +396,6 @@ OutputWarehouse::getOutputs() const
   return outputs;
 }
 
-/**
- * Return a list of output objects with a given type
- * @tparam T The output object type
- * @return A vector of names
- */
 template<typename T>
 std::vector<OutputName>
 OutputWarehouse::getOutputNames()
@@ -415,6 +413,15 @@ OutputWarehouse::getOutputNames()
 
   // Return the names
   return names;
+}
+
+template<typename T>
+void
+OutputWarehouse::allowOutput(bool state)
+{
+  std::vector<T *> outputs = getOutputs<T>();
+  for (typename std::vector<T *>::iterator it = outputs.begin(); it != outputs.end(); ++it)
+    (*it)->allowOutput(state);
 }
 
 #endif // OUTPUTWAREHOUSE_H

@@ -38,11 +38,22 @@ MooseEnum::MooseEnum(const MooseEnum & other_enum) :
 {
 }
 
+MooseEnum
+MooseEnum::withNamesFrom(const MooseEnumBase & other_enum)
+{
+  return MooseEnum(other_enum);
+}
+
 /**
  * Private constuctor for use by libmesh::Parameters
  */
 MooseEnum::MooseEnum() :
     _current_id(INVALID_ID)
+{
+}
+
+MooseEnum::MooseEnum(const MooseEnumBase & other_enum) :
+    MooseEnumBase(other_enum)
 {
 }
 
@@ -66,6 +77,8 @@ MooseEnum::operator=(const std::string & name)
 
   _current_name = upper;
   _current_name_preserved = name;
+
+  checkDeprecatedBase(upper);
 
   if (std::find(_names.begin(), _names.end(), upper) == _names.end())
   {
@@ -118,17 +131,26 @@ MooseEnum::operator==(unsigned short value) const
   return value == _current_id;
 }
 
-bool MooseEnum::operator!=(unsigned short value) const
+bool
+MooseEnum::operator!=(unsigned short value) const
 {
   return value != _current_id;
 }
 
-bool MooseEnum::operator==(const MooseEnum & value) const
+bool
+MooseEnum::operator==(const MooseEnum & value) const
 {
   return value._current_name == _current_name;
 }
 
-bool MooseEnum::operator!=(const MooseEnum & value) const
+bool
+MooseEnum::operator!=(const MooseEnum & value) const
 {
   return value._current_name != _current_name;
+}
+
+void
+MooseEnum::checkDeprecated() const
+{
+  checkDeprecatedBase(_current_name);
 }

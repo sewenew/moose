@@ -28,7 +28,9 @@
  * Macros
  */
 #define stringifyName(name) #name
-#define registerAction(tplt, action)                               action_factory.reg<tplt>(stringifyName(tplt), action)
+#define registerAction(tplt, action) action_factory.reg<tplt>(stringifyName(tplt), action)
+
+
 #define registerTask(name, is_required)                            syntax.registerTaskName(name, is_required)
 #define registerMooseObjectTask(name, moose_system, is_required)   syntax.registerTaskName(name, stringifyName(moose_system), is_required)
 #define appendMooseObjectTask(name, moose_system)                  syntax.appendTaskName(name, stringifyName(moose_system))
@@ -41,7 +43,8 @@ class MooseApp;
 /**
  * Typedef for function to build objects
  */
-typedef MooseSharedPointer<Action> (*buildActionPtr)(const std::string & name, InputParameters parameters);
+typedef MooseSharedPointer<Action> (*buildActionPtr)(InputParameters parameters);
+
 
 /**
  * Typedef for validParams
@@ -53,9 +56,9 @@ typedef InputParameters (*paramsActionPtr)();
  * Build an object of type T
  */
 template<class T>
-MooseSharedPointer<Action> buildAction(const std::string & name, InputParameters parameters)
+MooseSharedPointer<Action> buildAction(InputParameters parameters)
 {
-  return MooseSharedPointer<Action>(new T(name, parameters));
+  return MooseSharedPointer<Action>(new T(parameters));
 }
 
 /**
@@ -77,13 +80,12 @@ public:
     build_info._task = task;
     build_info._unique_id = _unique_id++;
     _name_to_build_info.insert(std::make_pair(name, build_info));
-
     _task_to_action_map.insert(std::make_pair(task, name));
   }
 
   std::string getTaskName(const std::string & action);
 
-  MooseSharedPointer<Action> create(const std::string & action, const std::string & name, InputParameters params);
+  MooseSharedPointer<Action> create(const std::string & action, const std::string & action_name, InputParameters parameters);
 
   InputParameters getValidParams(const std::string & name);
 

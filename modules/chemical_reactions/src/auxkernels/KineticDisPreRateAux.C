@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "KineticDisPreRateAux.h"
 
 template<>
@@ -19,8 +25,8 @@ InputParameters validParams<KineticDisPreRateAux>()
   return params;
 }
 
-KineticDisPreRateAux::KineticDisPreRateAux(const std::string & name, InputParameters parameters)
-  :AuxKernel(name, parameters),
+KineticDisPreRateAux::KineticDisPreRateAux(const InputParameters & parameters)
+  :AuxKernel(parameters),
    _log_k(getParam<Real>("log_k")),
    _r_area(getParam<Real>("r_area")),
    _ref_kconst(getParam<Real>("ref_kconst")),
@@ -60,3 +66,4 @@ KineticDisPreRateAux::computeValue()
 
   return -kinetic_rate;
 }
+

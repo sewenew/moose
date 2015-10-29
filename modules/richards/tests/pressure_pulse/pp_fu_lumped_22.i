@@ -172,9 +172,9 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
-    petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it'
-    petsc_options_value = 'bcgs bjacobi 1E-13 1E-13 100'
+    petsc_options = '-snes_monitor -snes_linesearch_monitor'
+    petsc_options_iname = '-pc_factor_shift_type'
+    petsc_options_value = 'nonzero'
   [../]
 []
 
@@ -182,18 +182,22 @@
   type = Transient
   solve_type = Newton
   dt = 1E3
+  dtmin = 1E3
   end_time = 1E4
+  l_tol = 1.e-4
+  nl_rel_tol = 1.e-7
+  nl_max_its = 10
+  l_max_its = 20
+  line_search = 'none'
 []
 
 [Outputs]
   file_base = pp_fu_lumped_22
+  execute_on = 'initial timestep_end final'
   interval = 10000
   exodus = true
-  output_on = 'initial timestep_end final'
   [./console]
     type = Console
-    perf_log = true
     interval = 1
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

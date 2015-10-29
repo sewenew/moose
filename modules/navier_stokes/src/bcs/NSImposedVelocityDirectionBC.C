@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSImposedVelocityDirectionBC.h"
 
 // Full specialization of the validParams function for this object
@@ -23,8 +29,8 @@ InputParameters validParams<NSImposedVelocityDirectionBC>()
 
 
 // Constructor, be sure to call the base class constructor first!
-NSImposedVelocityDirectionBC::NSImposedVelocityDirectionBC(const std::string & name, InputParameters parameters)
-    : NodalBC(name, parameters),
+NSImposedVelocityDirectionBC::NSImposedVelocityDirectionBC(const InputParameters & parameters)
+    : NodalBC(parameters),
 
       // Coupled variables
       _rho(coupledValue("rho")),
@@ -46,4 +52,5 @@ Real NSImposedVelocityDirectionBC::computeQpResidual()
   // Specify desired velocity component
   return _u[_qp] - _rho[_qp] * _desired_unit_velocity_component * vel.size();
 }
+
 

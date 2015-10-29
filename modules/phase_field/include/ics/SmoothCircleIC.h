@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SMOOTHCIRCLEIC_H
 #define SMOOTHCIRCLEIC_H
 
@@ -24,12 +30,9 @@ public:
   /**
    * Constructor
    *
-   * @param name The name given to the initial condition in the input file.
    * @param parameters The parameters object holding data for the class to use.
-   * @param var_name The variable this InitialCondtion is supposed to provide values for.
    */
-  SmoothCircleIC(const std::string & name,
-                 InputParameters parameters);
+  SmoothCircleIC(const InputParameters & parameters);
 
   /**
    * The value of the variable at a point.

@@ -127,11 +127,6 @@
 [Outputs]
   file_base = nc_lumped_01
   interval = 100000
+  execute_on = 'timestep_end final'
   exodus = true
-  output_on = 'initial timestep_end final'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

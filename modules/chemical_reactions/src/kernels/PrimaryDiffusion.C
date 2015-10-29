@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PrimaryDiffusion.h"
 
 // If we use a material pointer we need to include the
@@ -11,8 +17,8 @@ InputParameters validParams<PrimaryDiffusion>()
   return params;
 }
 
-PrimaryDiffusion::PrimaryDiffusion(const std::string & name, InputParameters parameters)
-  :Diffusion(name,parameters),
+PrimaryDiffusion::PrimaryDiffusion(const InputParameters & parameters)
+  :Diffusion(parameters),
    // We are grabbing the "diffusivity" material property
    _diffusivity(getMaterialProperty<Real>("diffusivity"))
 {
@@ -48,3 +54,4 @@ Real PrimaryDiffusion::computeQpOffDiagJacobian(unsigned int /*jvar*/)
 {
   return 0.0;
 }
+

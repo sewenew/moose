@@ -98,7 +98,7 @@ active = 'dt '
   # Scalar postprocessors
   [./ngrains]
   #Counts the number of grains in the polycrystal
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = bnds
     threshold = 0.7
   [../]
@@ -143,11 +143,8 @@ active = 'dt '
   file_base = voronoi_2D
   exodus = true
   csv = true
-  output_on = 'initial timestep_end'
   [./console]
     type = Console
-    perf_log = true
     max_rows = 20
-    output_on = 'timestep_end failed nonlinear'
   [../]
 []

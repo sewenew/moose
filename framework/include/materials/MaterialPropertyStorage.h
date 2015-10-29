@@ -22,6 +22,7 @@
 //libMesh
 #include "libmesh/elem.h"
 #include "libmesh/quadrature.h"
+#include "libmesh/mesh.h"
 
 #include <vector>
 #include <map>
@@ -157,9 +158,18 @@ public:
    */
   bool hasOlderProperties() const { return _has_older_prop; }
 
+  ///@{
+  /**
+   * Access methods to the stored material property data
+   *
+   */
   HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & props() { return *_props_elem; }
   HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOld() { return *_props_elem_old; }
   HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOlder() { return *_props_elem_older; }
+  const HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & props() const { return *_props_elem; }
+  const HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOld() const { return *_props_elem_old; }
+  const HashMap<const Elem *, HashMap<unsigned int, MaterialProperties> > & propsOlder() const { return *_props_elem_older; }
+  ///@}
 
   bool hasProperty(const std::string & prop_name) const;
   unsigned int addProperty(const std::string & prop_name);
@@ -203,6 +213,28 @@ protected:
 
   void sizeProps(MaterialProperties & mp, unsigned int size);
 };
+
+template<>
+inline void
+dataStore(std::ostream & stream, MaterialPropertyStorage & storage, void * context)
+{
+  dataStore(stream, storage.props(), context);
+  dataStore(stream, storage.propsOld(), context);
+
+  if (storage.hasOlderProperties())
+    dataStore(stream, storage.propsOlder(), context);
+}
+
+template<>
+inline void
+dataLoad(std::istream & stream, MaterialPropertyStorage & storage, void * context)
+{
+  dataLoad(stream, storage.props(), context);
+  dataLoad(stream, storage.propsOld(), context);
+
+  if (storage.hasOlderProperties())
+    dataLoad(stream, storage.propsOlder(), context);
+}
 
 
 #endif /* MATERIALPROPERTYSTORAGE_H */

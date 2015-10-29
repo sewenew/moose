@@ -10,9 +10,10 @@
 #
 
 [Mesh]
-  # Comment
-  # Mesh
   file = rotation_test.e
+[]
+
+[GlobalParams]
   displacements = 'disp_x disp_y disp_z'
 []
 
@@ -99,9 +100,6 @@ active = ''
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     use_displaced_mesh = true
   [../]
 []
@@ -257,10 +255,4 @@ active = ''
 [Outputs]
   file_base = elastic_rotation
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 [] # Outputs

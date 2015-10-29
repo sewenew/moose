@@ -87,16 +87,19 @@
     type = ElementL2Error
     variable = first
     function = first
+    execute_on = 'initial timestep_end'
   [../]
   [./second_error]
     type = ElementL2Error
     variable = second
     function = second
+    execute_on = 'initial timestep_end'
   [../]
   [./third_error]
     type = ElementL2Error
     variable = third
     function = third
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -110,10 +113,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

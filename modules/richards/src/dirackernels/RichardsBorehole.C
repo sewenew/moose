@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsBorehole.h"
 #include "RotationMatrix.h"
@@ -29,8 +32,8 @@ InputParameters validParams<RichardsBorehole>()
   return params;
 }
 
-RichardsBorehole::RichardsBorehole(const std::string & name, InputParameters parameters) :
-    DiracKernel(name, parameters),
+RichardsBorehole::RichardsBorehole(const InputParameters & parameters) :
+    DiracKernel(parameters),
 
     _debug_things(getParam<bool>("MyNameIsAndyWilkins")),
 
@@ -114,7 +117,7 @@ RichardsBorehole::RichardsBorehole(const std::string & name, InputParameters par
 
   // construct the line-segment lengths between each point
   _half_seg_len.resize(std::max(num_pts-1, 1));
-  for (unsigned int i = 0 ; i < _xs.size() - 1; ++i)
+  for (unsigned int i = 0 ; i + 1 < _xs.size(); ++i)
   {
     _half_seg_len[i] = 0.5*std::sqrt(std::pow(_xs[i+1] - _xs[i], 2) + std::pow(_ys[i+1] - _ys[i], 2) + std::pow(_zs[i+1] - _zs[i], 2));
     if (_half_seg_len[i] == 0)
@@ -125,7 +128,7 @@ RichardsBorehole::RichardsBorehole(const std::string & name, InputParameters par
 
   // construct the rotation matrix needed to rotate the permeability
   _rot_matrix.resize(std::max(num_pts-1, 1));
-  for (unsigned int i = 0 ; i < _xs.size()-1; ++i)
+  for (unsigned int i = 0 ; i + 1 < _xs.size(); ++i)
   {
     RealVectorValue v2(_xs[i+1] - _xs[i], _ys[i+1] - _ys[i], _zs[i+1] - _zs[i]);
     _rot_matrix[i] = RotationMatrix::rotVecToZ(v2);
@@ -145,7 +148,7 @@ RichardsBorehole::RichardsBorehole(const std::string & name, InputParameters par
     RealVectorValue vec0;
     RealTensorValue ten0;
     Real the_sum;
-    for (unsigned int i = 0 ; i < _xs.size()-1; ++i)
+    for (unsigned int i = 0 ; i + 1 < _xs.size(); ++i)
     {
       // check rotation matrix does the correct rotation
       _console << i << std::endl;
@@ -178,6 +181,11 @@ RichardsBorehole::RichardsBorehole(const std::string & name, InputParameters par
   for (unsigned int pnum = 0 ; pnum < _num_p; ++pnum)
     _ps_at_nodes[pnum] = _richards_name_UO.nodal_var(pnum);
 
+  // To correctly compute the Jacobian terms,
+  // tell MOOSE that this DiracKernel depends on all the Richards Vars
+  const std::vector<MooseVariable *> & coupled_vars = _richards_name_UO.getCoupledMooseVars();
+  for (unsigned int i = 0; i < coupled_vars.size(); i++)
+    addMooseVariableDependency(coupled_vars[i]);
 }
 
 bool
@@ -388,7 +396,7 @@ RichardsBorehole::computeQpResidual()
       outflow += _test[_i][_qp]*std::abs(character)*wc*mob*(pp - bh_pressure);
   }
 
-  if (current_dirac_ptid < _zs.size() - 1 || _zs.size() == 1)
+  if (current_dirac_ptid + 1 < _zs.size() || _zs.size() == 1)
   // contribution from half-segment "ahead of" this point, or we only have one point
   {
     wc = wellConstant(_permeability[_qp], _rot_matrix[current_dirac_ptid], _half_seg_len[current_dirac_ptid], _current_elem, _rs[current_dirac_ptid]);

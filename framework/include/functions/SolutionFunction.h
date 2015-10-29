@@ -24,7 +24,7 @@ class SolutionFunction;
 template<>
 InputParameters validParams<SolutionFunction>();
 
-/** Function for reading a solution form file
+/** Function for reading a solution from file
  * Creates a function that extracts values from a solution read from a file,
  * via a SolutionUserObject. It is possible to scale and add a constant to the
  * solution read.
@@ -34,10 +34,9 @@ class SolutionFunction : public Function
 public:
 
   /** Constructor
-   * @param name The name of the function
    * @param parameters The input parameters for the function
    */
-  SolutionFunction(const std::string & name, InputParameters parameters);
+  SolutionFunction(const InputParameters & parameters);
 
   /** Empty destructor
    */

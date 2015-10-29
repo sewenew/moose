@@ -62,9 +62,9 @@ PCH_FLAGS=
 PCH_MODE=
 PCH_DEP=
 
-# Check if using precompiled headers is possible 
+# Check if using precompiled headers is possible
 # cxx compiler could be used to define which compiler is being used
-# so that different compiler options are usable. Libmesh only 
+# so that different compiler options are usable. Libmesh only
 # appears to check if GCC is used
 ifeq ($(MOOSE_PRECOMPILED), true)
   ifneq (,$(filter $(cxx_compiler), g++))
@@ -85,7 +85,7 @@ ifdef PRECOMPILED
 %.h.gch/$(METHOD).h.gch : %.h
 	@echo "MOOSE Pre-Compiling Header (in "$(METHOD)" mode) "$<"..."
 	@mkdir -p $(FRAMEWORK_DIR)/include/base/Precompiled.h.gch
-	@$(libmesh_CXX) $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) -DPRECOMPILED $(libmesh_INCLUDE) -MMD -MF $@.d -c $< -o $@
+	@$(libmesh_CXX) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CXXFLAGS) -DPRECOMPILED $(libmesh_INCLUDE) -MMD -MF $@.d -c $< -o $@
 
 #
 # add dependency - all object files depend on the precompiled header file.
@@ -103,12 +103,17 @@ endif
 pcre%.$(obj-suffix) : pcre%.cc $(PCH_DEP)
 	@echo "MOOSE Compiling C++ $(PCH_MODE)(in "$(METHOD)" mode) "$<"..."
 	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=compile --quiet \
-          $(libmesh_CXX) $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) $(PCH_FLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -DHAVE_CONFIG_H -MMD -MP -MF $@.d -MT $@ -c $< -o $@
+          $(libmesh_CXX) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CXXFLAGS) $(PCH_FLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -DHAVE_CONFIG_H -MMD -MP -MF $@.d -MT $@ -c $< -o $@
 
 %.$(obj-suffix) : %.C $(PCH_DEP)
 	@echo "MOOSE Compiling C++ $(PCH_MODE)(in "$(METHOD)" mode) "$<"..."
 	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=compile --quiet \
-	  $(libmesh_CXX) $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) $(PCH_FLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -MMD -MP -MF $@.d -MT $@ -c $< -o $@
+	  $(libmesh_CXX) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CXXFLAGS) $(PCH_FLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -MMD -MP -MF $@.d -MT $@ -c $< -o $@
+
+%.$(obj-suffix) : %.cpp $(PCH_DEP)
+	@echo "MOOSE Compiling C++ $(PCH_MODE)(in "$(METHOD)" mode) "$<"..."
+	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=compile --quiet \
+	  $(libmesh_CXX) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CXXFLAGS) $(PCH_FLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -MMD -MP -MF $@.d -MT $@ -c $< -o $@
 
 #
 # Static Analysis
@@ -125,12 +130,12 @@ pcre%.$(obj-suffix) : pcre%.cc $(PCH_DEP)
 pcre%.$(obj-suffix) : pcre%.c
 	@echo "MOOSE Compiling C (in "$(METHOD)" mode) "$<"..."
 	@$(libmesh_LIBTOOL) --tag=CC $(LIBTOOLFLAGS) --mode=compile --quiet \
-          $(libmesh_CC) $(libmesh_CPPFLAGS) $(libmesh_CFLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -DHAVE_CONFIG_H -MMD -MP -MF $@.d -MT $@ -c $< -o $@
+          $(libmesh_CC) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CFLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -DHAVE_CONFIG_H -MMD -MP -MF $@.d -MT $@ -c $< -o $@
 
 %.$(obj-suffix) : %.c
 	@echo "MOOSE Compiling C (in "$(METHOD)" mode) "$<"..."
 	@$(libmesh_LIBTOOL) --tag=CC $(LIBTOOLFLAGS) --mode=compile --quiet \
-	  $(libmesh_CC) $(libmesh_CPPFLAGS) $(libmesh_CFLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -MMD -MP -MF $@.d -MT $@ -c $< -o $@
+	  $(libmesh_CC) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CFLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) -MMD -MP -MF $@.d -MT $@ -c $< -o $@
 
 
 
@@ -223,7 +228,9 @@ endif
 # compile with gcov support if using the gcc compiler suite
 ifeq ($(coverage),true)
 	libmesh_CXXFLAGS += -fprofile-arcs -ftest-coverage
-	libmesh_LDFLAGS += -lgcov
+	ifeq (,$(findstring clang++,$(cxx_compiler)))
+		libmesh_LDFLAGS += -lgcov
+	endif
 endif
 
 # link with gcov support, but do now generate data for this build
@@ -260,10 +267,10 @@ endif
 #
 %-$(METHOD).plugin : %.C
 	@echo "MOOSE Compiling C++ Plugin (in "$(METHOD)" mode) "$<"..."
-	@$(libmesh_CXX) $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) -shared -fPIC $(app_INCLUDES) $(libmesh_INCLUDE) $< -o $@
+	@$(libmesh_CXX) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CXXFLAGS) -shared -fPIC $(app_INCLUDES) $(libmesh_INCLUDE) $< -o $@
 %-$(METHOD).plugin : %.c
 	@echo "MOOSE Compiling C Plugin (in "$(METHOD)" mode) "$<"..."
-	@$(libmesh_CC) $(libmesh_CPPFLAGS) $(libmesh_CFLAGS) -shared -fPIC $(app_INCLUDES) $(libmesh_INCLUDE) $< -o $@
+	@$(libmesh_CC) $(libmesh_CPPFLAGS) $(ADDITIONAL_CPPFLAGS) $(libmesh_CFLAGS) -shared -fPIC $(app_INCLUDES) $(libmesh_INCLUDE) $< -o $@
 %-$(METHOD).plugin : %.f
 	@echo "MOOSE Compiling Fortan Plugin (in "$(METHOD)" mode) "$<"..."
 	@$(libmesh_F77) $(libmesh_FFLAGS) -shared -fPIC $(app_INCLUDES) $(libmesh_INCLUDE) $< -o $@
@@ -282,7 +289,7 @@ $(TEST): all
 # Build appliations up the tree
 up:
 	@echo ======================================================
-	@echo Building the following applications: 
+	@echo Building the following applications:
 	@for app in $(DEP_APPS); do echo \ $$app; done
 	@echo ======================================================
 	@echo
@@ -295,7 +302,7 @@ up:
 
 test_up: up
 	@echo ======================================================
-	@echo Testing the following applications: 
+	@echo Testing the following applications:
 	@for app in $(DEP_APPS); do echo \ $$app; done
 	@echo ======================================================
 	@echo
@@ -319,7 +326,7 @@ test_only_up:
 
 clean_up:
 	@echo ======================================================
-	@echo Cleaning the following applications: 
+	@echo Cleaning the following applications:
 	@for app in $(DEP_APPS); do echo \ $$app; done
 	@echo ======================================================
 	@echo
@@ -328,6 +335,12 @@ clean_up:
 		echo ====== Cleaning $${app} ====== ; \
 		$(MAKE) -C $${app} clean; \
 	done
+
+libmesh_update:
+	@echo ======================================================
+	@echo Downloading and updating libMesh
+	@echo ======================================================
+	$(MOOSE_DIR)/scripts/update_and_rebuild_libmesh.sh
 
 #
 # Maintenance

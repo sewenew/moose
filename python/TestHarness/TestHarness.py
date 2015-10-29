@@ -72,7 +72,7 @@ class TestHarness:
     self.checks = {}
     self.checks['platform'] = getPlatforms()
 
-    # The TestHarness doesn't strictly require the existance of libMesh in order to run. Here we allow the user
+    # The TestHarness doesn't strictly require the existence of libMesh in order to run. Here we allow the user
     # to select whether they want to probe for libMesh configuration options.
     if self.options.skip_config_checks:
       self.checks['compiler'] = set(['ALL'])
@@ -84,6 +84,9 @@ class TestHarness:
       self.checks['vtk'] = set(['ALL'])
       self.checks['tecplot'] = set(['ALL'])
       self.checks['dof_id_bytes'] = set(['ALL'])
+      self.checks['petsc_debug'] = set(['ALL'])
+      self.checks['curl'] = set(['ALL'])
+      self.checks['tbb'] = set(['ALL'])
     else:
       self.checks['compiler'] = getCompilers(self.libmesh_dir)
       self.checks['petsc_version'] = getPetscVersion(self.libmesh_dir)
@@ -94,6 +97,9 @@ class TestHarness:
       self.checks['vtk'] =  getLibMeshConfigOption(self.libmesh_dir, 'vtk')
       self.checks['tecplot'] =  getLibMeshConfigOption(self.libmesh_dir, 'tecplot')
       self.checks['dof_id_bytes'] = getLibMeshConfigOption(self.libmesh_dir, 'dof_id_bytes')
+      self.checks['petsc_debug'] = getLibMeshConfigOption(self.libmesh_dir, 'petsc_debug')
+      self.checks['curl'] =  getLibMeshConfigOption(self.libmesh_dir, 'curl')
+      self.checks['tbb'] =  getLibMeshConfigOption(self.libmesh_dir, 'tbb')
 
     # Override the MESH_MODE option if using '--parallel-mesh' option
     if self.options.parallel_mesh == True or \
@@ -120,85 +126,89 @@ class TestHarness:
     self.preRun()
     self.start_time = clock()
 
-    # PBS STUFF
-    if self.options.pbs and os.path.exists(self.options.pbs):
-      self.options.processingPBS = True
-      self.processPBSResults()
-    else:
-      self.options.processingPBS = False
-      base_dir = os.getcwd()
-      for dirpath, dirnames, filenames in os.walk(base_dir, followlinks=True):
-        # Prune submdule paths when searching for tests
-        if base_dir != dirpath and os.path.exists(os.path.join(dirpath, '.git')):
-          dirnames[:] = []
+    try:
+      # PBS STUFF
+      if self.options.pbs and os.path.exists(self.options.pbs):
+        self.options.processingPBS = True
+        self.processPBSResults()
+      else:
+        self.options.processingPBS = False
+        base_dir = os.getcwd()
+        for dirpath, dirnames, filenames in os.walk(base_dir, followlinks=True):
+          # Prune submdule paths when searching for tests
+          if base_dir != dirpath and os.path.exists(os.path.join(dirpath, '.git')):
+            dirnames[:] = []
 
-        # Look for test directories that aren't in contrib folders
-        if (self.test_match.search(dirpath) and "contrib" not in os.path.relpath(dirpath, os.getcwd())):
-          for file in filenames:
-            # set cluster_handle to be None initially (happens for each test)
-            self.options.cluster_handle = None
-            # See if there were other arguments (test names) passed on the command line
-            if file == self.options.input_file_name: #and self.test_match.search(file):
-              saved_cwd = os.getcwd()
-              sys.path.append(os.path.abspath(dirpath))
-              os.chdir(dirpath)
+          # walk into directories that aren't contrib directories
+          if "contrib" not in os.path.relpath(dirpath, os.getcwd()):
+            for file in filenames:
+              # set cluster_handle to be None initially (happens for each test)
+              self.options.cluster_handle = None
+              # See if there were other arguments (test names) passed on the command line
+              if file == self.options.input_file_name: #and self.test_match.search(file):
+                saved_cwd = os.getcwd()
+                sys.path.append(os.path.abspath(dirpath))
+                os.chdir(dirpath)
 
-              if self.prunePath(file):
-                continue
+                if self.prunePath(file):
+                  continue
 
-              # Build a Warehouse to hold the MooseObjects
-              warehouse = Warehouse()
+                # Build a Warehouse to hold the MooseObjects
+                warehouse = Warehouse()
 
-              # Build a Parser to parse the objects
-              parser = Parser(self.factory, warehouse)
+                # Build a Parser to parse the objects
+                parser = Parser(self.factory, warehouse)
 
-              # Parse it
-              self.error_code = self.error_code | parser.parse(file)
+                # Parse it
+                self.error_code = self.error_code | parser.parse(file)
 
-              # Retrieve the tests from the warehouse
-              testers = warehouse.getAllObjects()
+                # Retrieve the tests from the warehouse
+                testers = warehouse.getAllObjects()
 
-              # Augment the Testers with additional information directly from the TestHarness
-              for tester in testers:
-                self.augmentParameters(file, tester)
-
-              if self.options.enable_recover:
-                testers = self.appendRecoverableTests(testers)
-
-
-              # Handle PBS tests.cluster file
-              if self.options.pbs:
-                (tester, command) = self.createClusterLauncher(dirpath, testers)
-                if command is not None:
-                  self.runner.run(tester, command)
-              else:
-                # Go through the Testers and run them
+                # Augment the Testers with additional information directly from the TestHarness
                 for tester in testers:
-                  # Double the alloted time for tests when running with the valgrind option
-                  tester.setValgrindMode(self.options.valgrind_mode)
+                  self.augmentParameters(file, tester)
 
-                  # When running in valgrind mode, we end up with a ton of output for each failed
-                  # test.  Therefore, we limit the number of fails...
-                  if self.options.valgrind_mode and self.num_failed > self.options.valgrind_max_fails:
-                    (should_run, reason) = (False, 'Max Fails Exceeded')
-                  elif self.num_failed > self.options.max_fails:
-                    (should_run, reason) = (False, 'Max Fails Exceeded')
-                  else:
-                    (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
+                if self.options.enable_recover:
+                  testers = self.appendRecoverableTests(testers)
 
-                  if should_run:
-                    command = tester.getCommand(self.options)
-                    # This method spawns another process and allows this loop to continue looking for tests
-                    # RunParallel will call self.testOutputAndFinish when the test has completed running
-                    # This method will block when the maximum allowed parallel processes are running
+
+                # Handle PBS tests.cluster file
+                if self.options.pbs:
+                  (tester, command) = self.createClusterLauncher(dirpath, testers)
+                  if command is not None:
                     self.runner.run(tester, command)
-                  else: # This job is skipped - notify the runner
-                    if (reason != ''):
-                      self.handleTestResult(tester.parameters(), '', reason)
-                    self.runner.jobSkipped(tester.parameters()['test_name'])
+                else:
+                  # Go through the Testers and run them
+                  for tester in testers:
+                    # Double the alloted time for tests when running with the valgrind option
+                    tester.setValgrindMode(self.options.valgrind_mode)
 
-              os.chdir(saved_cwd)
-              sys.path.pop()
+                    # When running in valgrind mode, we end up with a ton of output for each failed
+                    # test.  Therefore, we limit the number of fails...
+                    if self.options.valgrind_mode and self.num_failed > self.options.valgrind_max_fails:
+                      (should_run, reason) = (False, 'Max Fails Exceeded')
+                    elif self.num_failed > self.options.max_fails:
+                      (should_run, reason) = (False, 'Max Fails Exceeded')
+                    else:
+                      (should_run, reason) = tester.checkRunnableBase(self.options, self.checks)
+
+                    if should_run:
+                      command = tester.getCommand(self.options)
+                      # This method spawns another process and allows this loop to continue looking for tests
+                      # RunParallel will call self.testOutputAndFinish when the test has completed running
+                      # This method will block when the maximum allowed parallel processes are running
+                      self.runner.run(tester, command)
+                    else: # This job is skipped - notify the runner
+                      if (reason != ''):
+                        self.handleTestResult(tester.parameters(), '', reason)
+                      self.runner.jobSkipped(tester.parameters()['test_name'])
+
+                os.chdir(saved_cwd)
+                sys.path.pop()
+    except KeyboardInterrupt:
+      print '\nExiting due to keyboard interrupt...'
+      sys.exit(0)
 
     self.runner.join()
     # Wait for all tests to finish
@@ -304,7 +314,7 @@ class TestHarness:
         # Part 1:
         part1_params = part1.parameters()
         part1_params['test_name'] += '_part1'
-        part1_params['cli_args'].append('--half-transient Outputs/checkpoint=true')
+        part1_params['cli_args'].append('--half-transient :Outputs/checkpoint=true')
         part1_params['skip_checks'] = True
 
         # Part 2:
@@ -546,7 +556,7 @@ class TestHarness:
         color = 'RED'
       else:
         color = 'GREEN'
-      test_name = colorText(specs['test_name']  + ": ", self.options, color)
+      test_name = colorText(specs['test_name']  + ": ", color, colored=self.options.colored, code=self.options.code)
       output = ("\n" + test_name).join(lines)
       print output
 
@@ -615,7 +625,8 @@ class TestHarness:
     if self.error_code & 0x0F:
       summary += ', <r>FATAL PARSER ERROR</r>'
 
-    print colorText( summary % (self.num_passed, self.num_skipped, self.num_pending, self.num_failed), self.options, "", html=True )
+    print colorText( summary % (self.num_passed, self.num_skipped, self.num_pending, self.num_failed),  "", html = True, \
+                     colored=self.options.colored, code=self.options.code )
     if self.options.pbs:
       print '\nYour PBS batch file:', self.options.pbs
     if self.file:
@@ -630,9 +641,6 @@ class TestHarness:
 
     ## Save executable-under-test name to self.executable
     self.executable = os.getcwd() + '/' + app_name + '-' + self.options.method
-
-    # Emulate the standard Nose RegEx for consistency
-    self.test_match = re.compile(r"(?:^|\b|[_-])[Tt]est")
 
     # Save the output dir since the current working directory changes during tests
     self.output_dir = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), self.options.output_dir)
@@ -657,7 +665,7 @@ class TestHarness:
     parser.add_argument('test_name', nargs=argparse.REMAINDER)
     parser.add_argument('--opt', action='store_const', dest='method', const='opt', help='test the app_name-opt binary')
     parser.add_argument('--dbg', action='store_const', dest='method', const='dbg', help='test the app_name-dbg binary')
-    parser.add_argument('--devel', action='store_const', dest='method', const='dev', help='test the app_name-devel binary')
+    parser.add_argument('--devel', action='store_const', dest='method', const='devel', help='test the app_name-devel binary')
     parser.add_argument('--oprof', action='store_const', dest='method', const='oprof', help='test the app_name-oprof binary')
     parser.add_argument('--pro', action='store_const', dest='method', const='pro', help='test the app_name-pro binary')
     parser.add_argument('-j', '--jobs', nargs=1, metavar='int', action='store', type=int, dest='jobs', default=1, help='run test binaries in parallel')
@@ -692,7 +700,7 @@ class TestHarness:
     parser.add_argument('--dry-run', action='store_true', dest='dry_run', help="Pass --dry-run to print commands to run, but don't actually run them")
 
     outputgroup = parser.add_argument_group('Output Options', 'These options control the output of the test harness. The sep-files options write output to files named test_name.TEST_RESULT.txt. All file output will overwrite old files')
-    outputgroup.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='show the output of every test that fails')
+    outputgroup.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='show the output of every test')
     outputgroup.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='only show the result of every test, don\'t show test output even if it fails')
     outputgroup.add_argument('--show-directory', action='store_true', dest='show_directory', help='Print test directory path in out messages')
     outputgroup.add_argument('-o', '--output-dir', nargs=1, metavar='directory', dest='output_dir', default='', help='Save all output files in the directory, and create it if necessary')

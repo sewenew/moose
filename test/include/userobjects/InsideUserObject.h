@@ -28,7 +28,7 @@ InputParameters validParams<InsideUserObject>();
 class InsideUserObject : public InternalSideUserObject
 {
 public:
-  InsideUserObject(const std::string & name, InputParameters parameters);
+  InsideUserObject(const InputParameters & parameters);
   virtual ~InsideUserObject();
 
   virtual void initialize();
@@ -43,8 +43,8 @@ protected:
   VariableValue & _u_neighbor;
 
   Real _value;
-  std::string _diffusivity;
-  MaterialProperty<Real> * _diffusivity_prop;
+  const MaterialProperty<Real> & _diffusivity_prop;
+  const MaterialProperty<Real> & _neighbor_diffusivity_prop;
 };
 
 #endif /* INSIDEUSEROBJECT_H */

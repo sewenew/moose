@@ -25,12 +25,11 @@ InputParameters validParams<CreateProblemAction>();
 class CreateProblemAction : public MooseObjectAction
 {
 public:
-  CreateProblemAction(const std::string & name, InputParameters parameters);
+  CreateProblemAction(InputParameters parameters);
 
   virtual void act();
 
 protected:
-  std::string _problem_name;
   std::vector<SubdomainName> _blocks;
   MultiMooseEnum _coord_sys;
   bool _fe_cache;

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "PowerGas" form of relative permeability
 //
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsRelPermPowerGas>()
   return params;
 }
 
-RichardsRelPermPowerGas::RichardsRelPermPowerGas(const std::string & name, InputParameters parameters) :
-    RichardsRelPerm(name, parameters),
+RichardsRelPermPowerGas::RichardsRelPermPowerGas(const InputParameters & parameters) :
+    RichardsRelPerm(parameters),
     _simm(getParam<Real>("simm")),
     _n(getParam<Real>("n"))
 {
@@ -72,4 +75,5 @@ RichardsRelPermPowerGas::d2relperm(Real seff) const
   Real krelpp = -(_n + 1)*_n*(_n - 1)*std::pow(1 - s_internal, _n - 2) + _n*(_n + 1)*_n*std::pow(1 - s_internal, _n - 1);
   return krelpp/std::pow(1.0 - _simm, 2);
 }
+
 

@@ -83,7 +83,7 @@
   active = 'bubbles'
 
   [./bubbles]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = u
     threshold = 0.3
     execute_on = timestep_end
@@ -104,11 +104,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = out
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'failed nonlinear linear timestep_end'
-  [../]
 []

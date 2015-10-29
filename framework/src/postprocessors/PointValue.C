@@ -25,8 +25,8 @@ InputParameters validParams<PointValue>()
   return params;
 }
 
-PointValue::PointValue(const std::string & name, InputParameters parameters) :
-    GeneralPostprocessor(name, parameters),
+PointValue::PointValue(const InputParameters & parameters) :
+    GeneralPostprocessor(parameters),
     _var(_subproblem.getVariable(_tid, parameters.get<VariableName>("variable"))),
     _u(_var.sln()),
     _mesh(_subproblem.mesh().getMesh()),
@@ -42,12 +42,12 @@ PointValue::execute()
 {
   // Locate the element and store the id
   // We can't store the actual Element pointer here b/c PointLocatorBase returns a const Elem *
-  AutoPtr<PointLocatorBase> pl = _mesh.sub_point_locator();
+  UniquePtr<PointLocatorBase> pl = _mesh.sub_point_locator();
   const Elem * elem = (*pl)(_point_vec[0]);
 
   // Error if the element cannot be located
   if (!elem)
-    mooseError("No element located at " << _point_vec[0] << " in PointValue Postprocessor named: " << _name);
+    mooseError("No element located at " << _point_vec[0] << " in PointValue Postprocessor named: " << name());
 
   // Store the element id and processor id that owns the located element
   _elem_id = elem->id();
@@ -57,7 +57,7 @@ PointValue::execute()
 void
 PointValue::finalize()
 {
-  // Gather a consist id for broadcasting the computed value
+  // Gather a consistent id for broadcasting the computed value
   gatherMin(_root_id);
 
   // Compute the value at the point

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSChorinCorrector.h"
 
 template<>
@@ -20,8 +26,8 @@ InputParameters validParams<INSChorinCorrector>()
 
 
 
-INSChorinCorrector::INSChorinCorrector(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSChorinCorrector::INSChorinCorrector(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Current velocities
   _u_vel_star(coupledValue("u_star")),
@@ -88,3 +94,4 @@ Real INSChorinCorrector::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

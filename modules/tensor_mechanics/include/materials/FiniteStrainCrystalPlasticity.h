@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef FINITESTRAINCRYSTALPLASTICITY_H
 #define FINITESTRAINCRYSTALPLASTICITY_H
 
@@ -18,7 +24,7 @@ InputParameters validParams<FiniteStrainCrystalPlasticity>();
 class FiniteStrainCrystalPlasticity : public FiniteStrainMaterial
 {
 public:
-  FiniteStrainCrystalPlasticity(const std::string & name, InputParameters parameters);
+  FiniteStrainCrystalPlasticity(const InputParameters & parameters);
 
 protected:
   /**
@@ -70,6 +76,13 @@ protected:
    * This function read euler angles from user object (optional) - see test.
    */
   virtual void getEulerAngles();
+
+  /**
+   * This function assign initial values of slip system resistances/internal variables
+   * read from getSlipSystems().
+   */
+  virtual void assignSlipSysRes();
+
   /**
    * This function read slip system resistances from file - see test.
    */
@@ -206,6 +219,16 @@ protected:
    */
   void calc_schmid_tensor();
 
+  /**
+   * This function performs the line search update
+   */
+  bool line_search_update(const Real rnorm_prev, const RankTwoTensor);
+
+  /**
+   * This function updates internal variables after each NewTon Raphson iteration (_fp_inv)
+   */
+  void internalVariableUpdateNRiteration();
+
   /// Number of slip system resistance
   const unsigned int _nss;
 
@@ -228,8 +251,10 @@ protected:
   ///The hardening parameters in this class are read from .i file. The user can override to read from file.
   std::string _slip_sys_hard_prop_file_name;
 
-  ///Stress residual equation tolerance
+  ///Stress residual equation relative tolerance
   Real _rtol;
+  ///Stress residual equation absolute tolerance
+  Real _abs_tol;
   ///Internal variable update equation tolerance
   Real _gtol;
   ///Slip increment tolerance
@@ -250,6 +275,44 @@ protected:
   ///Type of tangent moduli calculation
   MooseEnum _tan_mod_type;
 
+  ///Read from options for initial values of internal variables
+  MooseEnum _intvar_read_type;
+
+  ///Number of slip system specific properties provided in the file containing slip system normals and directions
+  unsigned int _num_slip_sys_props;
+
+  ///Flag to save euler angle as Material Property
+  bool _save_euler_angle;
+
+  bool _gen_rndm_stress_flag;
+
+  ///Input option for scaling variable to generate random stress when convergence fails
+  bool _input_rndm_scale_var;
+
+  ///Scaling value
+  Real _rndm_scale_var;
+
+  ///Seed value
+  unsigned int _rndm_seed;
+
+  ///Maximum number of substep iterations
+  unsigned int _max_substep_iter;
+
+  ///Flag to activate line serach
+  bool _use_line_search;
+
+  ///Minimum line search step size
+  Real _min_lsrch_step;
+
+  ///Line search bisection method tolerance
+  Real _lsrch_tol;
+
+  ///Line search bisection method maximum iteration number
+  unsigned int _lsrch_max_iter;
+
+  //Line search method
+  MooseEnum _lsrch_method;
+
   MaterialProperty<RankTwoTensor> & _fp;
   MaterialProperty<RankTwoTensor> & _fp_old;
   MaterialProperty<RankTwoTensor> & _pk2;
@@ -262,12 +325,17 @@ protected:
   MaterialProperty<Real> & _acc_slip_old;
   MaterialProperty<RankTwoTensor> & _update_rot;
   MaterialProperty<RankTwoTensor> & _update_rot_old;
+  MaterialProperty<RankTwoTensor> & _deformation_gradient_old;
 
-  std::vector<Real> _mo;
-  std::vector<Real> _no;
+  ///Save Euler angles for output only when save_euler_angle = true in .i file
+  MaterialProperty< std::vector<Real> > * _euler_ang;
+  MaterialProperty< std::vector<Real> > * _euler_ang_old;
 
-  std::vector<Real> _a0;
-  std::vector<Real> _xm;
+  DenseVector<Real> _mo;
+  DenseVector<Real> _no;
+
+  DenseVector<Real> _a0;
+  DenseVector<Real> _xm;
 
   RankTwoTensor _crysrot;
 
@@ -277,13 +345,29 @@ protected:
   Real _r;
 
   RankTwoTensor _dfgrd_tmp;
-  RankTwoTensor _fe, _fp_old_inv, _fp_inv;
-  std::vector< Real > _slip_incr, _tau, _dslipdtau;
+  RankTwoTensor _fe, _fp_old_inv, _fp_inv, _fp_prev_inv;
+  DenseVector<Real> _slip_incr, _tau, _dslipdtau;
   std::vector<RankTwoTensor> _s0;
 
-  RankTwoTensor _pk2_tmp;
+  RankTwoTensor _pk2_tmp, _pk2_tmp_old;
   Real _accslip_tmp, _accslip_tmp_old;
   std::vector<Real> _gss_tmp;
+  std::vector<Real> _gss_tmp_old;
+
+  DenseVector<Real> _slip_sys_props;
+
+  DenseMatrix<Real> _dgss_dsliprate;
+
+  bool _read_from_slip_sys_file;
+
+  bool _err_tol;///Flag to check whether convergence is achieved
+
+  ///Used for substepping; Uniformly divides the increment in deformation gradient
+  RankTwoTensor _delta_dfgrd, _dfgrd_tmp_old;
+  ///Scales the substepping increment to obtain deformation gradient at a substep iteration
+  Real _dfgrd_scale_factor;
+  ///Flags to reset variables and reinitialize variables
+  bool _first_step_iter, _last_step_iter, _first_substep;
 };
 
 #endif //FINITESTRAINCRYSTALPLASTICITY_H

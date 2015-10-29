@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSSTAGNATIONBC_H
 #define NSSTAGNATIONBC_H
 
@@ -21,7 +27,7 @@ class NSStagnationBC : public NodalBC
 {
 public:
   // Constructor
-  NSStagnationBC(const std::string & name, InputParameters parameters);
+  NSStagnationBC(const InputParameters & parameters);
 
   // Destructor, better be virtual
   virtual ~NSStagnationBC(){}

@@ -22,6 +22,15 @@
 //Forward Declarations
 class PointSamplerBase;
 
+// libMesh Forward Declarations
+namespace libMesh
+{
+  namespace MeshTools
+  {
+    class BoundingBox;
+  }
+}
+
 template<>
 InputParameters validParams<PointSamplerBase>();
 
@@ -31,7 +40,7 @@ class PointSamplerBase :
   protected SamplerBase
 {
 public:
-  PointSamplerBase(const std::string & name, InputParameters parameters);
+  PointSamplerBase(const InputParameters & parameters);
 
   virtual ~PointSamplerBase() {}
 
@@ -42,7 +51,6 @@ public:
   virtual void threadJoin(const SamplerBase & y);
 
 protected:
-
   /**
    * Find the local element that contains the point.  This will attempt to use a cached element to speed things up.
    *
@@ -50,7 +58,12 @@ protected:
    * @param id A unique ID for this point.
    * @return The Elem containing the point or NULL if this processor doesn't contain an element that contains this point.
    */
-  const Elem * getLocalElemContainingPoint(const Point & p, unsigned int /*id*/);
+  const Elem * getLocalElemContainingPoint(const Point & p, unsigned int id);
+
+  /**
+   * Gets a processor_bounding_box... and inflates it a bit to handle edge cases
+   */
+  MeshTools::BoundingBox getInflatedProcessorBoundingBox();
 
   /// The Mesh we're using
   MooseMesh & _mesh;
@@ -61,15 +74,18 @@ protected:
   /// The ID to use for each point (yes, this is Real on purpose)
   std::vector<Real> _ids;
 
-  /// So we don't have to create and destroy this vector over and over again
-  std::vector<Real> _values;
+  /// Map of _points indices to the values
+  std::map<unsigned int, std::vector<Real> > _values;
+
+  /// Whether or not the Point was found on this processor (int because bool and uint don't work with MPI wrappers)
+  std::vector<int> _found_points;
 
   unsigned int _qp;
 
   /// So we don't have to create and destroy this
   std::vector<Point> _point_vec;
 
-  AutoPtr<PointLocatorBase> _pl;
+  UniquePtr<PointLocatorBase> _pl;
 };
 
 #endif

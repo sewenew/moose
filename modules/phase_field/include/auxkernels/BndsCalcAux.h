@@ -1,5 +1,11 @@
-#ifndef BndsCalcAux_H
-#define BndsCalcAux_H
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+#ifndef BNDSCALCAUX_H
+#define BNDSCALCAUX_H
 
 #include "AuxKernel.h"
 
@@ -13,7 +19,7 @@ class BndsCalcAux : public AuxKernel
 {
 public:
 
-  BndsCalcAux(const std::string & name, InputParameters parameters);
+  BndsCalcAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();
@@ -22,4 +28,4 @@ protected:
   unsigned int _ncrys;
 };
 
-#endif //BndsCalcAux_H
+#endif //BNDSCALCAUX_H

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSPRESSUREPOISSON_H
 #define INSPRESSUREPOISSON_H
 
@@ -19,7 +25,7 @@ InputParameters validParams<INSPressurePoisson>();
 class INSPressurePoisson : public Kernel
 {
 public:
-  INSPressurePoisson(const std::string & name, InputParameters parameters);
+  INSPressurePoisson(const InputParameters & parameters);
 
   virtual ~INSPressurePoisson(){}
 

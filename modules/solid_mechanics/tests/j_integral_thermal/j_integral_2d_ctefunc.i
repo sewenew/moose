@@ -56,7 +56,7 @@
   [./cte_func]
     type = PiecewiseLinear
     x = '-10 -6 -2 0 2 6 10'
-    y = '1.484e-5 1.489e-5 1.494e-5 1.496e-6 1.498e-5 1.502e-5 1.505e-5'
+    y = '1.484e-5 1.489e-5 1.494e-5 1.496e-5 1.498e-5 1.502e-5 1.505e-5'
 
 #     x = '-10 10'
 #     y = '1.35e-5 1.35e-5'
@@ -85,7 +85,7 @@
     tensor = stress
     variable = stress_xx
     index = 0
-    execute_on = timestep     # for efficiency, only compute at the end of a timestep
+    execute_on = timestep_end     # for efficiency, only compute at the end of a timestep
   [../]
   [./stress_yy]
     type = MaterialTensorAux
@@ -195,30 +195,9 @@
 
 []
 
-[Postprocessors]
-  [./_dt]
-    type = TimestepSize
-  [../]
-
-  [./nl_its]
-    type = NumNonlinearIterations
-  [../]
-
-  [./lin_its]
-    type = NumLinearIterations
-  [../]
-[]
-
-
 [Outputs]
   file_base = j_integral_2d_ctefunc_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
 
 [Preconditioning]

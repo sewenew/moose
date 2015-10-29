@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSMomentumNoBCBC.h"
 
 template<>
@@ -22,8 +28,8 @@ InputParameters validParams<INSMomentumNoBCBC>()
 
 
 
-INSMomentumNoBCBC::INSMomentumNoBCBC(const std::string & name, InputParameters parameters) :
-  IntegratedBC(name, parameters),
+INSMomentumNoBCBC::INSMomentumNoBCBC(const InputParameters & parameters) :
+  IntegratedBC(parameters),
 
   // Coupled variables
   _u_vel(coupledValue("u")),
@@ -109,3 +115,4 @@ Real INSMomentumNoBCBC::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0.;
 }
+

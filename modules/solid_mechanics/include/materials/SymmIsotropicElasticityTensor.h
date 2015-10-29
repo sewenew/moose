@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SYMMISOTROPICELASTICITYTENSOR_H
 #define SYMMISOTROPICELASTICITYTENSOR_H
 
@@ -75,9 +81,10 @@ public:
   Real shearModulus() const;
 
 
-  virtual Real stiffness( const unsigned i, const unsigned j,
-                          const RealGradient & test,
-                          const RealGradient & phi );
+  virtual Real stiffness(const unsigned i,
+                         const unsigned j,
+                         const RealGradient & test,
+                         const RealGradient & phi) const;
 
   virtual void multiply( const SymmTensor & x, SymmTensor & b ) const;
 

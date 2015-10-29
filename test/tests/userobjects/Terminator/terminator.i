@@ -22,6 +22,7 @@
   [./max_c]
     type = NodalMaxValue
     variable = c
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -65,10 +66,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

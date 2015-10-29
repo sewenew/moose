@@ -56,25 +56,30 @@
     type = ElementIntegralVariablePostprocessor
     block = 0
     variable = pressure
+    execute_on = 'initial timestep_end'
   [../]
   [./mass_conc]
     type = ElementIntegralVariablePostprocessor
     block = 0
     variable = conc
+    execute_on = 'initial timestep_end'
   [../]
   [./mass_tot]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = mass_fcn
+    execute_on = 'initial timestep_end'
   [../]
   [./p0]
     type = PointValue
     variable = pressure
     point = '0 0 0'
+    execute_on = 'initial timestep_end'
   [../]
   [./c0]
     type = PointValue
     variable = conc
     point = '0 0 0'
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -122,11 +127,5 @@
   interval = 10
   exodus = true
   csv = 10
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 [] # Outputs
 []

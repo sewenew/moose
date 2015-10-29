@@ -59,15 +59,9 @@
 []
 
 [Outputs]
-  output_on = 'initial timestep_end'
   [./out]
     type = Exodus
     output_material_properties = true
     show_material_properties = 'real_property vector_property'
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

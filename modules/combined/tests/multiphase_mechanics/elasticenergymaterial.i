@@ -10,6 +10,10 @@
   elem_type = QUAD4
 []
 
+[GlobalParams]
+  displacements = 'disp_x disp_y'
+[]
+
 [Variables]
   [./disp_x]
     order = FIRST
@@ -19,9 +23,6 @@
     order = FIRST
     family = LAGRANGE
   [../]
-[]
-
-[AuxVariables]
   [./c]
     order = FIRST
     family = LAGRANGE
@@ -54,19 +55,23 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
+  [../]
+  [./dummy]
+    type = MatDiffusion
+    variable = c
+    D_name = 0
   [../]
 []
 
 [Materials]
   [./eigenstrain]
+    # this material is deprecated
     type = SimpleEigenStrainMaterial
     block = 0
     epsilon0 = 0.05
     c = c
-    disp_y = disp_y
     disp_x = disp_x
+    disp_y = disp_y
     C_ijkl = '3 1 1 3 1 3 1 1 1 '
     fill_method = symmetric9
   [../]
@@ -83,14 +88,11 @@
   solve_type = 'PJFNK'
   nl_abs_tol = 1e-10
   num_steps = 1
+
+  petsc_options_iname = '-pc_factor_shift_type'
+  petsc_options_value = 'nonzero'
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

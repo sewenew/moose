@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSTemperatureAux.h"
 
 template<>
@@ -21,8 +27,8 @@ InputParameters validParams<NSTemperatureAux>()
 
 
 
-NSTemperatureAux::NSTemperatureAux(const std::string & name, InputParameters parameters)
-    : AuxKernel(name, parameters),
+NSTemperatureAux::NSTemperatureAux(const InputParameters & parameters)
+    : AuxKernel(parameters),
       _rho(coupledValue("rho")),
       _u_vel(coupledValue("u")),
       _v_vel(coupledValue("v")),
@@ -48,3 +54,4 @@ NSTemperatureAux::computeValue()
   Real cv = _R / (_gamma-1.);
   return e_i / cv;
 }
+

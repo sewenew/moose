@@ -19,7 +19,6 @@
 #include "MooseVariableScalar.h"
 #include "InputParameters.h"
 
-
 /**
  * Interface for objects that needs coupling capabilities
  *
@@ -32,7 +31,7 @@ public:
    * @param parameters Parameters that come from constructing the object
    * @param nodal true if we need to couple with nodal values, otherwise false
    */
-  Coupleable(InputParameters & parameters, bool nodal);
+  Coupleable(const InputParameters & parameters, bool nodal);
 
   /**
    * Destructor for object
@@ -200,6 +199,14 @@ protected:
    */
   virtual VariableValue & coupledNodalValueOlder(const std::string & var_name, unsigned int comp = 0);
 
+  /**
+   * Nodal values of time derivative of a coupled variable
+   * @param var_name Name of coupled variable
+   * @param comp Component number for vector of coupled variables
+   * @return Reference to a VariableValue containing the nodal values of time derivative of the coupled variable
+   */
+  virtual VariableValue & coupledNodalDot(const std::string & var_name, unsigned int comp = 0);
+
 protected:
   // Reference to FEProblem
   FEProblem & _c_fe_problem;
@@ -216,8 +223,8 @@ protected:
   /// True if implicit value is required
   bool _c_is_implicit;
 
-  /// Reference to the InputParameters
-  InputParameters _coupleable_params;
+  /// Local InputParameters
+  const InputParameters & _coupleable_params;
 
   /// Will hold the default value for optional coupled variables.
   std::map<std::string, VariableValue *> _default_value;
@@ -246,7 +253,18 @@ protected:
    */
   void validateExecutionerType(const std::string & name) const;
 
+  /// Whether or not this object is a "neighbor" object: ie all of it's coupled values should be neighbor values
+  bool _coupleable_neighbor;
 private:
+
+  /**
+   * Helper method to return (and insert if necessary) the default value
+   * for an uncoupled variable.
+   * @param var_name the name of the variable for which to retrieve a default value
+   * @return VariableValue * a pointer to the associated VarirableValue.
+   */
+  VariableValue * getDefaultValue(const std::string & var_name);
+
   /// Maximum qps for any element in this system
   unsigned int _coupleable_max_qps;
 

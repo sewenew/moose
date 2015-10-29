@@ -63,9 +63,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_z = disp_z
-    disp_y = disp_y
-    disp_x = disp_x
+    displacements = 'disp_x disp_y disp_z'
     use_displaced_mesh = true
   [../]
 []
@@ -105,10 +103,10 @@
     block = 0
   [../]
   [./gss1]
-    type = CrystalPlasticitySlipSysAux
+    type = MaterialStdVectorAux
     variable = gss1
-    slipsysvar = gss
-    index_i = 1
+    property = gss
+    index = 0
     execute_on = 'initial timestep_end'
     block = 0
   [../]
@@ -157,6 +155,7 @@
     C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
     nss = 12
     fill_method = symmetric9
+    intvar_read_type = slip_sys_res_file
   [../]
 []
 
@@ -164,22 +163,22 @@
   [./stress_zz]
     type = ElementAverageValue
     variable = stress_zz
-    block = 'ANY_BLOCK_ID 0'
+    execute_on = 'initial timestep_end'
   [../]
   [./fp_zz]
     type = ElementAverageValue
     variable = fp_zz
-    block = 'ANY_BLOCK_ID 0'
+    execute_on = 'initial timestep_end'
   [../]
   [./e_zz]
     type = ElementAverageValue
     variable = e_zz
-    block = 'ANY_BLOCK_ID 0'
+    execute_on = 'initial timestep_end'
   [../]
   [./gss1]
     type = ElementAverageValue
     variable = gss1
-    block = 'ANY_BLOCK_ID 0'
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -213,10 +212,4 @@
 [Outputs]
   file_base = crysp_fileread_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

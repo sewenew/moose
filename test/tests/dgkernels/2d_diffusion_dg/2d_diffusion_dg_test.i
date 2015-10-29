@@ -154,5 +154,4 @@
   file_base = out
   exodus = true
   csv = true
-  output_on = 'initial timestep_end'
 []

@@ -32,7 +32,7 @@ public:
    *        but the object calling getUserObject only needs to use the name on the
    *        left hand side of the statement "user_object = user_object_name"
    */
-  UserObjectInterface(InputParameters & params);
+  UserObjectInterface(const InputParameters & params);
 
   /**
    * Get an user object with a given parameter name
@@ -72,7 +72,7 @@ private:
   THREAD_ID _uoi_tid;
 
   /// Parameters of the object with this interface
-  InputParameters _uoi_params;
+  const InputParameters & _uoi_params;
 };
 
 

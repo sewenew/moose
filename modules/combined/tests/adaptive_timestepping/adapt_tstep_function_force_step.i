@@ -169,24 +169,23 @@
   [./Temperatrue_of_Block]
     type = ElementAverageValue
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./vonMises]
     type = ElementAverageValue
     variable = vonmises
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
-  output_on = 'initial timestep_end'
   [./out]
     type = Exodus
     elemental_as_nodal = true
   [../]
   [./console]
     type = Console
-    perf_log = true
     max_rows = 10
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

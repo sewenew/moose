@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TRICRYSTAL2CIRCLEGRAINSICACTION_H
 #define TRICRYSTAL2CIRCLEGRAINSICACTION_H
 
@@ -10,7 +16,7 @@
 class Tricrystal2CircleGrainsICAction: public Action
 {
 public:
-  Tricrystal2CircleGrainsICAction(const std::string & name, InputParameters params);
+  Tricrystal2CircleGrainsICAction(const InputParameters & params);
 
   virtual void act();
 

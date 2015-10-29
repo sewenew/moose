@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMINVISCIDSPECIFIEDNORMALFLOWBC_H
 #define NSMOMENTUMINVISCIDSPECIFIEDNORMALFLOWBC_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<NSMomentumInviscidSpecifiedNormalFlowBC>();
 class NSMomentumInviscidSpecifiedNormalFlowBC : public NSMomentumInviscidBC
 {
 public:
-  NSMomentumInviscidSpecifiedNormalFlowBC(const std::string & name, InputParameters parameters);
+  NSMomentumInviscidSpecifiedNormalFlowBC(const InputParameters & parameters);
 
   virtual ~NSMomentumInviscidSpecifiedNormalFlowBC(){}
 

@@ -166,12 +166,12 @@
   [../]
 
   [./mass_error_water]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = fcn_mass_error_w
     outputs = none # no reason why mass should be conserved
   [../]
   [./mass_error_gas]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = fcn_mass_error_g
     outputs = none # no reason why mass should be conserved
   [../]
@@ -189,7 +189,7 @@
     outputs = none
   [../]
   [./error_water]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = fcn_error_water
   [../]
 
@@ -206,7 +206,7 @@
     outputs = none
   [../]
   [./error_gas]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = fcn_error_gas
   [../]
 []
@@ -261,7 +261,6 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
     petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it'
     petsc_options_value = 'bcgs bjacobi 1E-10 1E-10 10000'
   [../]
@@ -273,11 +272,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = gh01
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

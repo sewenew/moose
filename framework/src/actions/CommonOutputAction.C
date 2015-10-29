@@ -19,9 +19,7 @@
 #include "MooseObjectAction.h"
 #include "ActionFactory.h"
 #include "Output.h"
-//#include "Exodus.h"
 #include "OutputWarehouse.h"
-//#include "FileOutput.h"
 
 // Extrnal includes
 #include "tinydir.h"
@@ -52,6 +50,7 @@ InputParameters validParams<CommonOutputAction>()
    params.addParam<bool>("dofmap", false, "Create the dof map .json output file");
 
    // Common parameters
+
    // Note: Be sure that objects that share these parameters utilize the same defaults
    params.addParam<bool>("color", true, "Set to false to turn off all coloring in all outputs");
    params.addParam<std::string>("file_base", "Common file base name to be utilized with all output objects");
@@ -62,36 +61,24 @@ InputParameters validParams<CommonOutputAction>()
    params.addParam<std::vector<VariableName> >("hide", "A list of the variables and postprocessors that should NOT be output to the Exodus file (may include Variables, ScalarVariables, and Postprocessor names).");
    params.addParam<std::vector<VariableName> >("show", "A list of the variables and postprocessors that should be output to the Exodus file (may include Variables, ScalarVariables, and Postprocessor names).");
 
-  // Add the 'output_on' input parameter
-  params.addParam<MultiMooseEnum>("output_on", Output::getExecuteOptions("timestep_end"), "Set to (initial|linear|nonlinear|timestep_end|timestep_begin|final|failed|custom) to execute only at that moment (default: timestep_end)");
+  // Add the 'execute_on' input parameter
+  params.addParam<MultiMooseEnum>("execute_on", Output::getExecuteOptions("initial timestep_end"), "Set to (initial|linear|nonlinear|timestep_end|timestep_begin|final|failed|custom) to execute only at that moment (default: 'initial timestep_end')");
 
-  // **** DEPRECATED PARAMETERS ***
-  params.addDeprecatedParam<bool>("output_initial", false, "Request that the initial condition is output to the solution file",
-                                  "replace by adding 'initial' to the 'output_on' option");
-  params.addDeprecatedParam<bool>("output_intermediate", true, "Request that all intermediate steps (not initial or final) are output",
-                                  "replace by adding 'timestep_end' to the 'output_on' option");
-  params.addDeprecatedParam<bool>("output_final", false, "Force the final time step to be output, regardless of output interval",
-                                  "replace by adding 'final' to the 'output_on' option");
+  // Add special Console flags
+  params.addParam<bool>("print_perf_log", false, "Enable printing of the performance log to the screen (Console)");
+  params.addParam<bool>("print_mesh_changed_info", false, "When true, each time the mesh is changed the mesh information is printed");
+  params.addParam<bool>("print_linear_residuals", true, "Enable printing of linear residuals to the screen (Console)");
 
-   // Return object
-   return params;
+  // Return object
+  return params;
 }
 
-CommonOutputAction::CommonOutputAction(const std::string & name, InputParameters params) :
-    Action(name, params),
+CommonOutputAction::CommonOutputAction(InputParameters params) :
+    Action(params),
     _action_params(_action_factory.getValidParams("AddOutputAction"))
 {
   // Set the ActionWarehouse pointer in the parameters that will be passed to the actions created with this action
   _action_params.set<ActionWarehouse *>("awh") = &_awh;
-
-  // **** DEPRECATED PARAMETER SUPPORT ****
-  MultiMooseEnum & output_on = _pars.set<MultiMooseEnum>("output_on");
-  if (getParam<bool>("output_initial"))
-    output_on.push_back("initial");
-  if (getParam<bool>("output_intermediate"))
-    output_on.push_back("timestep_end");
-  if (getParam<bool>("output_final"))
-    output_on.push_back("final");
 }
 
 void
@@ -170,11 +157,9 @@ CommonOutputAction::create(std::string object_type)
 
   // Create the complete object name (uses lower case of type)
   std::transform(object_type.begin(), object_type.end(), object_type.begin(), ::tolower);
-  std::string long_name("Outputs/");
-  long_name += object_type;
 
   // Create the action
-  MooseSharedPointer<MooseObjectAction> action = MooseSharedNamespace::static_pointer_cast<MooseObjectAction>(_action_factory.create("AddOutputAction", long_name, _action_params));
+  MooseSharedPointer<MooseObjectAction> action = MooseSharedNamespace::static_pointer_cast<MooseObjectAction>(_action_factory.create("AddOutputAction", object_type, _action_params));
 
   // Set flag indicating that the object to be created was created with short-cut syntax
   action->getObjectParams().set<bool>("_built_by_moose") = true;

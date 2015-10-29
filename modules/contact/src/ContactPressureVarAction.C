@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ContactPressureVarAction.h"
 
 #include "Factory.h"
@@ -16,8 +22,8 @@ InputParameters validParams<ContactPressureVarAction>()
   return params;
 }
 
-ContactPressureVarAction::ContactPressureVarAction(const std::string & name, InputParameters params) :
-  Action(name, params)
+ContactPressureVarAction::ContactPressureVarAction(const InputParameters & params) :
+  Action(params)
 {
 }
 
@@ -34,3 +40,4 @@ ContactPressureVarAction::act()
                                   Utility::string_to_enum<FEFamily>("LAGRANGE")));
 
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ELEMENTPROPERTYREADFILETEST_H
 #define ELEMENTPROPERTYREADFILETEST_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<ElementPropertyReadFileTest>();
 class ElementPropertyReadFileTest : public FiniteStrainElasticMaterial
 {
 public:
-  ElementPropertyReadFileTest(const std::string & name, InputParameters parameters);
+  ElementPropertyReadFileTest(const InputParameters & parameters);
 
 protected:
   /**

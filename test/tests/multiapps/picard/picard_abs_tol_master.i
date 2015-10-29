@@ -63,12 +63,6 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
 
 [MultiApps]
@@ -91,7 +85,6 @@
   [./u_to_sub]
     type = MultiAppNearestNodeTransfer
     direction = to_multiapp
-    execute_on = timestep_end
     multi_app = sub
     source_variable = u
     variable = u

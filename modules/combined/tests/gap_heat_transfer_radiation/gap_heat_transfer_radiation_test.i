@@ -149,12 +149,14 @@
     type = SideAverageValue
     boundary = 2
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./temp_right]
     type = SideAverageValue
     boundary = 3
     variable = temp
+    execute_on = 'initial timestep_end'
   [../]
 
   [./flux_left]
@@ -174,10 +176,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

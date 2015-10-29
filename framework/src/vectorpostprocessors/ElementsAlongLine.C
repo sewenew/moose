@@ -26,8 +26,8 @@ InputParameters validParams<ElementsAlongLine>()
   return params;
 }
 
-ElementsAlongLine::ElementsAlongLine(const std::string & name, InputParameters parameters) :
-    GeneralVectorPostprocessor(name, parameters),
+ElementsAlongLine::ElementsAlongLine(const InputParameters & parameters) :
+    GeneralVectorPostprocessor(parameters),
     _start(getParam<Point>("start")),
     _end(getParam<Point>("end")),
     _elem_ids(declareVector("elem_ids"))
@@ -54,3 +54,4 @@ ElementsAlongLine::execute()
   for (unsigned int i=0; i<num_elems; i++)
     _elem_ids[i] = intersected_elems[i]->id();
 }
+

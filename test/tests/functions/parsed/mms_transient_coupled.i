@@ -131,21 +131,25 @@
     type = PointValue
     variable = u
     point = '0.5 0.5 0'
+    execute_on = 'initial timestep_end'
   [../]
   [./u_midpoint_exact]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = u_exact
     point = '0.5 0.5 0.0'
+    execute_on = 'initial timestep_end'
   [../]
   [./u_error]
     type = ElementL2Error
     variable = u
     function = u_exact
+    execute_on = 'initial timestep_end'
   [../]
   [./v_error]
     type = ElementL2Error
     variable = v
     function = v_exact
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -161,12 +165,6 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []
 
 [ICs]

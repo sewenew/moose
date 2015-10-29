@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYINVISCIDSPECIFIEDBC_H
 #define NSENERGYINVISCIDSPECIFIEDBC_H
 
@@ -17,7 +23,7 @@ class NSEnergyInviscidSpecifiedBC : public NSEnergyInviscidBC
 {
 
 public:
-  NSEnergyInviscidSpecifiedBC(const std::string & name, InputParameters parameters);
+  NSEnergyInviscidSpecifiedBC(const InputParameters & parameters);
 
   virtual ~NSEnergyInviscidSpecifiedBC(){}
 

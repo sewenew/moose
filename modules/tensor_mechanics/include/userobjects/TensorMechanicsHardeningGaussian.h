@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TENSORMECHANICSHARDENINGGAUSSIAN_H
 #define TENSORMECHANICSHARDENINGGAUSSIAN_H
 
@@ -18,7 +24,7 @@ InputParameters validParams<TensorMechanicsHardeningGaussian>();
 class TensorMechanicsHardeningGaussian : public TensorMechanicsHardeningModel
 {
  public:
-  TensorMechanicsHardeningGaussian(const std::string & name, InputParameters parameters);
+  TensorMechanicsHardeningGaussian(const InputParameters & parameters);
 
   virtual Real value(const Real & intnl) const;
 

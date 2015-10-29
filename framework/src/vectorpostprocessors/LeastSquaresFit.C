@@ -26,6 +26,8 @@ InputParameters validParams<LeastSquaresFit>()
   params.addRequiredParam<std::string>("y_name", "The name of the dependent variable");
   params.addRequiredParam<unsigned int>("order", "The order of the polynomial fit");
   params.addParam<unsigned int>("num_samples", "The number of samples to be output");
+  params.addParam<Real>("sample_x_min", "The minimum x value of the of samples to be output");
+  params.addParam<Real>("sample_x_max", "The maximum x value of the of samples to be output");
   MooseEnum output_type("Coefficients Samples","Coefficients");
   params.addParam<MooseEnum>("output", output_type, "The quantity to output.  Options are: " + output_type.getRawNames());
   params.addClassDescription("Performs a polynomial least squares fit on the data contained in another VectorPostprocessor");
@@ -33,8 +35,8 @@ InputParameters validParams<LeastSquaresFit>()
   return params;
 }
 
-LeastSquaresFit::LeastSquaresFit(const std::string & name, InputParameters parameters) :
-    GeneralVectorPostprocessor(name, parameters),
+LeastSquaresFit::LeastSquaresFit(const InputParameters & parameters) :
+    GeneralVectorPostprocessor(parameters),
     _vpp_name(getParam<VectorPostprocessorName>("vectorpostprocessor")),
     _order(parameters.get<unsigned int>("order")),
     _x_name(getParam<std::string>("x_name")),
@@ -43,6 +45,8 @@ LeastSquaresFit::LeastSquaresFit(const std::string & name, InputParameters param
     _y_values(getVectorPostprocessorValue("vectorpostprocessor", _y_name)),
     _output_type(getParam<MooseEnum>("output")),
     _num_samples(0),
+    _have_sample_x_min(isParamValid("sample_x_min")),
+    _have_sample_x_max(isParamValid("sample_x_max")),
     _sample_x(NULL),
     _sample_y(NULL),
     _coeffs(NULL)
@@ -53,6 +57,12 @@ LeastSquaresFit::LeastSquaresFit(const std::string & name, InputParameters param
       _num_samples = getParam<unsigned int>("num_samples");
     else
       mooseError("In LeastSquaresFit num_samples parameter must be provided with output=Samples");
+
+    if (_have_sample_x_min)
+      _sample_x_min = getParam<Real>("sample_x_min");
+    if (_have_sample_x_max)
+      _sample_x_max = getParam<Real>("sample_x_max");
+
     _sample_x = &declareVector(_x_name);
     _sample_y = &declareVector(_y_name);
   }
@@ -97,13 +107,23 @@ LeastSquaresFit::execute()
 
   if (_output_type == "Samples")
   {
-    Real x_min = *(std::min_element(_x_values.begin(), _x_values.end()));
-    Real x_max = *(std::max_element(_x_values.begin(), _x_values.end()));
+    Real x_min;
+    if (_have_sample_x_min)
+      x_min = _sample_x_min;
+    else
+      x_min = *(std::min_element(_x_values.begin(), _x_values.end()));
+
+    Real x_max;
+    if (_have_sample_x_max)
+      x_max = _sample_x_max;
+    else
+      x_max = *(std::max_element(_x_values.begin(), _x_values.end()));
+
     Real x_span = x_max - x_min;
 
     for (unsigned int i=0; i<_num_samples; ++i)
     {
-      Real x = x_min + (Real)i / _num_samples * x_span;
+      Real x = x_min + static_cast<Real>(i) / _num_samples * x_span;
       _sample_x->push_back(x);
       _sample_y->push_back(pf.sample(x));
     }
@@ -111,3 +131,4 @@ LeastSquaresFit::execute()
   else
     *_coeffs = pf.getCoefficients();
 }
+

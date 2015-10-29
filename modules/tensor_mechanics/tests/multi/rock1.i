@@ -34,9 +34,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -275,19 +273,19 @@
     outputs = console
   [../]
   [./f0]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = should_be_zero0_fcn
   [../]
   [./f1]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = should_be_zero1_fcn
   [../]
   [./f2]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = should_be_zero2_fcn
   [../]
   [./f3]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = should_be_zero3_fcn
   [../]
 []
@@ -389,14 +387,20 @@
 []
 
 [Materials]
-  [./multi]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     fill_method = symmetric_isotropic
     C_ijkl = '1E9 1.3E9'
+  [../]
+  [./strain]
+    type = ComputeFiniteStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./multi]
+    type = ComputeMultiPlasticityStress
+    block = 0
     ep_plastic_tolerance = 1E-7
     plastic_models = 'mc tensile wps wpt'
     deactivation_scheme = 'optimized_to_safe_to_dumb'
@@ -424,14 +428,7 @@
 [Outputs]
   file_base = rock1
   exodus = false
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
 []

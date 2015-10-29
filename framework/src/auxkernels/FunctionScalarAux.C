@@ -24,8 +24,8 @@ InputParameters validParams<FunctionScalarAux>()
   return params;
 }
 
-FunctionScalarAux::FunctionScalarAux(const std::string & name, InputParameters parameters) :
-    AuxScalarKernel(name, parameters),
+FunctionScalarAux::FunctionScalarAux(const InputParameters & parameters) :
+    AuxScalarKernel(parameters),
     _function(getFunction("function"))
 {
 }
@@ -39,3 +39,4 @@ FunctionScalarAux::computeValue()
 {
   return _function.value(_t, Point(0, 0, 0));
 }
+

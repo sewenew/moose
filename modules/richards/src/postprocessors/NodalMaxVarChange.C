@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "NodalMaxVarChange.h"
 
@@ -17,9 +20,9 @@ InputParameters validParams<NodalMaxVarChange>()
   return params;
 }
 
-NodalMaxVarChange::NodalMaxVarChange(const std::string & name, InputParameters parameters) :
-    NodalVariablePostprocessor(name, parameters),
-    _u_old(_var.nodalSlnOld()),
+NodalMaxVarChange::NodalMaxVarChange(const InputParameters & parameters) :
+    NodalVariablePostprocessor(parameters),
+    _u_old(coupledValueOld("variable")),
     _value(-std::numeric_limits<Real>::max())
 {
 }
@@ -49,3 +52,4 @@ NodalMaxVarChange::threadJoin(const UserObject & y)
   const NodalMaxVarChange & pps = static_cast<const NodalMaxVarChange &>(y);
   _value = std::max(_value, pps._value);
 }
+

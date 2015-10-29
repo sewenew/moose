@@ -35,8 +35,8 @@ InputParameters validParams<AddNodalNormalsAction>()
   return params;
 }
 
-AddNodalNormalsAction::AddNodalNormalsAction(const std::string & name, InputParameters parameters) :
-    Action(name, parameters),
+AddNodalNormalsAction::AddNodalNormalsAction(InputParameters parameters) :
+    Action(parameters),
     _boundary(getParam<std::vector<BoundaryName> >("boundary")),
     _has_corners(isParamValid("corner_boundary")),
     _corner_boundary(_has_corners ? getParam<BoundaryName>("corner_boundary") : BoundaryName())
@@ -65,7 +65,7 @@ AddNodalNormalsAction::act()
 
   // Set the execute options
   MultiMooseEnum execute_options(SetupInterface::getExecuteOptions());
-  execute_options = "timestep_begin";
+  execute_options = "initial timestep_begin";
 
   // Create the NodalNormalsPreprocessor UserObject
   if (_current_task == "add_postprocessor")
@@ -103,3 +103,4 @@ AddNodalNormalsAction::act()
     }
   }
 }
+

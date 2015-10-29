@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  This post processor returns the effective saturation of a region.
 //
@@ -18,8 +21,8 @@ InputParameters validParams<RichardsSeffPrimeAux>()
   return params;
 }
 
-RichardsSeffPrimeAux::RichardsSeffPrimeAux(const std::string & name, InputParameters parameters) :
-    AuxKernel(name, parameters),
+RichardsSeffPrimeAux::RichardsSeffPrimeAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
     _seff_UO(getUserObject<RichardsSeff>("seff_UO")),
     _wrt1(getParam<int>("wrtnum"))
 {
@@ -41,3 +44,4 @@ RichardsSeffPrimeAux::computeValue()
   _seff_UO.dseff(_pressure_vals, _qp, _mat);
   return _mat[_wrt1];
 }
+

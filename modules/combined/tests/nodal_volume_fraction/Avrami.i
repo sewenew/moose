@@ -47,7 +47,7 @@
     type = NodalVolumeFraction
     variable = u
     threshold = 0.9
-    execute_on = timestep_end
+    execute_on = 'initial timestep_end'
     Avrami_file = Avrami.csv
     mesh_volume = Volume
     equil_fraction = 0.5
@@ -68,10 +68,4 @@
 [Outputs]
   file_base = Avrami
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

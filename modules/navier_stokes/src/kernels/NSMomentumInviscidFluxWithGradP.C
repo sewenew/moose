@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumInviscidFluxWithGradP.h"
 
 
@@ -19,8 +25,8 @@ InputParameters validParams<NSMomentumInviscidFluxWithGradP>()
 
 
 
-NSMomentumInviscidFluxWithGradP::NSMomentumInviscidFluxWithGradP(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters),
+NSMomentumInviscidFluxWithGradP::NSMomentumInviscidFluxWithGradP(const InputParameters & parameters)
+    : NSKernel(parameters),
 
       // Coupled gradients
       _grad_p(coupledGradient("pressure")),
@@ -179,6 +185,7 @@ Real NSMomentumInviscidFluxWithGradP::compute_pressure_jacobian_value(unsigned v
   // Hit hessian_sum with phij, then add to dp/dU_m * dphij/dx_k, finally return the result
   return _pressure_derivs.get_grad(var_number) * _grad_phi[_j][_qp](_component) + hessian_sum*_phi[_j][_qp];
 }
+
 
 
 

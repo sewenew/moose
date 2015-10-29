@@ -21,16 +21,16 @@ InputParameters validParams<GeneralUserObject>()
   return params;
 }
 
-GeneralUserObject::GeneralUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    MaterialPropertyInterface(name, parameters),
-    TransientInterface(parameters, name, "general_user_objects"),
+GeneralUserObject::GeneralUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    MaterialPropertyInterface(parameters),
+    TransientInterface(parameters, "general_user_objects"),
     DependencyResolverInterface(),
     UserObjectInterface(parameters),
     PostprocessorInterface(parameters),
     VectorPostprocessorInterface(parameters)
 {
-  _supplied_vars.insert(_name);
+  _supplied_vars.insert(name());
 }
 
 const std::set<std::string> &
@@ -45,7 +45,7 @@ GeneralUserObject::getSuppliedItems()
   return _supplied_vars;
 }
 
-PostprocessorValue &
+const PostprocessorValue &
 GeneralUserObject::getPostprocessorValue(const std::string & name)
 {
   _depend_vars.insert(_pars.get<PostprocessorName>(name));
@@ -72,3 +72,4 @@ GeneralUserObject::getVectorPostprocessorValueByName(const VectorPostprocessorNa
   _depend_vars.insert(name);
   return VectorPostprocessorInterface::getVectorPostprocessorValueByName(name, vector_name);
 }
+

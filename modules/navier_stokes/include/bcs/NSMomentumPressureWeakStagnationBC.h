@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMPRESSUREWEAKSTAGNATIONBC_H
 #define NSMOMENTUMPRESSUREWEAKSTAGNATIONBC_H
 
@@ -19,7 +25,7 @@ class NSMomentumPressureWeakStagnationBC : public NSWeakStagnationBC
 {
 
 public:
-  NSMomentumPressureWeakStagnationBC(const std::string & name, InputParameters parameters);
+  NSMomentumPressureWeakStagnationBC(const InputParameters & parameters);
 
   virtual ~NSMomentumPressureWeakStagnationBC(){}
 

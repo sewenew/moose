@@ -56,7 +56,7 @@
 
 [Postprocessors]
   [./t_pp]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = t_func
   [../]
 []
@@ -78,11 +78,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
-

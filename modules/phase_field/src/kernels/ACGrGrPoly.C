@@ -1,18 +1,23 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ACGrGrPoly.h"
-
-//#include "Material.h"
 
 template<>
 InputParameters validParams<ACGrGrPoly>()
 {
   InputParameters params = validParams<ACBulk>();
+  params.addClassDescription("Grain-Boundary model poly crystaline interface Allen-Cahn Kernel");
   params.addRequiredCoupledVar("v", "Array of coupled variable names");
   params.addCoupledVar("T", "temperature");
   return params;
 }
 
-ACGrGrPoly::ACGrGrPoly(const std::string & name, InputParameters parameters) :
-    ACBulk(name,parameters),
+ACGrGrPoly::ACGrGrPoly(const InputParameters & parameters) :
+    ACBulk(parameters),
     _mu(getMaterialProperty<Real>("mu")),
     _gamma(getMaterialProperty<Real>("gamma_asymm")),
     _tgrad_corr_mult(getMaterialProperty<Real>("tgrad_corr_mult")),
@@ -76,3 +81,4 @@ ACGrGrPoly::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0.0;
 }
+

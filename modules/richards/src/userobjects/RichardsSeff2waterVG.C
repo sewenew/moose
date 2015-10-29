@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  van-Genuchten water effective saturation as a function of (Pwater, Pgas), and its derivs wrt to that pressure
 //
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsSeff2waterVG>()
   return params;
 }
 
-RichardsSeff2waterVG::RichardsSeff2waterVG(const std::string & name, InputParameters parameters) :
-    RichardsSeff(name, parameters),
+RichardsSeff2waterVG::RichardsSeff2waterVG(const InputParameters & parameters) :
+    RichardsSeff(parameters),
     _al(getParam<Real>("al")),
     _m(getParam<Real>("m"))
 {
@@ -50,3 +53,4 @@ RichardsSeff2waterVG::d2seff(std::vector<VariableValue *> p, unsigned int qp, st
   result[1][0] = -result[0][0];
   result[1][1] = result[0][0];
 }
+

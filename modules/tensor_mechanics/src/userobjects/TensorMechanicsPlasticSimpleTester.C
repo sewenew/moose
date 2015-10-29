@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsPlasticSimpleTester.h"
 
 template<>
@@ -16,9 +22,8 @@ InputParameters validParams<TensorMechanicsPlasticSimpleTester>()
   return params;
 }
 
-TensorMechanicsPlasticSimpleTester::TensorMechanicsPlasticSimpleTester(const std::string & name,
-                                                         InputParameters parameters) :
-    TensorMechanicsPlasticModel(name, parameters),
+TensorMechanicsPlasticSimpleTester::TensorMechanicsPlasticSimpleTester(const InputParameters & parameters) :
+    TensorMechanicsPlasticModel(parameters),
     _a(getParam<Real>("a")),
     _b(getParam<Real>("b")),
     _c(getParam<Real>("c")),
@@ -76,3 +81,10 @@ TensorMechanicsPlasticSimpleTester::dflowPotential_dintnl(const RankTwoTensor & 
 {
   return RankTwoTensor();
 }
+
+std::string
+TensorMechanicsPlasticSimpleTester::modelName() const
+{
+  return "SimpleTester";
+}
+

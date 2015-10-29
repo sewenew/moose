@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsPPenalty.h"
 
@@ -18,8 +21,8 @@ InputParameters validParams<RichardsPPenalty>()
   return params;
 }
 
-RichardsPPenalty::RichardsPPenalty(const std::string & name, InputParameters parameters) :
-    Kernel(name,parameters),
+RichardsPPenalty::RichardsPPenalty(const InputParameters & parameters) :
+    Kernel(parameters),
     _a(getParam<Real>("a")),
     _lower(coupledValue("lower_var")),
     _lower_var_num(coupled("lower_var"))
@@ -52,5 +55,6 @@ RichardsPPenalty::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0.0;
 }
+
 
 

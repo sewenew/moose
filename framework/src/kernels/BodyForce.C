@@ -27,8 +27,8 @@ InputParameters validParams<BodyForce>()
   return params;
 }
 
-BodyForce::BodyForce(const std::string & name, InputParameters parameters) :
-    Kernel(name, parameters),
+BodyForce::BodyForce(const InputParameters & parameters) :
+    Kernel(parameters),
     _value(getParam<Real>("value")),
     _function(getFunction("function"))
 {
@@ -40,3 +40,4 @@ BodyForce::computeQpResidual()
   Real factor = _value * _function.value(_t, _q_point[_qp]);
   return _test[_i][_qp] * -factor;
 }
+

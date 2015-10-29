@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "FiniteStrainMohrCoulomb.h"
 #include <math.h> // for M_PI
 
@@ -22,9 +28,8 @@ InputParameters validParams<FiniteStrainMohrCoulomb>()
   return params;
 }
 
-FiniteStrainMohrCoulomb::FiniteStrainMohrCoulomb(const std::string & name,
-                                                         InputParameters parameters) :
-    FiniteStrainPlasticBase(name, parameters),
+FiniteStrainMohrCoulomb::FiniteStrainMohrCoulomb(const InputParameters & parameters) :
+    FiniteStrainPlasticBase(parameters),
     _cohesion(getParam<Real>("mc_cohesion")),
     _phi(getParam<Real>("mc_friction_angle")*M_PI/180.0),
     _psi(getParam<Real>("mc_dilation_angle")*M_PI/180.0),
@@ -413,3 +418,4 @@ FiniteStrainMohrCoulomb::dabbo(const Real sin3lode, const Real /*sin_angle*/, Re
   daaa = (sin3lode >= 0 ? -_sintt/std::sqrt(3.0) - dbbb*_sin3tt : _sintt/std::sqrt(3.0) + dbbb*_sin3tt);
   daaa += -dccc*std::pow(_sin3tt, 2);
 }
+

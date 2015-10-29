@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef BICRYSTALBOUNDINGBOXICACTION_H
 #define BICRYSTALBOUNDINGBOXICACTION_H
 
@@ -10,7 +16,7 @@
 class BicrystalBoundingBoxICAction: public Action
 {
 public:
-  BicrystalBoundingBoxICAction(const std::string & name, InputParameters params);
+  BicrystalBoundingBoxICAction(const InputParameters & params);
 
   virtual void act();
 

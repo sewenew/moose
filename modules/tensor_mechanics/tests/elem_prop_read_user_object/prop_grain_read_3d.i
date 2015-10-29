@@ -115,8 +115,8 @@
   [./elastic]
     type = ElementPropertyReadFileTest
     block = 0
-    disp_y = disp_y
     disp_x = disp_x
+    disp_y = disp_y
     disp_z = disp_z
     C_ijkl = '1.684e5 1.214e5 1.214e5 1.684e5 1.214e5 1.684e5 0.754e5 0.754e5 0.754e5'
     fill_method = symmetric9
@@ -167,19 +167,11 @@
 [Outputs]
   file_base = prop_grain_read_3d_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
 
 [Kernels]
   [./TensorMechanics]
-    disp_y = disp_y
-    disp_x = disp_x
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
     use_displaced_mesh = true
   [../]
 []

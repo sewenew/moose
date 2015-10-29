@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSGravityPower.h"
 
 template<>
@@ -14,8 +20,8 @@ InputParameters validParams<NSGravityPower>()
   return params;
 }
 
-NSGravityPower::NSGravityPower(const std::string & name, InputParameters parameters)
-  :Kernel(name, parameters),
+NSGravityPower::NSGravityPower(const InputParameters & parameters)
+  :Kernel(parameters),
     _momentum_var(coupled("momentum")),
     _momentum(coupledValue("momentum")),
     _acceleration(getParam<Real>("acceleration"))
@@ -49,3 +55,4 @@ NSGravityPower::computeQpOffDiagJacobian(unsigned int jvar)
 
   return 0;
 }
+

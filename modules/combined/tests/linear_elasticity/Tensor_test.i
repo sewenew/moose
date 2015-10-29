@@ -17,6 +17,10 @@
   elem_type = QUAD4
 []
 
+[GlobalParams]
+  displacements = 'disp_x disp_y'
+[]
+
 [Variables]
   [./diffused]
     order = FIRST
@@ -178,8 +182,6 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
   [../]
 
   [./diff]
@@ -516,10 +518,4 @@
 [Outputs]
   file_base = Tensor_test
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

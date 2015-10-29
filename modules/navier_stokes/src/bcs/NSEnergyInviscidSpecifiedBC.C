@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSEnergyInviscidSpecifiedBC.h"
 
 template<>
@@ -14,8 +20,8 @@ InputParameters validParams<NSEnergyInviscidSpecifiedBC>()
 
 
 
-NSEnergyInviscidSpecifiedBC::NSEnergyInviscidSpecifiedBC(const std::string & name, InputParameters parameters)
-    : NSEnergyInviscidBC(name, parameters),
+NSEnergyInviscidSpecifiedBC::NSEnergyInviscidSpecifiedBC(const InputParameters & parameters)
+    : NSEnergyInviscidBC(parameters),
 
       // Required parameters
       _specified_pressure(getParam<Real>("specified_pressure")),
@@ -55,3 +61,4 @@ Real NSEnergyInviscidSpecifiedBC::compute_jacobian(unsigned var_number)
   // When both pressure and u.n are specified, only term B of the Jacobian is non-zero.
   return this->qp_jacobian_termB(var_number, _un);
 }
+

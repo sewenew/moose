@@ -3,9 +3,6 @@
   dim = 2
   nx = 10
   ny = 10
-  # The MultiAppMeshFunctionTransfer doesn't work with ParallelMesh.
-  # See tosub_master.i and #2145 for more information.
-  distribution = serial
 []
 
 [Variables]
@@ -58,12 +55,6 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []
 
 [MultiApps]
@@ -71,7 +62,7 @@
     positions = '.099 .099 0 .599 .599 0 0.599 0.099 0'
     type = TransientMultiApp
     app_type = MooseTestApp
-    input_files = sub.i
+    input_files = fromsub_sub.i
   [../]
 []
 

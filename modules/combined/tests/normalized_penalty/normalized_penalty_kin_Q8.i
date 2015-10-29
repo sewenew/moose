@@ -125,7 +125,7 @@
 
 
   nl_rel_tol = 1e-12
-  nl_abs_tol = 1e-8
+  nl_abs_tol = 1e-9
 
   l_max_its = 100
   nl_max_its = 10
@@ -135,9 +135,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 [] # Output

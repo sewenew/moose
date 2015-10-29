@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "Diffusion0.h"
 
 template<>
@@ -12,8 +25,8 @@ InputParameters validParams<Diffusion0>()
   return params;
 }
 
-Diffusion0::Diffusion0(const std::string & name, InputParameters parameters)
-  :Kernel(name, parameters)
+Diffusion0::Diffusion0(const InputParameters & parameters)
+  :Kernel(parameters)
 {
   _Ak = getParam<Real>("Ak");
   _Bk = getParam<Real>("Bk");

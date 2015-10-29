@@ -65,7 +65,6 @@ ActionWarehouse::clear()
   _displaced_mesh.reset();
 
   _problem.reset();
-  _executioner.reset();
 }
 
 void
@@ -78,7 +77,7 @@ ActionWarehouse::addActionBlock(MooseSharedPointer<Action> action)
    * objects exist in the system, we are just using the constants directly.
    */
 
-  std::string registered_identifier = action->getParams().get<std::string>("registered_identifier");
+  std::string registered_identifier = action->parameters().get<std::string>("registered_identifier");
   std::set<std::string> tasks;
 
   if (_show_parser)
@@ -130,7 +129,7 @@ ActionWarehouse::addActionBlock(MooseSharedPointer<Action> action)
     MooseSharedPointer<MooseObjectAction> moa = MooseSharedNamespace::dynamic_pointer_cast<MooseObjectAction>(action);
     if (moa.get())
     {
-      InputParameters mparams = moa->getObjectParams();
+      const InputParameters & mparams = moa->getObjectParams();
 
       if (mparams.have_parameter<std::string>("_moose_base"))
       {
@@ -177,6 +176,12 @@ ActionWarehouse::getActionsByName(const std::string & task) const
   if (it == _action_blocks.end())
     mooseError("The task " << task << " does not exist.");
   return it->second;
+}
+
+bool
+ActionWarehouse::hasActions(const std::string & task) const
+{
+  return _action_blocks.find(task) != _action_blocks.end();
 }
 
 void
@@ -297,13 +302,9 @@ ActionWarehouse::executeAllActions()
     _console << "\n[DBG][ACT] Executing actions:" << std::endl;
   }
 
-
   for (std::vector<std::string>::iterator it = _ordered_names.begin(); it != _ordered_names.end(); ++it)
   {
     std::string task = *it;
-
-    // Set the current task name
-    _current_task = task;
     executeActionsWithAction(task);
   }
 }
@@ -311,13 +312,24 @@ ActionWarehouse::executeAllActions()
 void
 ActionWarehouse::executeActionsWithAction(const std::string & task)
 {
+  // Set the current task name
+  _current_task = task;
+
   for (ActionIterator act_iter = actionBlocksWithActionBegin(task);
        act_iter != actionBlocksWithActionEnd(task);
        ++act_iter)
   {
     if (_show_actions)
-      _console << "[DBG][ACT] " << (*act_iter)->type() << " (" << COLOR_YELLOW << task << COLOR_DEFAULT << ")"  << std::endl;
-    (*act_iter)->act();
+    {
+      _console << "[DBG][ACT] "
+               << "TASK (" << COLOR_YELLOW << std::setw (24) << task << COLOR_DEFAULT << ") "
+               << "TYPE (" << COLOR_YELLOW << std::setw (32) << (*act_iter)->type() << COLOR_DEFAULT << ") "
+               << "NAME (" << COLOR_YELLOW << std::setw (16) << (*act_iter)->name() << COLOR_DEFAULT << ") ";
+
+      (*act_iter)->act();
+    }
+    else
+      (*act_iter)->act();
   }
 }
 
@@ -337,15 +349,19 @@ ActionWarehouse::printInputFile(std::ostream & out)
   for (std::vector<Action* >::iterator i = ordered_actions.begin();
        i != ordered_actions.end();
        ++i)
-   {
-    std::string name ((*i)->name());
+  {
+    std::string name;
+    if ((*i)->isParamValid("parser_syntax"))
+      name = (*i)->getParam<std::string>("parser_syntax");
+    else
+      name = (*i)->name();
     const std::set<std::string> & tasks = ((*i)->getAllTasks());
     mooseAssert(!tasks.empty(), "Task list is empty");
 
     bool is_parent;
     if (_syntax.isAssociated(name, &is_parent) != "")
      {
-      InputParameters params = (*i)->getParams();
+      InputParameters params = (*i)->parameters();
 
       // TODO: Do we need to insert more nodes for each task?
       tree.insertNode(name, *tasks.begin(), true, &params);

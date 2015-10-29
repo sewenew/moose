@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFFPRIMEPRIMEAUX_H
 #define RICHARDSSEFFPRIMEPRIMEAUX_H
@@ -22,7 +25,7 @@ InputParameters validParams<RichardsSeffPrimePrimeAux>();
 class RichardsSeffPrimePrimeAux: public AuxKernel
 {
 public:
-  RichardsSeffPrimePrimeAux(const std::string & name, InputParameters parameters);
+  RichardsSeffPrimePrimeAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();

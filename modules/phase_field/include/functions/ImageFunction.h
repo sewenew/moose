@@ -1,22 +1,15 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
-
 #ifndef IMAGEFUNCTION_H
 #define IMAGEFUNCTION_H
 
 // MOOSE includes
 #include "Function.h"
+#include "FileRangeBuilder.h"
 
 // libmesh includes
 #include "libmesh/mesh_tools.h"
@@ -58,16 +51,17 @@ InputParameters validParams<ImageFunction>();
 /**
  * A function for extracting data from an image or stack of images
  */
-class ImageFunction : public Function
+class ImageFunction :
+  public Function,
+  public FileRangeBuilder
 {
 public:
 
   /**
    * Class constructor
-   * @param name
-   * @param parameters
+   * @param parameters The parameters object holding data for the class to use.
    */
-  ImageFunction(const std::string & name, InputParameters parameters);
+  ImageFunction(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -112,6 +106,8 @@ protected:
    */
   void vtkFlip();
 
+private:
+
 #ifdef LIBMESH_HAVE_VTK
 
   /// List of file names to extract data
@@ -139,7 +135,6 @@ protected:
   vtkSmartPointer<vtkImageFlip> _flip_filter;
 #endif
 
-private:
   /**
    * Helper method for flipping image
    * @param axis Flag for determing the flip axis: "x=0", "y=1", "z=2"

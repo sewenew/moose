@@ -22,13 +22,12 @@ InputParameters validParams<SideSetsBetweenSubdomains>()
   InputParameters params = validParams<MeshModifier>();
   params.addRequiredParam<SubdomainName>("master_block", "The first block for which to draw a sideset between");
   params.addRequiredParam<SubdomainName>("paired_block", "The second block for which to draw a sideset between");
-  params.addParam<std::vector<BoundaryName> >("new_boundary", "The name of the boundary to create");
-  params.addDeprecatedParam<std::vector<BoundaryName> >("boundary", "The name of the boundary to create", "Use 'new_boundary' instead");
+  params.addRequiredParam<std::vector<BoundaryName> >("new_boundary", "The name of the boundary to create");
   return params;
 }
 
-SideSetsBetweenSubdomains::SideSetsBetweenSubdomains(const std::string & name, InputParameters parameters):
-    MeshModifier(name, parameters)
+SideSetsBetweenSubdomains::SideSetsBetweenSubdomains(const InputParameters & parameters):
+    MeshModifier(parameters)
 {
 }
 
@@ -40,11 +39,6 @@ void
 SideSetsBetweenSubdomains::modify()
 {
   MeshBase & mesh = _mesh_ptr->getMesh();
-
-  // *** DEPRECATED SUPPORT ***
-  // Remove these two lines and make 'new_boundary' required when this is removed
-  if (isParamValid("boundary"))
-    _pars.set<std::vector<BoundaryName> >("new_boundary") = getParam<std::vector<BoundaryName> >("boundary");
 
   SubdomainID master_id = _mesh_ptr->getSubdomainID(getParam<SubdomainName>("master_block"));
   SubdomainID paired_id = _mesh_ptr->getSubdomainID(getParam<SubdomainName>("paired_block"));
@@ -80,3 +74,4 @@ SideSetsBetweenSubdomains::modify()
   for (unsigned int i=0; i<boundary_ids.size(); ++i)
     boundary_info.sideset_name(boundary_ids[i]) = boundary_names[i];
 }
+

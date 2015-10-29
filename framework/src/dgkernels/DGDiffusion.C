@@ -26,8 +26,8 @@ InputParameters validParams<DGDiffusion>()
   return params;
 }
 
-DGDiffusion::DGDiffusion(const std::string & name, InputParameters parameters) :
-    DGKernel(name, parameters),
+DGDiffusion::DGDiffusion(const InputParameters & parameters) :
+    DGKernel(parameters),
     _epsilon(getParam<Real>("epsilon")),
     _sigma(getParam<Real>("sigma"))
 {
@@ -99,3 +99,4 @@ DGDiffusion::computeQpJacobian(Moose::DGJacobianType type)
 
   return r;
 }
+

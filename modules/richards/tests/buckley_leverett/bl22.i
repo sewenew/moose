@@ -178,7 +178,6 @@
   [./initial_water]
     type = ParsedFunction
     value = 1000000*(1-min(x/5,1))-100000*(max(x-5,0)/max(abs(x-5),1E-10))
-    #value = max(1000000*(1-x/5),-100000)
   [../]
   [./initial_gas]
     type = ParsedFunction
@@ -240,16 +239,12 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = bl22
   [./exodus]
     type = Exodus
     interval = 100000
     hide = pgas
-    output_on = 'initial final timestep_end'
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
+    execute_on = 'initial final timestep_end'
   [../]
 []

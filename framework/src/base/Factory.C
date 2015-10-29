@@ -14,8 +14,12 @@
 
 #include "Factory.h"
 #include "MooseApp.h"
+#include "InfixIterator.h"
+#include "InputParameterWarehouse.h"
+// Just for testing...
+#include "Diffusion.h"
 
-Factory::Factory(MooseApp & app):
+Factory::Factory(MooseApp & app) :
     _app(app)
 {
 }
@@ -32,7 +36,7 @@ Factory::getValidParams(const std::string & obj_name)
 
   // Check if the object is registered
   if (it == _name_to_params_pointer.end())
-    mooseError(std::string("A '") + obj_name + "' is not a registered object\n\n");
+    reportUnregisteredError(obj_name);
 
   // Print out deprecated message, if it exists
   deprecatedMessage(obj_name);
@@ -41,29 +45,42 @@ Factory::getValidParams(const std::string & obj_name)
   paramsPtr & func = it->second;
   InputParameters params = (*func)();
   params.addPrivateParam("_moose_app", &_app);
+
   return params;
 }
 
 MooseObjectPtr
-Factory::create(const std::string & obj_name, const std::string & name, InputParameters parameters)
+Factory::create(const std::string & obj_name, const std::string & name, InputParameters parameters, THREAD_ID tid /* =0 */)
 {
+  // Pointer to the object constructor
   std::map<std::string, buildPtr>::iterator it = _name_to_build_pointer.find(obj_name);
 
   // Check if the object is registered
   if (it == _name_to_build_pointer.end())
-    mooseError("Object '" + obj_name + "' was not registered.");
+    reportUnregisteredError(obj_name);
 
   // Print out deprecated message, if it exists
   deprecatedMessage(obj_name);
 
+  // Create the actual parameters object that the object will reference
+  InputParameters & params = _app.getInputParameterWarehouse().addInputParameters(name, parameters, tid);
+
   // Check to make sure that all required parameters are supplied
-  parameters.checkParams(name);
+  params.checkParams(name);
+
+  // register type name as constructed
+  _constructed_types.insert(obj_name);
 
   // Actually call the function pointer.  You can do this in one line,
   // but it's a bit more obvious what's happening if you do it in two...
   buildPtr & func = it->second;
+  return (*func)(params);
+}
 
-  return (*func)(name, parameters);
+void
+Factory::restrictRegisterableObjects(const std::vector<std::string> & names)
+{
+  _registerable_objects.insert(names.begin(), names.end());
 }
 
 time_t Factory::parseTime(const std::string t_str)
@@ -137,4 +154,30 @@ void Factory::deprecatedMessage(const std::string obj_name)
     // Produce the error message
     mooseDoOnce(mooseWarning(msg.str()));
   }
+}
+
+void
+Factory::reportUnregisteredError(const std::string & obj_name) const
+{
+  std::ostringstream oss;
+  std::set<std::string> paths = _app.getLoadedLibraryPaths();
+
+  oss << "A '" + obj_name + "' is not a registered object.\n"
+      << "\nWe loaded objects from the following libraries and still couldn't find your object:\n\t";
+  std::copy(paths.begin(), paths.end(), infix_ostream_iterator<std::string>(oss, "\n\t"));
+  if (paths.empty())
+    oss << "(NONE)\n";
+  oss << "\n\nMake sure you have compiled the library and either set the \"library_path\" variable "
+      << "in your input file or exported \"MOOSE_LIBRARY_PATH\".";
+
+  mooseError(oss.str());
+}
+
+std::vector<std::string>
+Factory::getConstructedObjects() const
+{
+  std::vector<std::string> list;
+  for (std::set<std::string>::iterator i = _constructed_types.begin(); i != _constructed_types.end(); ++i)
+    list.push_back(*i);
+  return list;
 }

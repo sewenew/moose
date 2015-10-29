@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari,  O. Heinonen, M.R. Tonks
 
 #ifndef TENSORMECHANICSMATERIAL_H
@@ -23,7 +29,7 @@ InputParameters validParams<TensorMechanicsMaterial>();
 class TensorMechanicsMaterial : public Material
 {
 public:
-  TensorMechanicsMaterial(const std::string & name, InputParameters parameters);
+  TensorMechanicsMaterial(const InputParameters & parameters);
 
 protected:
   virtual void initQpStatefulProperties();
@@ -59,6 +65,9 @@ protected:
 
   /// Individual material information
   ElasticityTensorR4 _Cijkl;
+
+  /// prefactor function to multiply the elasticity tensor with
+  Function * const _prefactor_function;
 
   RankTwoTensor _strain_increment;
 

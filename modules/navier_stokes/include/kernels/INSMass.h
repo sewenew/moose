@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSMASS_H
 #define INSMASS_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<INSMass>();
 class INSMass : public Kernel
 {
 public:
-  INSMass(const std::string & name, InputParameters parameters);
+  INSMass(const InputParameters & parameters);
 
   virtual ~INSMass(){}
 

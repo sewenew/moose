@@ -23,8 +23,8 @@ InputParameters validParams<NodalSum>()
   return params;
 }
 
-NodalSum::NodalSum(const std::string & name, InputParameters parameters) :
-    NodalVariablePostprocessor(name, parameters),
+NodalSum::NodalSum(const InputParameters & parameters) :
+    NodalVariablePostprocessor(parameters),
     _sum(0)
 {
 }
@@ -55,3 +55,4 @@ NodalSum::threadJoin(const UserObject & y)
   const NodalSum & pps = static_cast<const NodalSum &>(y);
   _sum += pps._sum;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSMomentum.h"
 
 template<>
@@ -22,8 +28,8 @@ InputParameters validParams<INSMomentum>()
 
 
 
-INSMomentum::INSMomentum(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSMomentum::INSMomentum(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Coupled variables
   _u_vel(coupledValue("u")),
@@ -165,3 +171,4 @@ Real INSMomentum::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

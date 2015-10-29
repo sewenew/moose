@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSPOLYLINESINK_H
 #define RICHARDSPOLYLINESINK_H
@@ -25,7 +28,7 @@ InputParameters validParams<RichardsPolyLineSink>();
 class RichardsPolyLineSink : public DiracKernel
 {
 public:
-  RichardsPolyLineSink(const std::string & name, InputParameters parameters);
+  RichardsPolyLineSink(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();
@@ -62,10 +65,10 @@ protected:
   unsigned int _pvar;
 
   /// fluid porepressure (or porepressures in case of multiphase)
-  MaterialProperty<std::vector<Real> > &_pp;
+  const MaterialProperty<std::vector<Real> > &_pp;
 
   /// d(porepressure_i)/d(variable_j)
-  MaterialProperty<std::vector<std::vector<Real> > > &_dpp_dv;
+  const MaterialProperty<std::vector<std::vector<Real> > > &_dpp_dv;
 
   /// vector of Dirac Points' x positions
   std::vector<Real> _xs;

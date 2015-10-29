@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "FiniteStrainPlasticMaterial.h"
 
 template<>
@@ -14,9 +20,8 @@ InputParameters validParams<FiniteStrainPlasticMaterial>()
   return params;
 }
 
-FiniteStrainPlasticMaterial::FiniteStrainPlasticMaterial(const std::string & name,
-                                                         InputParameters parameters) :
-    FiniteStrainMaterial(name, parameters),
+FiniteStrainPlasticMaterial::FiniteStrainPlasticMaterial(const InputParameters & parameters) :
+    FiniteStrainMaterial(parameters),
     _yield_stress_vector(getParam< std::vector<Real> >("yield_stress")),//Read from input file
     _plastic_strain(declareProperty<RankTwoTensor>("plastic_strain")),
     _plastic_strain_old(declarePropertyOld<RankTwoTensor>("plastic_strain")),
@@ -421,3 +426,4 @@ FiniteStrainPlasticMaterial::getdYieldStressdPlasticStrain(const Real eqpe)
 
   return 0.0;
 }
+

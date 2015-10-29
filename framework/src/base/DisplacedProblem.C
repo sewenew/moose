@@ -26,13 +26,13 @@ InputParameters validParams<DisplacedProblem>()
   return params;
 }
 
-DisplacedProblem::DisplacedProblem(FEProblem & mproblem, MooseMesh & displaced_mesh, InputParameters params) :
-    SubProblem(mproblem.name() + "_disp", params),
-    _mproblem(mproblem),
-    _mesh(displaced_mesh),
-    _eq(displaced_mesh),
+DisplacedProblem::DisplacedProblem(const InputParameters & parameters) :
+    SubProblem(parameters),
+    _mproblem(*getParam<FEProblem *>("_fe_problem")),
+    _mesh(*getParam<MooseMesh *>("mesh")),
+    _eq(_mesh),
     _ref_mesh(_mproblem.mesh()),
-    _displacements(params.get<std::vector<std::string> >("displacements")),
+    _displacements(getParam<std::vector<std::string> >("displacements")),
     _displaced_nl(*this, _mproblem.getNonlinearSystem(), _mproblem.getNonlinearSystem().name() + "_displaced", Moose::VAR_NONLINEAR),
     _displaced_aux(*this, _mproblem.getAuxiliarySystem(), _mproblem.getAuxiliarySystem().name() + "_displaced", Moose::VAR_AUXILIARY),
     _geometric_search_data(_mproblem, _mesh)
@@ -237,20 +237,38 @@ DisplacedProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
 {
   std::vector<Point> & points = _dirac_kernel_info.getPoints()[elem];
 
-  bool have_points = points.size();
+  unsigned int n_points = points.size();
 
-  if (have_points)
+  if (n_points)
   {
+    unsigned int max_qps = _mproblem.getMaxQps();
+
+    if (n_points > max_qps)
+    {
+      /**
+       * The maximum number of qps can rise if several Dirac points are added to a single element.
+       * In that case we need to resize the zeros to compensate.
+       */
+      for (unsigned int tid = 0; tid < libMesh::n_threads(); ++tid)
+      {
+        _zero[tid].resize(max_qps, 0);
+        _grad_zero[tid].resize(max_qps, 0);
+        _second_zero[tid].resize(max_qps, RealTensor(0.));
+        _second_phi_zero[tid].resize(max_qps, std::vector<RealTensor>(_mproblem.getMaxShapeFunctions(), RealTensor(0.)));
+      }
+    }
+
     _assembly[tid]->reinitAtPhysical(elem, points);
 
     _displaced_nl.prepare(tid);
     _displaced_aux.prepare(tid);
-    _assembly[tid]->prepare();
 
     reinitElem(elem, tid);
   }
 
-  return have_points;
+  _assembly[tid]->prepare();
+
+  return n_points > 0;
 }
 
 
@@ -306,6 +324,13 @@ DisplacedProblem::reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID 
 {
   _displaced_nl.reinitNodes(nodes, tid);
   _displaced_aux.reinitNodes(nodes, tid);
+}
+
+void
+DisplacedProblem::reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
+{
+  _displaced_nl.reinitNodesNeighbor(nodes, tid);
+  _displaced_aux.reinitNodesNeighbor(nodes, tid);
 }
 
 void
@@ -558,22 +583,6 @@ DisplacedProblem::onTimestepBegin()
 void
 DisplacedProblem::onTimestepEnd()
 {
-}
-
-void
-DisplacedProblem::registerRestartableData(std::string name, RestartableDataValue * data, THREAD_ID tid)
-{
-  name += "/displaced";
-
-  _mproblem.registerRestartableData(name, data, tid);
-}
-
-void
-DisplacedProblem::registerRecoverableData(std::string name)
-{
-  name += "/displaced";
-
-  _mproblem.registerRecoverableData(name);
 }
 
 void

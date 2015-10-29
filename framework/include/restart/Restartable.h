@@ -33,12 +33,12 @@ public:
   /**
    * Class constructor
    * Populates the SubProblem and MooseMesh pointers
-   *
-   * @param name The name of the object
    * @param parameters The InputParameters for the object.
    * @param system_name The name of the MOOSE system.  ie "Kernel", "BCs", etc.  Should roughly correspond to the section in the input file so errors are easy to understand.
+   * @param subproblem An optional method for inputting the SubProblem object, this is used by FEProblem, othersize
+   * the SubProblem comes from the parameters
    */
-  Restartable(std::string name, InputParameters & parameters, std::string system_name);
+  Restartable(const InputParameters & parameters, std::string system_name, SubProblem * subproblem = NULL);
 
   /**
    * Constructor for objects that don't have "parameters"
@@ -48,7 +48,7 @@ public:
    * @param subproblem A reference to the subproblem for this object
    * @param tid Optional thread id (will default to zero)
    */
-  Restartable(std::string name, std::string system_name, SubProblem & subproblem, THREAD_ID tid = 0);
+  Restartable(const std::string & name, std::string system_name, SubProblem & subproblem, THREAD_ID tid = 0);
 
   /**
    * Emtpy destructor
@@ -185,7 +185,7 @@ private:
   std::string _restartable_name;
 
   /// The object's parameters
-  InputParameters * _restartable_params;
+  const InputParameters * _restartable_params;
 
   /// The system name this object is in
   std::string _restartable_system_name;
@@ -205,6 +205,7 @@ private:
   friend class FEProblem;
   friend class Transient;
   friend class TableOutput;
+  friend class TransientMultiApp;
 };
 
 template<typename T>

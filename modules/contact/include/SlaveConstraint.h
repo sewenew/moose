@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SLAVECONSTRAINT_H
 #define SLAVECONSTRAINT_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<SlaveConstraint>();
 class SlaveConstraint : public DiracKernel
 {
 public:
-  SlaveConstraint(const std::string & name, InputParameters parameters);
+  SlaveConstraint(const InputParameters & parameters);
 
   virtual void addPoints();
   virtual Real computeQpResidual();
@@ -43,7 +49,7 @@ protected:
   const unsigned int _y_var;
   const unsigned int _z_var;
 
-  const RealVectorValue _vars;
+  const VectorValue<unsigned> _vars;
 
   const unsigned int _mesh_dimension;
 

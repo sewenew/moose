@@ -17,7 +17,6 @@
 #include "FEProblem.h"
 #include "MooseApp.h"
 #include "AddOutputAction.h"
-#include "CoupledExecutioner.h"
 
 // Declare the output helper specializations
 template<>
@@ -37,8 +36,8 @@ InputParameters validParams<MaterialOutputAction>()
   return params;
 }
 
-MaterialOutputAction::MaterialOutputAction(const std::string & name, InputParameters params) :
-    Action(name, params),
+MaterialOutputAction::MaterialOutputAction(InputParameters params) :
+    Action(params),
     _output_warehouse(_app.getOutputWarehouse())
 {
 }
@@ -50,22 +49,11 @@ MaterialOutputAction::~MaterialOutputAction()
 void
 MaterialOutputAction::act()
 {
-  // If running a coupled problem, loop through all the FEProblem objects
-  CoupledExecutioner * exec_ptr = dynamic_cast<CoupledExecutioner *>(_executioner.get());
-  if (exec_ptr != NULL)
-  {
-    std::vector<FEProblem *> & problems = exec_ptr->getProblems();
-    for (std::vector<FEProblem *>::iterator it = problems.begin(); it != problems.end(); ++it)
-      buildMaterialOutputObjects(*it);
-  }
-
   // Error if _problem is NULL, I don't know how this would happen
-  else if (_problem.get() == NULL)
+  if (_problem.get() == NULL)
     mooseError("FEProblem pointer is NULL, it is needed for auto material property output");
 
-  // Build on the problem for this action, this is what should happend for everything except coupled problems
-  else
-    buildMaterialOutputObjects(_problem.get());
+  buildMaterialOutputObjects(_problem.get());
 }
 
 void
@@ -186,22 +174,21 @@ MaterialOutputAction::createAction(const std::string & type, const std::string &
   _material_variable_names.insert(variable_name);
 
   // Generate the name
-  std::ostringstream long_name;
-  long_name << "AuxKernels/" << material->name() << "_" << variable_name;
+  std::ostringstream name;
+  name <<  material->name() << "_" << variable_name;
 
   // Set the action parameters
   InputParameters action_params = _action_factory.getValidParams("AddKernelAction");
   action_params.set<std::string>("type") = type;
   action_params.set<ActionWarehouse *>("awh") = &_awh;
-  action_params.set<std::string>("registered_identifier") = "(AutoBuilt)";
   action_params.set<std::string>("task") = "add_aux_kernel";
 
   // Create the action
-  MooseSharedPointer<MooseObjectAction> action = MooseSharedNamespace::static_pointer_cast<MooseObjectAction>(_action_factory.create("AddKernelAction", long_name.str(), action_params));
+  MooseSharedPointer<MooseObjectAction> action = MooseSharedNamespace::static_pointer_cast<MooseObjectAction>(_action_factory.create("AddKernelAction", name.str(), action_params));
 
   // Set the object parameters
   InputParameters & object_params = action->getObjectParams();
-  object_params.set<std::string>("property") = property_name;
+  object_params.set<MaterialPropertyName>("property") = property_name;
   object_params.set<AuxVariableName>("variable") = variable_name;
   object_params.set<MultiMooseEnum>("execute_on") = "timestep_end";
 

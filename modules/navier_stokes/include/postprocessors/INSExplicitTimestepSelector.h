@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSEXPLICITTIMESTEPSELECTOR_H
 #define INSEXPLICITTIMESTEPSELECTOR_H
 
@@ -15,7 +21,7 @@ InputParameters validParams<INSExplicitTimestepSelector>();
 class INSExplicitTimestepSelector : public ElementPostprocessor
 {
 public:
-  INSExplicitTimestepSelector(const std::string & name, InputParameters parameters);
+  INSExplicitTimestepSelector(const InputParameters & parameters);
   virtual ~INSExplicitTimestepSelector();
 
   virtual void initialize();

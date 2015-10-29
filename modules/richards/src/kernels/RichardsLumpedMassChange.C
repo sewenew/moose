@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsLumpedMassChange.h"
 
@@ -19,8 +22,8 @@ InputParameters validParams<RichardsLumpedMassChange>()
   return params;
 }
 
-RichardsLumpedMassChange::RichardsLumpedMassChange(const std::string & name, InputParameters parameters) :
-    TimeKernel(name, parameters),
+RichardsLumpedMassChange::RichardsLumpedMassChange(const InputParameters & parameters) :
+    TimeKernel(parameters),
     _richards_name_UO(getUserObject<RichardsVarNames>("richardsVarNames_UO")),
     _num_p(_richards_name_UO.num_v()),
     _pvar(_richards_name_UO.richards_var_num(_var.number())),
@@ -122,3 +125,4 @@ RichardsLumpedMassChange::computeQpOffDiagJacobian(unsigned int jvar)
 
   return _test[_i][_qp]*mass_prime/_dt;
 }
+

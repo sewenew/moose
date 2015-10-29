@@ -30,7 +30,7 @@
      invalue = 1.0
      outvalue = 0.0001
      circles_per_side = '3 3 3'
-     Rnd_variation = 0.0
+     pos_variation = 0.0
      radius = 10.0
      int_width = 12.0
      radius_variation = 0.2
@@ -72,9 +72,9 @@ active = 'Dv'
   active = 'bubbles'
 
   [./bubbles]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = c
-    execute_on = timestep_end
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -105,10 +105,4 @@ active = 'Dv'
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

@@ -131,11 +131,8 @@
 [Outputs]
   file_base = ignore_bad
   exodus = true
-  output_on = 'initial timestep_end'
   [./console]
     type = Console
-    perf_log = true
     interval = 2
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

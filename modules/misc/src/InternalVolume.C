@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "InternalVolume.h"
 
 template <>
@@ -11,9 +17,8 @@ InputParameters validParams<InternalVolume>()
   return params;
 }
 
-InternalVolume::InternalVolume(const std::string & name,
-                               InputParameters parameters)
-  : SideIntegralPostprocessor( name, parameters ),
+InternalVolume::InternalVolume(const InputParameters & parameters)
+  : SideIntegralPostprocessor(parameters),
     _component( getParam<unsigned int>("component") ),
     _scale( getParam<Real>("scale_factor") ),
     _addition( getParam<Real>("addition") )
@@ -62,3 +67,4 @@ InternalVolume::getValue()
 {
   return _scale * SideIntegralPostprocessor::getValue() + _addition;
 }
+

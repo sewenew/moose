@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef MASS_H
 #define MASS_H
 
@@ -16,11 +22,11 @@ InputParameters validParams<Mass>();
 class Mass: public ElementIntegralVariablePostprocessor
 {
 public:
-  Mass(const std::string & name, InputParameters parameters);
+  Mass(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
-  MaterialProperty<Real> & _density;
+  const MaterialProperty<Real> & _density;
 };
 
 #endif

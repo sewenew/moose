@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef TENSORMECHANICSPLASTICWEAKPLANETENSILEN_H
 #define TENSORMECHANICSPLASTICWEAKPLANETENSILEN_H
 
@@ -17,8 +23,10 @@ InputParameters validParams<TensorMechanicsPlasticWeakPlaneTensileN>();
 class TensorMechanicsPlasticWeakPlaneTensileN : public TensorMechanicsPlasticWeakPlaneTensile
 {
  public:
-  TensorMechanicsPlasticWeakPlaneTensileN(const std::string & name, InputParameters parameters);
+  TensorMechanicsPlasticWeakPlaneTensileN(const InputParameters & parameters);
 
+  /// Returns the model name (WeakPlaneTensileN)
+  virtual std::string modelName() const;
 
  protected:
 

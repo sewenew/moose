@@ -62,7 +62,7 @@
     tensor = stress
     variable = stress_xx
     index = 0
-    execute_on = timestep     # for efficiency, only compute at the end of a timestep
+    execute_on = timestep_end     # for efficiency, only compute at the end of a timestep
   [../]
   [./stress_yy]
     type = MaterialTensorAux
@@ -155,7 +155,7 @@
 
   l_max_its = 50
   nl_max_its = 20
-  nl_abs_tol = 1e-5
+  nl_rel_tol = 1e-12
   l_tol = 1e-2
 
   start_time = 0.0
@@ -185,10 +185,4 @@
 [Outputs]
   file_base = disp_about_axis_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CHEMICALOUTFLOWBC_H
 #define CHEMICALOUTFLOWBC_H
 
@@ -25,7 +31,7 @@ public:
    * Factory constructor, takes parameters so that all derived classes can be built using the same
    * constructor.
    */
-  ChemicalOutFlowBC(const std::string & name, InputParameters parameters);
+  ChemicalOutFlowBC(const InputParameters & parameters);
 
  virtual ~ChemicalOutFlowBC(){}
 
@@ -37,8 +43,8 @@ private:
   /**
    * Vector to dot with the normal.
    */
-  MaterialProperty<Real> & _diff;
-  MaterialProperty<Real> & _porosity;
+  const MaterialProperty<Real> & _diff;
+  const MaterialProperty<Real> & _porosity;
 
 //  std::vector<RealGradient> & _grad_p;
 

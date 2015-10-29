@@ -162,7 +162,6 @@
     type = DirichletBC
     variable = pgas
     boundary = left
-    ####value = 1E6+1000
     value = 1000
   [../]
   [./right_w]
@@ -184,12 +183,9 @@
   [./initial_water]
     type = ParsedFunction
     value = 1000000*(1-min(x/5,1))-if(x<5,0,100000)
-    #value = 1000000*(1-min(x/5,1))-100000*(max(x-5,0)/max(abs(x-5),1E-10))
-    #value = max(1000000*(1-x/5),-100000)
   [../]
   [./initial_gas]
     type = ParsedFunction
-    ####value = max(1000000*(1-x/5),0)+1000
     value = 1000
   [../]
 []
@@ -243,16 +239,12 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = bl22_lumped_fu
   [./exodus]
     type = Exodus
     interval = 100000
     hide = 'pgas bounds_dummy'
-    output_on = 'initial final timestep_end'
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
+    execute_on = 'initial final timestep_end'
   [../]
 []

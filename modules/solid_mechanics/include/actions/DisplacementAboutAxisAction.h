@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef DISPLACEMENTABOUTAXISACTION_H
 #define DISPLACEMENTABOUTAXISACTION_H
 
@@ -6,7 +12,8 @@
 class DisplacementAboutAxisAction: public Action
 {
 public:
-  DisplacementAboutAxisAction(const std::string & name, InputParameters params);
+  DisplacementAboutAxisAction(const InputParameters & params);
+
 
   virtual void act();
 

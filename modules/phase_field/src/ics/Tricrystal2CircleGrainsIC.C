@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Tricrystal2CircleGrainsIC.h"
 #include "MooseRandom.h"
 
@@ -5,15 +11,14 @@ template<>
 InputParameters validParams<Tricrystal2CircleGrainsIC>()
 {
   InputParameters params = validParams<InitialCondition>();
+  params.addClassDescription("Tricrystal with two circles/bubbles");
   params.addRequiredParam<unsigned int>("op_num", "Number of grain order parameters");
   params.addRequiredParam<unsigned int>("op_index", "Index for the current grain order parameter");
-
   return params;
 }
 
-Tricrystal2CircleGrainsIC::Tricrystal2CircleGrainsIC(const std::string & name,
-                                                     InputParameters parameters) :
-    InitialCondition(name, parameters),
+Tricrystal2CircleGrainsIC::Tricrystal2CircleGrainsIC(const InputParameters & parameters) :
+    InitialCondition(parameters),
     _mesh(_fe_problem.mesh()),
     _nl(_fe_problem.getNonlinearSystem()),
     _op_num(getParam<unsigned int>("op_num")),
@@ -53,3 +58,4 @@ Tricrystal2CircleGrainsIC::value(const Point & p)
   else
     return 0.0;
 }
+

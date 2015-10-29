@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef DOMAININTEGRALACTION_H
 #define DOMAININTEGRALACTION_H
 
@@ -13,7 +19,8 @@ InputParameters validParams<DomainIntegralAction>();
 class DomainIntegralAction : public Action
 {
 public:
-  DomainIntegralAction(const std::string & name, InputParameters params);
+  DomainIntegralAction(const InputParameters & params);
+
   ~DomainIntegralAction();
 
   virtual void act();
@@ -23,13 +30,21 @@ protected:
     J_INTEGRAL,
     INTERACTION_INTEGRAL_KI,
     INTERACTION_INTEGRAL_KII,
-    INTERACTION_INTEGRAL_KIII
+    INTERACTION_INTEGRAL_KIII,
+    INTERACTION_INTEGRAL_T
   };
 
-  unsigned int calcNumCrackFrontNodes();
+  enum Q_FUNCTION_TYPE
+  {
+    GEOMETRY,
+    TOPOLOGY
+  };
+
+  unsigned int calcNumCrackFrontPoints();
 
   std::set<INTEGRAL> _integrals;
   const std::vector<BoundaryName> & _boundary_names;
+  std::vector<Point> _crack_front_points;
   const std::string _order;
   const std::string _family;
   MooseEnum _direction_method_moose_enum;
@@ -46,6 +61,8 @@ protected:
   unsigned int _axis_2d;
   std::vector<Real> _radius_inner;
   std::vector<Real> _radius_outer;
+  unsigned int _ring_first;
+  unsigned int _ring_last;
   std::vector<VariableName> _output_variables;
   Real _poissons_ratio;
   Real _youngs_modulus;
@@ -57,7 +74,10 @@ protected:
   bool _has_symmetry_plane;
   unsigned int _symmetry_plane;
   MooseEnum _position_type;
+  MooseEnum _q_function_type;
+  bool _get_equivalent_k;
   bool _use_displaced_mesh;
+  std::vector<unsigned int> _ring_vec;
 };
 
 #endif //DOMAININTEGRALACTION_H

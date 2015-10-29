@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "cut" van-Genuchten effective saturation as a function of single pressure, and its derivs wrt to that pressure
 //
@@ -28,7 +31,7 @@ InputParameters validParams<RichardsSeff1VGcut>();
 class RichardsSeff1VGcut : public RichardsSeff1VG
 {
 public:
-  RichardsSeff1VGcut(const std::string & name, InputParameters parameters);
+  RichardsSeff1VGcut(const InputParameters & parameters);
 
   /// just prints some (maybe) useful info to the console
   void initialSetup();

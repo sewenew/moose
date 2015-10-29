@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSSUPGEnergy.h"
 
 template<>
@@ -11,8 +17,8 @@ InputParameters validParams<NSSUPGEnergy>()
 
 
 
-NSSUPGEnergy::NSSUPGEnergy(const std::string & name, InputParameters parameters)
-    : NSSUPGBase(name, parameters)
+NSSUPGEnergy::NSSUPGEnergy(const InputParameters & parameters)
+    : NSSUPGBase(parameters)
 {
 }
 
@@ -148,3 +154,4 @@ Real NSSUPGEnergy::compute_jacobian(unsigned var)
   // Sum up values and return
   return mass_term + mom_term + ene_term;
 }
+

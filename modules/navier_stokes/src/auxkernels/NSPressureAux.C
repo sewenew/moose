@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSPressureAux.h"
 
 template<>
@@ -18,8 +24,8 @@ InputParameters validParams<NSPressureAux>()
   return params;
 }
 
-NSPressureAux::NSPressureAux(const std::string & name, InputParameters parameters)
-  :AuxKernel(name, parameters),
+NSPressureAux::NSPressureAux(const InputParameters & parameters)
+  :AuxKernel(parameters),
    _rho(coupledValue("rho")),
    _u_vel(coupledValue("u")),
    _v_vel(coupledValue("v")),
@@ -37,3 +43,4 @@ NSPressureAux::computeValue()
   // P = (gam-1) * ( rho*e_t - 1/2 * rho * V^2)
   return (_gamma - 1)*(_rhoe[_qp] - 0.5 * _rho[_qp] * V2);
 }
+

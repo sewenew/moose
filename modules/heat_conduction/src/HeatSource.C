@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "HeatSource.h"
 
 template<>
@@ -11,7 +17,8 @@ InputParameters validParams<HeatSource>()
   return params;
 }
 
-HeatSource::HeatSource(const std::string & name, InputParameters parameters)
-  :BodyForce(name, parameters)
+HeatSource::HeatSource(const InputParameters & parameters)
+  :BodyForce(parameters)
 {
 }
+

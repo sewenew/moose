@@ -43,6 +43,40 @@ void extraSparsity(SparsityPattern::Graph & sparsity,
   sys->augmentSparsity(sparsity, n_nz, n_oz);
 }
 
+template<>
+void
+dataStore(std::ostream & stream, SystemBase & system_base, void * context)
+{
+  System & libmesh_system = system_base.system();
+
+  NumericVector<Real> & solution = *(libmesh_system.solution.get());
+
+  dataStore(stream, solution, context);
+
+  for (System::vectors_iterator it = libmesh_system.vectors_begin();
+       it != libmesh_system.vectors_end();
+       it++)
+    dataStore(stream, *(it->second), context);
+}
+
+template<>
+void
+dataLoad(std::istream & stream, SystemBase & system_base, void * context)
+{
+  System & libmesh_system = system_base.system();
+
+  NumericVector<Real> & solution = *(libmesh_system.solution.get());
+
+  dataLoad(stream, solution, context);
+
+  for (System::vectors_iterator it = libmesh_system.vectors_begin();
+       it != libmesh_system.vectors_end();
+       it++)
+    dataLoad(stream, *(it->second), context);
+
+  system_base.update();
+}
+
 SystemBase::SystemBase(SubProblem & subproblem, const std::string & name) :
     libMesh::ParallelObject(subproblem),
     _subproblem(subproblem),
@@ -345,6 +379,18 @@ SystemBase::reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
     MooseVariable *var = *it;
     var->reinitNodes(nodes);
     var->computeNodalValues();
+  }
+}
+
+void
+SystemBase::reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid)
+{
+  const std::vector<MooseVariable *> & vars = _vars[tid].variables();
+  for (std::vector<MooseVariable *>::const_iterator it = vars.begin(); it != vars.end(); ++it)
+  {
+    MooseVariable *var = *it;
+    var->reinitNodesNeighbor(nodes);
+    var->computeNodalNeighborValues();
   }
 }
 

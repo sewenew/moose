@@ -1,7 +1,14 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "PolycrystalHexGrainICAction.h"
 #include "Factory.h"
 #include "Parser.h"
 #include "FEProblem.h"
+#include "Conversion.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -32,8 +39,8 @@ InputParameters validParams<PolycrystalHexGrainICAction>()
   return params;
 }
 
-PolycrystalHexGrainICAction::PolycrystalHexGrainICAction(const std::string & name, InputParameters params) :
-    Action(name, params),
+PolycrystalHexGrainICAction::PolycrystalHexGrainICAction(const InputParameters & params) :
+    Action(params),
     _var_name_base(getParam<std::string>("var_name_base")),
     _op_num(getParam<unsigned int>("op_num")),
     _grain_num(getParam<unsigned int>("grain_num")),
@@ -69,6 +76,6 @@ PolycrystalHexGrainICAction::act()
     poly_params.set<Real>("perturbation_percent") = _perturbation_percent;
 
     //Add initial condition
-    _problem->addInitialCondition("HexPolycrystalIC", "InitialCondition", poly_params);
+    _problem->addInitialCondition("HexPolycrystalIC", "PolycrystalHexGrainIC_" + Moose::stringify(op), poly_params);
   }
 }

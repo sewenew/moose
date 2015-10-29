@@ -38,10 +38,9 @@ public:
 
   /**
    * Class constructor
-   * @param name Object name
    * @param parameters Object parameters
    */
-  VTKOutput(const std::string & name, InputParameters & parameters);
+  VTKOutput(const InputParameters & parameters);
 
 
 protected:

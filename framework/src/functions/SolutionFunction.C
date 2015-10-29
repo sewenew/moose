@@ -24,7 +24,7 @@ InputParameters validParams<SolutionFunction>()
 
   // Add required parameters
   params.addRequiredParam<UserObjectName>("solution", "The SolutionUserObject to extract data from.");
-  params.addParam<std::string>("from_variable", "The name of the variable in the file that is too be extracted");
+  params.addParam<std::string>("from_variable", "The name of the variable in the file that is to be extracted");
 
   // Add optional paramters
   params.addParam<Real>("scale_factor", 1.0, "Scale factor (a) to be applied to the solution (x): ax+b, where b is the 'add_factor'");
@@ -34,8 +34,8 @@ InputParameters validParams<SolutionFunction>()
   return params;
 }
 
-SolutionFunction::SolutionFunction(const std::string & name, InputParameters parameters) :
-    Function(name, parameters),
+SolutionFunction::SolutionFunction(const InputParameters & parameters) :
+    Function(parameters),
     _solution_object_ptr(NULL),
     _scale_factor(getParam<Real>("scale_factor")),
     _add_factor(getParam<Real>("add_factor"))
@@ -77,3 +77,4 @@ SolutionFunction::value(Real t, const Point & p)
 {
   return _scale_factor*(_solution_object_ptr->pointValue(t, p, _var_name)) + _add_factor;
 }
+

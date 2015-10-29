@@ -65,5 +65,4 @@
 [Outputs]
   exodus = true
   hide = bc_sum
-  output_on = 'initial timestep_end'
 []

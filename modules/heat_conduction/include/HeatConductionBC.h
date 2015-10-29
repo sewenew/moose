@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef HEATCONDUCTIONBC_H
 #define HEATCONDUCTIONBC_H
 
@@ -14,14 +20,14 @@ InputParameters validParams<HeatConductionBC>();
 class HeatConductionBC : public FluxBC
 {
 public:
-  HeatConductionBC(const std::string & name, InputParameters parameters);
+  HeatConductionBC(const InputParameters & parameters);
   virtual ~HeatConductionBC();
 
 protected:
   virtual RealGradient computeQpFluxResidual();
   virtual RealGradient computeQpFluxJacobian();
 
-  MaterialProperty<Real> & _k;
+  const MaterialProperty<Real> & _k;
 };
 
 

@@ -35,12 +35,10 @@ class SideIntegralVariablePostprocessor :
   public MooseVariableInterface
 {
 public:
-  SideIntegralVariablePostprocessor(const std::string & name, InputParameters parameters);
+  SideIntegralVariablePostprocessor(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
-
-  MooseVariable & _var;
 
   /// Holds the solution at current quadrature points
   VariableValue & _u;

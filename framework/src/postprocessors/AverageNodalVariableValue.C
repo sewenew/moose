@@ -23,8 +23,8 @@ InputParameters validParams<AverageNodalVariableValue>()
   return params;
 }
 
-AverageNodalVariableValue::AverageNodalVariableValue(const std::string & name, InputParameters parameters) :
-    NodalVariablePostprocessor(name, parameters),
+AverageNodalVariableValue::AverageNodalVariableValue(const InputParameters & parameters) :
+    NodalVariablePostprocessor(parameters),
     _avg(0),
     _n(0)
 {
@@ -60,3 +60,4 @@ AverageNodalVariableValue::threadJoin(const UserObject & y)
   _avg += pps._avg;
   _n += pps._n;
 }
+

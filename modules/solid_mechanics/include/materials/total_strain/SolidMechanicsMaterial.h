@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef SOLIDMECHANICSMATERIAL_H
 #define SOLIDMECHANICSMATERIAL_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<SolidMechanicsMaterial>();
 class SolidMechanicsMaterial : public Material
 {
 public:
-  SolidMechanicsMaterial(const std::string & name, InputParameters parameters);
+  SolidMechanicsMaterial(const InputParameters & parameters);
 
 protected:
   const std::string _appended_property_name;

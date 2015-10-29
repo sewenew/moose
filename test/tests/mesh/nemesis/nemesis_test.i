@@ -1,6 +1,9 @@
 [Mesh]
   file = cylinder/cylinder.e
   nemesis = true
+  # This option lets us exodiff against a gold standard generated
+  # without repartitioning
+  skip_partitioning = true
 []
 
 [Variables]
@@ -56,10 +59,4 @@
 [Outputs]
   file_base = out
   nemesis = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

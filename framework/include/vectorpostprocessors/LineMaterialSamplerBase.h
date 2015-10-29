@@ -20,6 +20,7 @@
 #include "SamplerBase.h"
 #include "FEProblem.h"
 #include "InputParameters.h"
+#include "BlockRestrictable.h"
 
 //Forward Declarations
 template<typename T>
@@ -38,16 +39,16 @@ InputParameters validParams<LineMaterialSamplerBase<Real> >();
 template<typename T>
 class LineMaterialSamplerBase :
   public GeneralVectorPostprocessor,
-  public SamplerBase
+  public SamplerBase,
+  public BlockRestrictable
 {
 public:
   /**
    * Class constructor
    * Sets up variables for output based on the properties to be output
-   * @param name The name of the class
    * @param parameters The input parameters
    */
-  LineMaterialSamplerBase(const std::string & name, InputParameters parameters);
+  LineMaterialSamplerBase(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -85,7 +86,7 @@ public:
    * @param curr_point The point corresponding to this material property
    * @return A scalar value from this material property to be output
    */
-  virtual Real getScalarFromProperty(T & property, const Point * curr_point) = 0;
+  virtual Real getScalarFromProperty(const T & property, const Point * curr_point) = 0;
 
 protected:
   /// The beginning of the line
@@ -95,7 +96,7 @@ protected:
   Point _end;
 
   /// The material properties to be output
-  std::vector<MaterialProperty<T> *> _material_properties;
+  std::vector<const MaterialProperty<T> *> _material_properties;
 
   /// The mesh
   MooseMesh & _mesh;
@@ -108,9 +109,10 @@ protected:
 };
 
 template <typename T>
-LineMaterialSamplerBase<T>::LineMaterialSamplerBase(const std::string & name, InputParameters parameters) :
-    GeneralVectorPostprocessor(name, parameters),
-    SamplerBase(name, parameters, this, _communicator),
+LineMaterialSamplerBase<T>::LineMaterialSamplerBase(const InputParameters & parameters) :
+    GeneralVectorPostprocessor(parameters),
+    SamplerBase(parameters, this, _communicator),
+    BlockRestrictable(parameters),
     _start(getParam<Point>("start")),
     _end(getParam<Point>("end")),
     _mesh(_subproblem.mesh()),
@@ -152,6 +154,9 @@ LineMaterialSamplerBase<T>::execute()
     const Elem * elem = intersected_elems[i];
 
     if (elem->processor_id() != processor_id())
+      continue;
+
+    if (!hasBlocks(elem->subdomain_id()))
       continue;
 
     _subproblem.prepare(elem, _tid);

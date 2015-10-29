@@ -3,8 +3,6 @@
 []
 
 [Variables]
-  active = 'u'
-
   [./u]
     order = FIRST
     family = LAGRANGE
@@ -29,8 +27,6 @@
 []
 
 [BCs]
-  active = 'left right'
-
   [./left]
     type = DirichletBC
     variable = u
@@ -60,10 +56,4 @@
 [Outputs]
   file_base = out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

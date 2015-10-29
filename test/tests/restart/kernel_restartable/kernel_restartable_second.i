@@ -40,7 +40,6 @@
 [Executioner]
   # Preconditioned JFNK (default)
   type = Transient
-  restart_file_base = kernel_restartable_restart_cp/0005
   num_steps = 5
   dt = 1e-2
   solve_type = PJFNK
@@ -50,10 +49,8 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
+[]
+
+[Problem]
+  restart_file_base = kernel_restartable_restart_cp/LATEST
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Kernel.h"
 
 #ifndef COUPLEDBEKINETIC_H
@@ -19,7 +25,7 @@ class CoupledBEKinetic : public Kernel
 {
 public:
 
-  CoupledBEKinetic(const std::string & name, InputParameters parameters);
+  CoupledBEKinetic(const InputParameters & parameters);
 
 protected:
 
@@ -45,7 +51,7 @@ protected:
 
 private:
   /// Material property of porosity.
-  MaterialProperty<Real> & _porosity;
+  const MaterialProperty<Real> & _porosity;
 
   /// Weight of the kinetic mineral concentration in the total primary species concentration.
   std::vector<Real> _weight;

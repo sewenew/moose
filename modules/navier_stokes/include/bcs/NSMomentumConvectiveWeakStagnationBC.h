@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMCONVECTIVEWEAKSTAGNATIONBC_H
 #define NSMOMENTUMCONVECTIVEWEAKSTAGNATIONBC_H
 
@@ -19,7 +25,7 @@ class NSMomentumConvectiveWeakStagnationBC : public NSWeakStagnationBC
 {
 
 public:
-  NSMomentumConvectiveWeakStagnationBC(const std::string & name, InputParameters parameters);
+  NSMomentumConvectiveWeakStagnationBC(const InputParameters & parameters);
 
   virtual ~NSMomentumConvectiveWeakStagnationBC(){}
 

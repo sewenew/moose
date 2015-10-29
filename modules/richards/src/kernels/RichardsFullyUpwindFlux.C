@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsFullyUpwindFlux.h"
 
@@ -19,8 +22,8 @@ InputParameters validParams<RichardsFullyUpwindFlux>()
   return params;
 }
 
-RichardsFullyUpwindFlux::RichardsFullyUpwindFlux(const std::string & name, InputParameters parameters) :
-    Kernel(name,parameters),
+RichardsFullyUpwindFlux::RichardsFullyUpwindFlux(const InputParameters & parameters) :
+    Kernel(parameters),
     _richards_name_UO(getUserObject<RichardsVarNames>("richardsVarNames_UO")),
     _num_p(_richards_name_UO.num_v()),
     _pvar(_richards_name_UO.richards_var_num(_var.number())),
@@ -310,3 +313,4 @@ RichardsFullyUpwindFlux::upwind(bool compute_res, bool compute_jac, unsigned int
   }
 
 }
+

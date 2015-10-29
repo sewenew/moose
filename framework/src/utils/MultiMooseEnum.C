@@ -15,6 +15,7 @@
 #include "MultiMooseEnum.h"
 #include "MooseUtils.h"
 #include "MooseError.h"
+#include "InfixIterator.h"
 
 #include <sstream>
 #include <algorithm>
@@ -37,10 +38,21 @@ MultiMooseEnum::MultiMooseEnum(const MultiMooseEnum & other_enum) :
 {
 }
 
+MultiMooseEnum
+MultiMooseEnum::withNamesFrom(const MooseEnumBase & other_enum)
+{
+  return MultiMooseEnum(other_enum);
+}
+
 /**
  * Private constuctor for use by libmesh::Parameters
  */
 MultiMooseEnum::MultiMooseEnum()
+{
+}
+
+MultiMooseEnum::MultiMooseEnum(const MooseEnumBase & other_enum) :
+    MooseEnumBase(other_enum)
 {
 }
 
@@ -51,8 +63,23 @@ MultiMooseEnum::~MultiMooseEnum()
 bool
 MultiMooseEnum::operator==(const MultiMooseEnum & value) const
 {
-  return std::equal(value._current_ids.begin(), value._current_ids.end(),
-                    _current_ids.begin());
+  // Not the same if the lengths are different
+  if (value.size() != size())
+    return false;
+
+  // Return false if this enum does not contain an item from the other
+  for (MooseEnumIterator it = value.begin(); it != value.end(); ++it)
+    if (!contains(*it))
+      return false;
+
+  // If you get here, they must be the same
+  return true;
+}
+
+bool
+MultiMooseEnum::operator!=(const MultiMooseEnum & value) const
+{
+  return !(*this == value);
 }
 
 bool
@@ -177,6 +204,8 @@ MultiMooseEnum::assign(InputIterator first, InputIterator last, bool append)
     std::string upper(*it);
     std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
 
+    checkDeprecatedBase(upper);
+
     _current_names.insert(upper);
 
     if (std::find(_names.begin(), _names.end(), upper) == _names.end())
@@ -242,9 +271,16 @@ MultiMooseEnum::unique_items_size() const
   return unique_ids.size();
 }
 
+void
+MultiMooseEnum::checkDeprecated() const
+{
+  for (std::set<std::string>::const_iterator it = _current_names.begin(); it != _current_names.end(); ++it)
+    checkDeprecatedBase(*it);
+}
+
 std::ostream &
 operator<<(std::ostream & out, const MultiMooseEnum & obj)
 {
-  std::copy(obj._current_names_preserved.begin(), obj._current_names_preserved.end(), std::ostream_iterator<std::string>(out, " "));
+  std::copy(obj._current_names.begin(), obj._current_names.end(), infix_ostream_iterator<std::string>(out, " "));
   return out;
 }

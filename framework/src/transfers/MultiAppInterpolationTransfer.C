@@ -45,12 +45,10 @@ InputParameters validParams<MultiAppInterpolationTransfer>()
   return params;
 }
 
-MultiAppInterpolationTransfer::MultiAppInterpolationTransfer(const std::string & name, InputParameters parameters) :
-    MultiAppTransfer(name, parameters),
+MultiAppInterpolationTransfer::MultiAppInterpolationTransfer(const InputParameters & parameters) :
+    MultiAppTransfer(parameters),
     _to_var_name(getParam<AuxVariableName>("variable")),
     _from_var_name(getParam<VariableName>("source_variable")),
-    _displaced_source_mesh(getParam<bool>("displaced_source_mesh")),
-    _displaced_target_mesh(getParam<bool>("displaced_target_mesh")),
     _num_points(getParam<unsigned int>("num_points")),
     _power(getParam<Real>("power")),
     _interp_type(getParam<MooseEnum>("interp_type")),
@@ -58,24 +56,29 @@ MultiAppInterpolationTransfer::MultiAppInterpolationTransfer(const std::string &
 {
   // This transfer does not work with ParallelMesh
   _fe_problem.mesh().errorIfParallelDistribution("MultiAppInterpolationTransfer");
+  _displaced_source_mesh = getParam<bool>("displaced_source_mesh");
+  _displaced_target_mesh = getParam<bool>("displaced_target_mesh");
 }
 
 void
 MultiAppInterpolationTransfer::initialSetup()
 {
-  variableIntegrityCheck(_to_var_name);
+  if (_direction == TO_MULTIAPP)
+    variableIntegrityCheck(_to_var_name);
+  else
+    variableIntegrityCheck(_from_var_name);
 }
 
 void
 MultiAppInterpolationTransfer::execute()
 {
-  _console << "Beginning InterpolationTransfer " << _name << std::endl;
+  _console << "Beginning InterpolationTransfer " << name() << std::endl;
 
   switch (_direction)
   {
     case TO_MULTIAPP:
     {
-      FEProblem & from_problem = *_multi_app->problem();
+      FEProblem & from_problem = _multi_app->problem();
       MooseVariable & from_var = from_problem.getVariable(0, _from_var_name);
 
       MeshBase * from_mesh = NULL;
@@ -164,7 +167,7 @@ MultiAppInterpolationTransfer::execute()
           MPI_Comm swapped = Moose::swapLibMeshComm(_multi_app->comm());
 
           // Loop over the master nodes and set the value of the variable
-          System * to_sys = find_sys(_multi_app->appProblem(i)->es(), _to_var_name);
+          System * to_sys = find_sys(_multi_app->appProblem(i).es(), _to_var_name);
 
           unsigned int sys_num = to_sys->number();
           unsigned int var_num = to_sys->variable_number(_to_var_name);
@@ -172,10 +175,10 @@ MultiAppInterpolationTransfer::execute()
 
           MeshBase * mesh = NULL;
 
-          if (_displaced_target_mesh && _multi_app->appProblem(i)->getDisplacedProblem())
-            mesh = &_multi_app->appProblem(i)->getDisplacedProblem()->mesh().getMesh();
+          if (_displaced_target_mesh && _multi_app->appProblem(i).getDisplacedProblem())
+            mesh = &_multi_app->appProblem(i).getDisplacedProblem()->mesh().getMesh();
           else
-            mesh = &_multi_app->appProblem(i)->mesh().getMesh();
+            mesh = &_multi_app->appProblem(i).mesh().getMesh();
 
           bool is_nodal = to_sys->variable_type(var_num).family == LAGRANGE;
 
@@ -254,7 +257,7 @@ MultiAppInterpolationTransfer::execute()
     }
     case FROM_MULTIAPP:
     {
-      FEProblem & to_problem = *_multi_app->problem();
+      FEProblem & to_problem = _multi_app->problem();
       MooseVariable & to_var = to_problem.getVariable(0, _to_var_name);
       SystemBase & to_system_base = to_var.sys();
 
@@ -311,7 +314,7 @@ MultiAppInterpolationTransfer::execute()
 
         MPI_Comm swapped = Moose::swapLibMeshComm(_multi_app->comm());
 
-        FEProblem & from_problem = *_multi_app->appProblem(i);
+        FEProblem & from_problem = _multi_app->appProblem(i);
         MooseVariable & from_var = from_problem.getVariable(0, _from_var_name);
         SystemBase & from_system_base = from_var.sys();
 
@@ -442,7 +445,7 @@ MultiAppInterpolationTransfer::execute()
     }
   }
 
-  _console << "Finished InterpolationTransfer " << _name << std::endl;
+  _console << "Finished InterpolationTransfer " << name() << std::endl;
 }
 
 Node * MultiAppInterpolationTransfer::getNearestNode(const Point & p, Real & distance, const MeshBase::const_node_iterator & nodes_begin, const MeshBase::const_node_iterator & nodes_end)

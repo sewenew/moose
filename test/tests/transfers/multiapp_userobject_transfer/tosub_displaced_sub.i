@@ -22,8 +22,10 @@
     family = MONOMIAL
   [../]
   [./disp_x]
+    initial_condition = 0.0
   [../]
   [./disp_y]
+    initial_condition = 0.5
   [../]
 []
 
@@ -50,20 +52,6 @@
   [../]
 []
 
-[AuxKernels]
-  [./disp_x]
-    type = ConstantAux
-    variable = disp_x
-    execute_on = initial
-  [../]
-  [./disp_y]
-    type = ConstantAux
-    variable = disp_y
-    value = 0.5
-    execute_on = initial
-  [../]
-[]
-
 [BCs]
   [./right]
     type = DirichletBC
@@ -87,12 +75,6 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []
 
 [Problem]

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "HomogenizedElasticConstants.h"
 #include "SymmElasticityTensor.h"
 
@@ -31,8 +37,8 @@ InputParameters validParams<HomogenizedElasticConstants>()
   return params;
 }
 
-HomogenizedElasticConstants::HomogenizedElasticConstants(const std::string & name, InputParameters parameters)
-  :ElementAverageValue(name, parameters),
+HomogenizedElasticConstants::HomogenizedElasticConstants(const InputParameters & parameters)
+  :ElementAverageValue(parameters),
    _grad_disp_x_xx(coupledGradient("dx_xx")),
    _grad_disp_y_xx(coupledGradient("dy_xx")),
    _grad_disp_z_xx(_subproblem.mesh().dimension() == 3 ? coupledGradient("dz_xx") : _grad_zero),

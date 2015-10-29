@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AddCoupledSolidKinSpeciesKernelsAction.h"
 #include "MooseUtils.h"
 #include "FEProblem.h"
@@ -27,8 +33,8 @@ InputParameters validParams<AddCoupledSolidKinSpeciesKernelsAction>()
 }
 
 
-AddCoupledSolidKinSpeciesKernelsAction::AddCoupledSolidKinSpeciesKernelsAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddCoupledSolidKinSpeciesKernelsAction::AddCoupledSolidKinSpeciesKernelsAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
@@ -55,6 +61,8 @@ AddCoupledSolidKinSpeciesKernelsAction::act()
 
       // Parsing each reaction
       MooseUtils::tokenize(reactions[j], tokens, 1, "+=");
+      if (tokens.size() == 0)
+        mooseError("Empty reaction specified.");
 
       std::vector<Real> stos(tokens.size()-1);
       std::vector<std::string> rxn_vars(tokens.size()-1);

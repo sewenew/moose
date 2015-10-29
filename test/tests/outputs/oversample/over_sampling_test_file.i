@@ -73,15 +73,9 @@
 [Outputs]
   file_base = out_file
   exodus = true
-  output_on = 'initial timestep_end'
   [./oversampling]
     file_base = out_file_oversample
     type = Exodus
     refinements = 3
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
   [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSEnergyInviscidFlux.h"
 
 template<>
@@ -10,8 +16,8 @@ InputParameters validParams<NSEnergyInviscidFlux>()
   return params;
 }
 
-NSEnergyInviscidFlux::NSEnergyInviscidFlux(const std::string & name, InputParameters parameters)
-  : NSKernel(name, parameters),
+NSEnergyInviscidFlux::NSEnergyInviscidFlux(const InputParameters & parameters)
+  : NSKernel(parameters),
     _enthalpy(coupledValue("enthalpy"))
 {}
 
@@ -103,4 +109,5 @@ NSEnergyInviscidFlux::computeQpOffDiagJacobian(unsigned int jvar)
   // Won't get here!
   return 0;
 }
+
 

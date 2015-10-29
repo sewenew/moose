@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef COEFDIFFUSION_H
 #define COEFDIFFUSION_H
 
@@ -14,7 +20,7 @@ class CoefDiffusion : public Kernel
 {
 public:
 
-  CoefDiffusion(const std::string & name, InputParameters parameters);
+  CoefDiffusion(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

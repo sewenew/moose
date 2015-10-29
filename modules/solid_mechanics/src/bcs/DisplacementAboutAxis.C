@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "DisplacementAboutAxis.h"
 #include "Function.h"
@@ -34,8 +28,8 @@ void addDisplacementAboutAxisParams(InputParameters& params)
   params.addRequiredParam<RealVectorValue>("axis_direction","Direction of the axis of rotation");
 }
 
-DisplacementAboutAxis::DisplacementAboutAxis(const std::string & name, InputParameters parameters) :
-    PresetNodalBC(name, parameters),
+DisplacementAboutAxis::DisplacementAboutAxis(const InputParameters & parameters) :
+    PresetNodalBC(parameters),
     _component(getParam<int>("component")),
     _func(getFunction("function")),
     _angle_units(getParam<MooseEnum>("angle_units")),
@@ -43,16 +37,7 @@ DisplacementAboutAxis::DisplacementAboutAxis(const std::string & name, InputPara
     _axis_direction(getParam<RealVectorValue>("axis_direction"))
 {
   if (_component < 0 || _component > 2)
-  {
-    std::stringstream errMsg;
-    errMsg << "Invalid component given for "
-           << name
-           << ": "
-           << _component
-           << "." << std::endl;
-
-    mooseError( errMsg.str() );
-  }
+    mooseError("Invalid component given for " << name() << ": " << _component << "."  );
 }
 
 void

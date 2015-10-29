@@ -156,7 +156,7 @@
     block = '1 2'
     variable = area
     value = 1.0
-    execute_on = timestep_begin
+    execute_on = 'initial timestep_begin'
   [../]
 []
 
@@ -258,10 +258,4 @@
 [Outputs]
   file_base = solid_mech_truss_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

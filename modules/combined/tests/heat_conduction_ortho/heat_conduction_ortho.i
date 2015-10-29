@@ -111,28 +111,25 @@
 [Outputs]
   exodus = true
   hide = 'tcx tcy tcz'
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 [] # Outputs
 
 [Postprocessors]
   [./tcx]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = 1000
     outputs = none
+    execute_on = 'initial timestep_end'
   [../]
   [./tcy]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = 100
     outputs = none
+    execute_on = 'initial timestep_end'
   [../]
   [./tcz]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = 10
     outputs = none
+    execute_on = 'initial timestep_end'
   [../]
 []

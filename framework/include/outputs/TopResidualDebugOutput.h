@@ -64,10 +64,9 @@ public:
 
   /**
    * Class constructor
-   * @param name Output object name
    * @param parameters Object input parameters
    */
-  TopResidualDebugOutput(const std::string & name, InputParameters & parameters);
+  TopResidualDebugOutput(const InputParameters & parameters);
 
   /**
    * Class destructor

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "InteractionIntegralAuxFields.h"
 
 template<>
@@ -6,16 +12,14 @@ InputParameters validParams<InteractionIntegralAuxFields>()
   InputParameters params = validParams<Material>();
   addInteractionIntegralAuxFieldsParams(params);
   params.addRequiredParam<UserObjectName>("crack_front_definition","The CrackFrontDefinition user object name");
-  params.addRequiredParam<unsigned int>("crack_front_node_index","The index of the node on the crack front to calculate auxiliary fields at");
-  //TODO: anisotropic material properties
-  // material properties defined at crack front
+  params.addRequiredParam<unsigned int>("crack_front_point_index","The index of the point on the crack front to calculate auxiliary fields at");
   return params;
 }
 
 void
 addInteractionIntegralAuxFieldsParams(InputParameters & params)
 {
-  MooseEnum sif_modes(InteractionIntegralAuxFields::getSIFModesEnum()); //TODO: T-stress?
+  MooseEnum sif_modes(InteractionIntegralAuxFields::getSIFModesEnum());
   std::vector<MooseEnum> sif_modes_vec(1,sif_modes);
   params.addRequiredParam<std::vector<MooseEnum> >("sif_modes",sif_modes_vec,"Stress intensity factor to calculate. Choices are: " + sif_modes.getRawNames());
   params.addParam<Real>("poissons_ratio", "Poisson's ratio for the material.");
@@ -31,12 +35,12 @@ InteractionIntegralAuxFields::getSIFModesVec(unsigned int n)
 MooseEnum
 InteractionIntegralAuxFields::getSIFModesEnum()
 {
-  return MooseEnum("KI KII KIII", "KI");
+  return MooseEnum("KI KII KIII T", "KI");
 }
 
 
-InteractionIntegralAuxFields::InteractionIntegralAuxFields(const std::string & name, InputParameters parameters) :
-    Material(name, parameters),
+InteractionIntegralAuxFields::InteractionIntegralAuxFields(const InputParameters & parameters) :
+    Material(parameters),
     _appended_index_name(getParam<std::string>("appended_index_name")),
     _aux_stress_I(declareProperty<ColumnMajorMatrix>("aux_stress_I_"+_appended_index_name)),
     _aux_disp_I(declareProperty<ColumnMajorMatrix>("aux_disp_I_"+_appended_index_name)),
@@ -50,8 +54,12 @@ InteractionIntegralAuxFields::InteractionIntegralAuxFields(const std::string & n
     _aux_disp_III(declareProperty<ColumnMajorMatrix>("aux_disp_III_"+_appended_index_name)),
     _aux_grad_disp_III(declareProperty<ColumnMajorMatrix>("aux_grad_disp_III_"+_appended_index_name)),
     _aux_strain_III(declareProperty<ColumnMajorMatrix>("aux_strain_III_"+_appended_index_name)),
+    _aux_stress_T(declareProperty<ColumnMajorMatrix>("aux_stress_T_"+_appended_index_name)),
+    _aux_disp_T(declareProperty<ColumnMajorMatrix>("aux_disp_T_"+_appended_index_name)),
+    _aux_grad_disp_T(declareProperty<ColumnMajorMatrix>("aux_grad_disp_T_"+_appended_index_name)),
+    _aux_strain_T(declareProperty<ColumnMajorMatrix>("aux_strain_T_"+_appended_index_name)),
     _crack_front_definition(&getUserObject<CrackFrontDefinition>("crack_front_definition")),
-    _crack_front_node_index(getParam<unsigned int>("crack_front_node_index")),
+    _crack_front_point_index(getParam<unsigned int>("crack_front_point_index")),
     _poissons_ratio(getParam<Real>("poissons_ratio")),
     _youngs_modulus(getParam<Real>("youngs_modulus"))
 {
@@ -72,7 +80,7 @@ InteractionIntegralAuxFields::computeQpProperties()
 
   // Calculate (r,theta) position of qp relative to crack front
   Point p(_q_point[_qp]);
-  _crack_front_definition->calculateRThetaToCrackFront(p,_crack_front_node_index,_r,_theta);
+  _crack_front_definition->calculateRThetaToCrackFront(p,_crack_front_point_index,_r,_theta);
 
   //Calculate auxiliary stress tensor at current qp
   for (std::vector<SIF_MODE>::iterator it = _sif_mode.begin(); it != _sif_mode.end(); ++it)
@@ -85,6 +93,9 @@ InteractionIntegralAuxFields::computeQpProperties()
 
     else if (*it == KIII)
       computeAuxFields(*it, _aux_stress_III[_qp], _aux_disp_III[_qp], _aux_grad_disp_III[_qp], _aux_strain_III[_qp]);
+
+    else if (*it == T)
+      computeTFields(_aux_stress_T[_qp], _aux_grad_disp_T[_qp]);
   }
 
 }
@@ -310,3 +321,35 @@ InteractionIntegralAuxFields::computeAuxFields(const SIF_MODE sif_mode, ColumnMa
   libmesh_ignore(du312);
   libmesh_ignore(du313);
 }
+
+void
+InteractionIntegralAuxFields::computeTFields(ColumnMajorMatrix & stress, ColumnMajorMatrix & grad_disp)
+{
+
+  Real t = _theta;
+  Real st = std::sin(t);
+  Real ct = std::cos(t);
+  Real stsq = std::pow(st,2);
+  Real ctsq = std::pow(ct,2);
+  Real ctcu = std::pow(ct,3);
+  Real oneOverPiR = 1.0/(libMesh::pi*_r);
+
+  stress(0,0) = - oneOverPiR * ctcu;
+  stress(0,1) = - oneOverPiR * st * ctsq;
+  stress(0,2) = 0.0;
+  stress(1,0) = - oneOverPiR * st * ctsq;
+  stress(1,1) = - oneOverPiR * ct * stsq;
+  stress(1,2) = 0.0;
+  stress(2,0) = 0.0;
+  stress(2,1) = 0.0;
+  stress(2,2) = - oneOverPiR * _poissons_ratio * (ctcu + ct * stsq);
+
+  grad_disp(0,0) = oneOverPiR / (4 * _youngs_modulus)
+    * (ct * (4*std::pow(_poissons_ratio,2) - 3 + _poissons_ratio)
+       - std::cos(3*t)*(1 + _poissons_ratio));
+  grad_disp(0,1) = - oneOverPiR / (4 * _youngs_modulus)
+    * (st * (4*std::pow(_poissons_ratio,2) - 3 + _poissons_ratio)
+       + std::sin(3*t)*(1 + _poissons_ratio));
+  grad_disp(0,2) = 0.0;
+}
+

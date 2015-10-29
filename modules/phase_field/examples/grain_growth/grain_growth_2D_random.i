@@ -100,7 +100,7 @@
     type = NumNodes
   [../]
   [./num_grains]
-    type = NodalFloodCount
+    type = FeatureFloodCount
     variable = bnds
     threshold = 0.7
   [../]
@@ -139,12 +139,8 @@
   file_base = random_2D
   exodus = true
   csv = true
-  output_on = 'initial timestep_end'
   [./console]
     type = Console
-    perf_log = true
     max_rows = 20
-    output_on = 'timestep_end failed nonlinear'
   [../]
 []
-

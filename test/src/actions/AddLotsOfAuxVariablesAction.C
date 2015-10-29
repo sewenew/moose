@@ -52,8 +52,8 @@ InputParameters validParams<AddLotsOfAuxVariablesAction>()
 }
 
 
-AddLotsOfAuxVariablesAction::AddLotsOfAuxVariablesAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddLotsOfAuxVariablesAction::AddLotsOfAuxVariablesAction(const InputParameters & parameters) :
+    Action(parameters)
 {
 }
 
@@ -64,7 +64,7 @@ AddLotsOfAuxVariablesAction::act()
   unsigned int number = getParam<unsigned int>("number");
   for (unsigned int cur_num = 0; cur_num < number; cur_num++)
   {
-    std::string var_name = getShortName() + Moose::stringify(cur_num);
+    std::string var_name = name() + Moose::stringify(cur_num);
     FEType fe_type(Utility::string_to_enum<Order>(getParam<MooseEnum>("order")),
                    Utility::string_to_enum<FEFamily>(getParam<MooseEnum>("family")));
 

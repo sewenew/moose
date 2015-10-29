@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSEFF2WATERVGSHIFTED_H
 #define RICHARDSSEFF2WATERVGSHIFTED_H
@@ -26,7 +29,7 @@ InputParameters validParams<RichardsSeff2waterVGshifted>();
 class RichardsSeff2waterVGshifted : public RichardsSeff
 {
 public:
-  RichardsSeff2waterVGshifted(const std::string & name, InputParameters parameters);
+  RichardsSeff2waterVGshifted(const InputParameters & parameters);
 
   /**
    * water effective saturation

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ElementPropertyReadFileTest.h"
 #include <cmath>
 
@@ -5,13 +11,14 @@ template<>
 InputParameters validParams<ElementPropertyReadFileTest>()
 {
   InputParameters params = validParams<FiniteStrainElasticMaterial>();
+  params.addClassDescription("Material class to test ElementPropertyReadFile User Object");
   params.addParam<UserObjectName>("read_prop_user_object","The ElementReadPropertyFile GeneralUserObject to read element specific property values from file");
+
   return params;
 }
 
-ElementPropertyReadFileTest::ElementPropertyReadFileTest(const std::string & name,
-                                                         InputParameters parameters) :
-    FiniteStrainElasticMaterial(name, parameters),
+ElementPropertyReadFileTest::ElementPropertyReadFileTest(const InputParameters & parameters) :
+    FiniteStrainElasticMaterial(parameters),
     _read_prop_user_object(isParamValid("read_prop_user_object") ? & getUserObject<ElementPropertyReadFile>("read_prop_user_object") : NULL),
     _some_state_var(declareProperty<Real>("some_state_var")),
     _some_state_var_old(declarePropertyOld<Real>("some_state_var"))
@@ -85,3 +92,4 @@ ElementPropertyReadFileTest::getEulerRotations()
 
   _crysrot = RT.transpose();
 }
+

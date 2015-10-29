@@ -55,8 +55,8 @@
     type = PenaltyDirichletBC
     variable = u
     value = 0
-    function = solution
     boundary = 'top left right bottom'
+    penalty = 1e5
   [../]
 []
 
@@ -96,12 +96,7 @@
 []
 
 [Outputs]
-  interval = 1
+  execute_on = 'timestep_end'
   exodus = true
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

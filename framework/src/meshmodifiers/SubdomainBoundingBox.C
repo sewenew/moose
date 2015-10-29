@@ -25,13 +25,14 @@ InputParameters validParams<SubdomainBoundingBox>()
   params.addRequiredParam<RealVectorValue>("bottom_left", "The bottom left point (in x,y,z with spaces in-between).");
   params.addRequiredParam<RealVectorValue>("top_right", "The bottom left point (in x,y,z with spaces in-between).");
   params.addRequiredParam<SubdomainID>("block_id", "Subdomain id to set for inside/outside the bounding box");
+  params.addParam<SubdomainName>("block_name", "Subdomain name to set for inside/outside the bounding box (optional)");
   params.addParam<MooseEnum>("location", location, "Control of where the subdomain id is to be set");
 
   return params;
 }
 
-SubdomainBoundingBox::SubdomainBoundingBox(const std::string & name, InputParameters parameters) :
-    MeshModifier(name, parameters),
+SubdomainBoundingBox::SubdomainBoundingBox(const InputParameters & parameters) :
+    MeshModifier(parameters),
     _location(parameters.get<MooseEnum>("location")),
     _block_id(parameters.get<SubdomainID>("block_id")),
     _bounding_box(parameters.get<RealVectorValue>("bottom_left"), parameters.get<RealVectorValue>("top_right"))
@@ -61,4 +62,9 @@ SubdomainBoundingBox::modify()
     else if (!contains && _location == "OUTSIDE")
       (*el)->subdomain_id() = _block_id;
   }
+
+  // Assign block name, if provided
+  if (isParamValid("block_name"))
+    _mesh_ptr->getMesh().subdomain_name(_block_id) = getParam<SubdomainName>("block_name");
 }
+

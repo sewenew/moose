@@ -33,8 +33,8 @@
 
 AuxiliarySystem::AuxiliarySystem(FEProblem & subproblem, const std::string & name) :
     SystemTempl<TransientExplicitSystem>(subproblem, name, Moose::VAR_AUXILIARY),
-    _mproblem(subproblem),
-    _serialized_solution(*NumericVector<Number>::build(_mproblem.comm()).release()),
+    _fe_problem(subproblem),
+    _serialized_solution(*NumericVector<Number>::build(_fe_problem.comm()).release()),
     _u_dot(addVector("u_dot", true, GHOSTED)),
     _need_serialized_solution(false)
 {
@@ -50,8 +50,6 @@ AuxiliarySystem::~AuxiliarySystem()
 void
 AuxiliarySystem::init()
 {
-  if (_need_serialized_solution)
-    _serialized_solution.init(_sys.n_dofs(), false, SERIAL);
 }
 
 void
@@ -124,18 +122,15 @@ void
 AuxiliarySystem::addKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters)
 {
   parameters.set<AuxiliarySystem *>("_aux_sys") = this;
+
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    parameters.set<THREAD_ID>("_tid") = tid;
-
-    MooseSharedPointer<AuxKernel> kernel = MooseSharedNamespace::static_pointer_cast<AuxKernel>(_factory.create(kernel_name, name, parameters));
+    MooseSharedPointer<AuxKernel> kernel = MooseSharedNamespace::static_pointer_cast<AuxKernel>(_factory.create(kernel_name, name, parameters, tid));
 
     // Add this AuxKernel to multiple ExecStores
     const std::vector<ExecFlagType> & exec_flags = kernel->execFlags();
     for (unsigned int i=0; i<exec_flags.size(); ++i)
       _auxs(exec_flags[i])[tid].addAuxKernel(kernel);
-
-    _mproblem._objects_by_name[tid][name].push_back(kernel.get());
 
     if (kernel->boundaryRestricted())
     {
@@ -151,16 +146,12 @@ AuxiliarySystem::addScalarKernel(const std::string & kernel_name, const std::str
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    parameters.set<THREAD_ID>("_tid") = tid;
-
-    MooseSharedPointer<AuxScalarKernel> kernel = MooseSharedNamespace::static_pointer_cast<AuxScalarKernel>(_factory.create(kernel_name, name, parameters));
+    MooseSharedPointer<AuxScalarKernel> kernel = MooseSharedNamespace::static_pointer_cast<AuxScalarKernel>(_factory.create(kernel_name, name, parameters, tid));
 
     // Add this AuxKernel to multiple ExecStores
     const std::vector<ExecFlagType> & exec_flags = kernel->execFlags();
     for (unsigned int i=0; i<exec_flags.size(); ++i)
       _auxs(exec_flags[i])[tid].addScalarKernel(kernel);
-
-    _mproblem._objects_by_name[tid][name].push_back(kernel.get());
   }
 }
 
@@ -216,28 +207,56 @@ void
 AuxiliarySystem::serializeSolution()
 {
   if (_need_serialized_solution && _sys.n_dofs() > 0)            // libMesh does not like serializing of empty vectors
+  {
+    if (!_serialized_solution.initialized() || _serialized_solution.size() != _sys.n_dofs())
+    {
+      _serialized_solution.clear();
+      _serialized_solution.init(_sys.n_dofs(), false, SERIAL);
+    }
+
     solution().localize(_serialized_solution);
+  }
 }
 
 void
 AuxiliarySystem::compute(ExecFlagType type/* = EXEC_LINEAR*/)
 {
+  // avoid division by dt which might be zero.
+  if (_fe_problem.dt() > 0.)
+    _time_integrator->preStep();
+
+  // We need to compute time derivatives every time each kind of the variables is finished, because:
+  //
+  //  a) the user might want to use the aux variable value somewhere, thus we need to provide the up-to-date value
+  //  b) time integration system works with the whole vectors of solutions, thus we cannot update only a part of the vector
+  //
+
   if (_vars[0].scalars().size() > 0)
+  {
     computeScalarVars(type);
+    // compute time derivatives of scalar aux variables _after_ the values were updated
+    if (_fe_problem.dt() > 0.)
+      _time_integrator->computeTimeDerivatives();
+  }
 
   if (_vars[0].variables().size() > 0)
   {
     computeNodalVars(type);
+    // compute time derivatives of nodal aux variables _after_ the values were updated
+    if (_fe_problem.dt() > 0.)
+      _time_integrator->computeTimeDerivatives();
+  }
+
+  if (_vars[0].variables().size() > 0)
+  {
     computeElementalVars(type);
+    // compute time derivatives of elemental aux variables _after_ the values were updated
+    if (_fe_problem.dt() > 0.)
+      _time_integrator->computeTimeDerivatives();
   }
 
   if (_need_serialized_solution)
     serializeSolution();
-
-  // can compute time derivatives _after_ the current values were updated
-  // also, at the very beginning, avoid division by dt which might be zero.
-  if (_mproblem.dt() > 0.)
-    _time_integrator->computeTimeDerivatives();
 }
 
 std::set<std::string>
@@ -276,7 +295,7 @@ AuxiliarySystem::computeScalarVars(ExecFlagType type)
     THREAD_ID tid = 0;
     if (auxs[tid].scalars().size() > 0)
     {
-      _mproblem.reinitScalars(tid);
+      _fe_problem.reinitScalars(tid);
 
       const std::vector<AuxScalarKernel *> & scalars = auxs[tid].scalars();
       for (std::vector<AuxScalarKernel *>::const_iterator it = scalars.begin(); it != scalars.end(); ++it)
@@ -319,7 +338,7 @@ AuxiliarySystem::computeNodalVars(ExecFlagType type)
     if (have_block_kernels)
     {
       ConstNodeRange & range = *_mesh.getLocalNodeRange();
-      ComputeNodalAuxVarsThread navt(_mproblem, *this, auxs);
+      ComputeNodalAuxVarsThread navt(_fe_problem, *this, auxs);
       Threads::parallel_reduce(range, navt);
 
       solution().close();
@@ -334,7 +353,7 @@ AuxiliarySystem::computeNodalVars(ExecFlagType type)
   PARALLEL_TRY {
     // after converting this into NodeRange, we can run it in parallel
     ConstBndNodeRange & bnd_nodes = *_mesh.getBoundaryNodeRange();
-    ComputeNodalAuxBcsThread nabt(_mproblem, *this, auxs);
+    ComputeNodalAuxBcsThread nabt(_fe_problem, *this, auxs);
     Threads::parallel_reduce(bnd_nodes, nabt);
 
     solution().close();
@@ -361,7 +380,7 @@ AuxiliarySystem::computeElementalVars(ExecFlagType type)
     if (element_auxs_to_compute)
     {
       ConstElemRange & range = *_mesh.getActiveLocalElementRange();
-      ComputeElemAuxVarsThread eavt(_mproblem, *this, auxs, need_materials);
+      ComputeElemAuxVarsThread eavt(_fe_problem, *this, auxs, need_materials);
       Threads::parallel_reduce(range, eavt);
 
       solution().close();
@@ -374,7 +393,7 @@ AuxiliarySystem::computeElementalVars(ExecFlagType type)
     if (bnd_auxs_to_compute)
     {
       ConstBndElemRange & bnd_elems = *_mesh.getBoundaryElementRange();
-      ComputeElemAuxBcsThread eabt(_mproblem, *this, auxs, need_materials);
+      ComputeElemAuxBcsThread eabt(_fe_problem, *this, auxs, need_materials);
       Threads::parallel_reduce(bnd_elems, eabt);
 
       solution().close();

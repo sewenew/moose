@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari, O. Heinonen, M. R. Tonks
 
 #include "TensorMechanicsMaterial.h"
@@ -16,13 +22,13 @@ InputParameters validParams<TensorMechanicsMaterial>()
   params.addCoupledVar("disp_z", "The z displacement");
   params.addCoupledVar("temperature", "temperature variable");
   params.addParam<std::vector<FunctionName> >("initial_stress", "A list of functions describing the initial stress.  If provided, there must be 9 of these, corresponding to the xx, yx, zx, xy, yy, zy, xz, yz, zz components respectively.  If not provided, all components of the initial stress will be zero");
+  params.addParam<FunctionName>("elasticity_tensor_prefactor", "Optional function to use as a scalar prefactor on the elasticity tensor.");
   params.addParam<std::string>("base_name", "Material property base name");
   return params;
 }
 
-TensorMechanicsMaterial::TensorMechanicsMaterial(const std::string & name,
-                                                 InputParameters parameters) :
-    Material(name, parameters),
+TensorMechanicsMaterial::TensorMechanicsMaterial(const InputParameters & parameters) :
+    Material(parameters),
     _grad_disp_x(coupledGradient("disp_x")),
     _grad_disp_y(coupledGradient("disp_y")),
     _grad_disp_z(_mesh.dimension() == 3 ? coupledGradient("disp_z") : _grad_zero),
@@ -44,7 +50,8 @@ TensorMechanicsMaterial::TensorMechanicsMaterial(const std::string & name,
                   getParam<Real>("euler_angle_2"),
                   getParam<Real>("euler_angle_3")),
 
-    _Cijkl(getParam<std::vector<Real> >("C_ijkl"), (RankFourTensor::FillMethod)(int)getParam<MooseEnum>("fill_method"))
+    _Cijkl(getParam<std::vector<Real> >("C_ijkl"), (RankFourTensor::FillMethod)(int)getParam<MooseEnum>("fill_method")),
+    _prefactor_function(isParamValid("elasticity_tensor_prefactor") ? &getFunction("elasticity_tensor_prefactor") : NULL)
 {
   const std::vector<FunctionName> & fcn_names(getParam<std::vector<FunctionName> >("initial_stress"));
   const unsigned num = fcn_names.size();
@@ -87,6 +94,10 @@ void TensorMechanicsMaterial::computeQpElasticityTensor()
   // Fill in the matrix stiffness material property
   RotationTensor R(_Euler_angles); // R type: RealTensorValue
   _elasticity_tensor[_qp] = _Cijkl;
+
+  if (_prefactor_function)
+    _elasticity_tensor[_qp] *= _prefactor_function->value(_t, _q_point[_qp]);
+
   _elasticity_tensor[_qp].rotate(R);
   _Jacobian_mult[_qp] = _elasticity_tensor[_qp];
 }
@@ -96,3 +107,4 @@ void TensorMechanicsMaterial::computeStrain()
   for (_qp = 0; _qp < _qrule->n_points(); ++_qp)
     computeQpStrain();
 }
+

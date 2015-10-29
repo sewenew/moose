@@ -21,8 +21,8 @@ InputParameters validParams<SideIntegralPostprocessor>()
   return params;
 }
 
-SideIntegralPostprocessor::SideIntegralPostprocessor(const std::string & name, InputParameters parameters) :
-    SidePostprocessor(name, parameters),
+SideIntegralPostprocessor::SideIntegralPostprocessor(const InputParameters & parameters) :
+    SidePostprocessor(parameters),
     _qp(0),
     _integral_value(0)
 {}
@@ -61,3 +61,4 @@ SideIntegralPostprocessor::computeIntegral()
     sum += _JxW[_qp]*_coord[_qp]*computeQpIntegral();
   return sum;
 }
+

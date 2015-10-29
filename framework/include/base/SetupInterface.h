@@ -28,7 +28,7 @@ InputParameters validParams<SetupInterface>();
 class SetupInterface
 {
 public:
-  SetupInterface(InputParameters & params);
+  SetupInterface(const InputParameters & params);
   virtual ~SetupInterface();
 
   /**
@@ -75,6 +75,9 @@ public:
 protected:
   /// execution flag (when is the object executed/evaluated)
   std::vector<ExecFlagType> _exec_flags;
+
+  // FEProblem::addMultiApp needs to reset the execution flags
+  friend class FEProblem;
 };
 
 #endif /* SETUPINTERFACE_H */

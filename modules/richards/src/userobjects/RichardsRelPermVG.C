@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  "VG" form of relative permeability
 //
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsRelPermVG>()
   return params;
 }
 
-RichardsRelPermVG::RichardsRelPermVG(const std::string & name, InputParameters parameters) :
-    RichardsRelPerm(name, parameters),
+RichardsRelPermVG::RichardsRelPermVG(const InputParameters & parameters) :
+    RichardsRelPerm(parameters),
     _simm(getParam<Real>("simm")),
     _m(getParam<Real>("m"))
 {
@@ -85,4 +88,5 @@ RichardsRelPermVG::d2relperm(Real seff) const
   Real krelpp = -0.25*std::pow(s_internal, -1.5)*std::pow(tmp2, 2) + 2*0.5*std::pow(s_internal, -0.5)*2*tmp2*tmp2p + 2*std::pow(s_internal, 0.5)*(tmp2p*tmp2p + tmp2*tmp2pp);
   return krelpp/std::pow(1.0 - _simm, 2);
 }
+
 

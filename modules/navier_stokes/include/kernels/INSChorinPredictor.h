@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSCHORINPREDICTOR_H
 #define INSCHORINPREDICTOR_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<INSChorinPredictor>();
 class INSChorinPredictor : public Kernel
 {
 public:
-  INSChorinPredictor(const std::string & name, InputParameters parameters);
+  INSChorinPredictor(const InputParameters & parameters);
 
   virtual ~INSChorinPredictor(){}
 

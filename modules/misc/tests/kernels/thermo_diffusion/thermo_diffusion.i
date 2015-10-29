@@ -130,9 +130,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

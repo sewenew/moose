@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Convection.h"
 
 /**
@@ -14,11 +20,11 @@ InputParameters validParams<Convection>()
   return params;
 }
 
-Convection::Convection(const std::string & name, InputParameters parameters)
+Convection::Convection(const InputParameters & parameters)
   // You must call the constructor of the base class first
   // The "true" here specifies that this Kernel is to be integrated
   // over the domain.
-  :Kernel(name, parameters),
+  :Kernel(parameters),
 
    // This is the "Intialization List" it sets the values of class variables
    // Here we are grabbing the values of Parameters to use for a velocity vector
@@ -53,3 +59,4 @@ Real Convection::computeQpJacobian()
   // the partial derivative of _grad_u is just _dphi[_j]
   return _test[_i][_qp]*(velocity*_grad_phi[_j][_qp]);
 }
+

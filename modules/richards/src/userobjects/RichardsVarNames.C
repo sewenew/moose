@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Holds maps between Richards variables (porepressure, saturations) and the variable number used by MOOSE.
 //
@@ -19,8 +22,8 @@ InputParameters validParams<RichardsVarNames>()
   return params;
 }
 
-RichardsVarNames::RichardsVarNames(const std::string & name, InputParameters parameters) :
-    GeneralUserObject(name, parameters),
+RichardsVarNames::RichardsVarNames(const InputParameters & parameters) :
+    GeneralUserObject(parameters),
     Coupleable(parameters, false),
     ZeroInterface(parameters),
     _num_v(coupledComponents("richards_vars")),
@@ -147,4 +150,5 @@ RichardsVarNames::nodal_var_old(unsigned int richards_var_num) const
 {
   return _moose_nodal_var_value_old[richards_var_num];
 }
+
 

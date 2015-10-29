@@ -45,14 +45,8 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
   [./oversample]
     type = Exodus
     refinements = 1
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'initial failed timestep_end linear nonlinear'
   [../]
 []

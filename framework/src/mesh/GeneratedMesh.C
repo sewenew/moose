@@ -27,7 +27,7 @@ InputParameters validParams<GeneratedMesh>()
 {
   InputParameters params = validParams<MooseMesh>();
 
-  MooseEnum elem_types("EDGE EDGE2 EDGE3 EDGE4 QUAD QUAD4 QUAD8 QUAD9 TRI3 TRI6 HEX HEX8 HEX20 HEX27 TET4 TET10 PRISM6 PRISM15 PRISM18"); // no default
+  MooseEnum elem_types("EDGE EDGE2 EDGE3 EDGE4 QUAD QUAD4 QUAD8 QUAD9 TRI3 TRI6 HEX HEX8 HEX20 HEX27 TET4 TET10 PRISM6 PRISM15 PRISM18 PYRAMID5 PYRAMID13 PYRAMID14"); // no default
 
   MooseEnum dims("1=1 2 3");
   params.addRequiredParam<MooseEnum>("dim", dims, "The dimension of the mesh to be generated"); // Make this parameter required
@@ -48,12 +48,18 @@ InputParameters validParams<GeneratedMesh>()
   return params;
 }
 
-GeneratedMesh::GeneratedMesh(const std::string & name, InputParameters parameters) :
-    MooseMesh(name, parameters),
+GeneratedMesh::GeneratedMesh(const InputParameters & parameters) :
+    MooseMesh(parameters),
     _dim(getParam<MooseEnum>("dim")),
     _nx(getParam<int>("nx")),
     _ny(getParam<int>("ny")),
-    _nz(getParam<int>("nz"))
+    _nz(getParam<int>("nz")),
+    _xmin(getParam<Real>("xmin")),
+    _xmax(getParam<Real>("xmax")),
+    _ymin(getParam<Real>("ymin")),
+    _ymax(getParam<Real>("ymax")),
+    _zmin(getParam<Real>("zmin")),
+    _zmax(getParam<Real>("zmax"))
 {
 }
 
@@ -62,7 +68,13 @@ GeneratedMesh::GeneratedMesh(const GeneratedMesh & other_mesh) :
     _dim(other_mesh._dim),
     _nx(other_mesh._nx),
     _ny(other_mesh._ny),
-    _nz(other_mesh._nz)
+    _nz(other_mesh._nz),
+    _xmin(getParam<Real>("xmin")),
+    _xmax(getParam<Real>("xmax")),
+    _ymin(getParam<Real>("ymin")),
+    _ymax(getParam<Real>("ymax")),
+    _zmin(getParam<Real>("zmin")),
+    _zmax(getParam<Real>("zmax"))
 {
 }
 
@@ -102,23 +114,22 @@ GeneratedMesh::buildMesh()
   case 1:
     MeshTools::Generation::build_line(dynamic_cast<UnstructuredMesh&>(getMesh()),
                                       _nx,
-                                      getParam<Real>("xmin"),
-                                      getParam<Real>("xmax"),
+                                      _xmin, _xmax,
                                       elem_type);
     break;
   case 2:
     MeshTools::Generation::build_square(dynamic_cast<UnstructuredMesh&>(getMesh()),
                                         _nx, _ny,
-                                        getParam<Real>("xmin"), getParam<Real>("xmax"),
-                                        getParam<Real>("ymin"), getParam<Real>("ymax"),
+                                        _xmin, _xmax,
+                                        _ymin, _ymax,
                                         elem_type);
     break;
   case 3:
     MeshTools::Generation::build_cube(dynamic_cast<UnstructuredMesh&>(getMesh()),
                                       _nx, _ny, _nz,
-                                      getParam<Real>("xmin"), getParam<Real>("xmax"),
-                                      getParam<Real>("ymin"), getParam<Real>("ymax"),
-                                      getParam<Real>("zmin"), getParam<Real>("zmax"),
+                                      _xmin, _xmax,
+                                      _ymin, _ymax,
+                                      _zmin, _zmax,
                                       elem_type);
     break;
   }

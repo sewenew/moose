@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSEnergyInviscidBC.h"
 
 template<>
@@ -13,8 +19,8 @@ InputParameters validParams<NSEnergyInviscidBC>()
 
 
 
-NSEnergyInviscidBC::NSEnergyInviscidBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters),
+NSEnergyInviscidBC::NSEnergyInviscidBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters),
 
       // Aux Variables
       _temperature(coupledValue("temperature")),
@@ -214,6 +220,7 @@ NSEnergyInviscidBC::qp_jacobian_termC(unsigned var_number, Real un)
 //   // sign) multiply by the test function, and return.
 //   return conv_term * _test[_i][_qp];
 // }
+
 
 
 

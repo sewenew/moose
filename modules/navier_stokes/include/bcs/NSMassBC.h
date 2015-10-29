@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMASSBC_H
 #define NSMASSBC_H
 
@@ -27,7 +33,7 @@ class NSMassBC : public NSIntegratedBC
 {
 public:
 
-  NSMassBC(const std::string & name, InputParameters parameters);
+  NSMassBC(const InputParameters & parameters);
 
   virtual ~NSMassBC(){}
 

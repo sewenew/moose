@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ReturnMappingModel.h"
 
 #include "SymmIsotropicElasticityTensor.h"
@@ -18,9 +24,8 @@ InputParameters validParams<ReturnMappingModel>()
 }
 
 
-ReturnMappingModel::ReturnMappingModel( const std::string & name,
-                                                  InputParameters parameters )
-  :ConstitutiveModel( name, parameters ),
+ReturnMappingModel::ReturnMappingModel( const InputParameters & parameters)
+  :ConstitutiveModel(parameters),
    _max_its(parameters.get<unsigned int>("max_its")),
    _output_iteration_info(getParam<bool>("output_iteration_info")),
    _output_iteration_info_on_error(getParam<bool>("output_iteration_info_on_error")),
@@ -151,3 +156,4 @@ ReturnMappingModel::computeStress( const Elem & /*current_elem*/, unsigned qp,
   computeStressFinalize(qp, inelastic_strain_increment);
 
 }
+

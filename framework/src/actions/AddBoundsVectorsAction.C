@@ -21,8 +21,8 @@ InputParameters validParams<AddBoundsVectorsAction>()
   return validParams<Action>();
 }
 
-AddBoundsVectorsAction::AddBoundsVectorsAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddBoundsVectorsAction::AddBoundsVectorsAction(InputParameters params) :
+    Action(params)
 {
 }
 
@@ -32,3 +32,4 @@ AddBoundsVectorsAction::act()
   _problem->getNonlinearSystem().addVector("lower_bound", false, GHOSTED, false);
   _problem->getNonlinearSystem().addVector("upper_bound", false, GHOSTED, false);
 }
+

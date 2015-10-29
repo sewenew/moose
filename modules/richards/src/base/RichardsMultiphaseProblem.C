@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsMultiphaseProblem.h"
 
@@ -17,8 +20,8 @@ InputParameters validParams<RichardsMultiphaseProblem>()
 }
 
 
-RichardsMultiphaseProblem::RichardsMultiphaseProblem(const std::string & name, InputParameters params) :
-    FEProblem(name, params),
+RichardsMultiphaseProblem::RichardsMultiphaseProblem(const InputParameters & params) :
+    FEProblem(params),
     // in the following have to get the names of the variables, and then find their numbers in initialSetup,
     // as their numbers won't be defined at the moment of instantiation of this class
     _bounded_var_name(params.get<NonlinearVariableName>("bounded_var")),
@@ -113,8 +116,3 @@ RichardsMultiphaseProblem::updateSolution(NumericVector<Number>& vec_solution, N
   return updatedSolution;
 
 }
-
-
-
-
-

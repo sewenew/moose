@@ -241,13 +241,9 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = oneDa
   hide = dummy
   exodus = false
   csv = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

@@ -23,9 +23,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -226,14 +224,20 @@
 []
 
 [Materials]
-  [./mc]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     fill_method = symmetric_isotropic
     C_ijkl = '5.77E10 3.85E10' # young = 100Gpa, poisson = 0.3
+  [../]
+  [./strain]
+    type = ComputeFiniteStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./mc]
+    type = ComputeMultiPlasticityStress
+    block = 0
     ep_plastic_tolerance = 1E-10
     plastic_models = mc
     max_NR_iterations = 1000
@@ -252,14 +256,14 @@
 [Executioner]
   end_time = 0.5
   dt = 0.05
-  solve_type = PJFNK
+  solve_type = PJFNK  # cannot use NEWTON because we are using ComputeFiniteStrain, and hence the Jacobian contributions will not be correct, even though ComputeMultiPlasticityStress will compute the correct consistent tangent operator for small strains
   type = Transient
 
-  nl_abs_tol = 1E-4
-  nl_rel_tol = 1E-8
+  line_search = 'none'
+  nl_rel_tol = 1E-10
   l_tol = 1E-3
   l_max_its = 200
-  nl_max_its = 400
+  nl_max_its = 10
 
   petsc_options_iname = '-pc_type -pc_asm_overlap -sub_pc_type -ksp_type -ksp_gmres_restart'
   petsc_options_value = ' asm      2              lu            gmres     200'
@@ -270,14 +274,7 @@
 [Outputs]
   file_base = uni_axial1
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
 []

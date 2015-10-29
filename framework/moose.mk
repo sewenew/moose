@@ -2,8 +2,7 @@
 # MOOSE
 #
 moose_SRC_DIRS := $(FRAMEWORK_DIR)/src
-moose_SRC_DIRS += $(FRAMEWORK_DIR)/contrib/mtwist-1.1
-moose_SRC_DIRS += $(FRAMEWORK_DIR)/contrib/dtk_moab
+moose_SRC_DIRS += $(FRAMEWORK_DIR)/contrib/mtwist
 
 #
 # pcre
@@ -14,6 +13,19 @@ pcre_csrcfiles := $(shell find $(pcre_DIR) -name "*.c")
 pcre_objects   := $(patsubst %.cc, %.$(obj-suffix), $(pcre_srcfiles))
 pcre_objects   += $(patsubst %.c, %.$(obj-suffix), $(pcre_csrcfiles))
 pcre_LIB       :=  $(pcre_DIR)/libpcre-$(METHOD).la
+# dependency files
+pcre_deps      := $(patsubst %.cc, %.$(obj-suffix).d, $(pcre_srcfiles)) \
+                  $(patsubst %.c, %.$(obj-suffix).d, $(pcre_csrcfiles))
+
+#
+# ice_updater
+#
+ice_updater_DIR       := $(FRAMEWORK_DIR)/contrib/ice_updater
+ice_updater_srcfiles  := $(shell find $(ice_updater_DIR) -name "*.cpp")
+ice_updater_objects   := $(patsubst %.cpp, %.$(obj-suffix), $(ice_updater_srcfiles))
+ice_updater_LIB       :=  $(ice_updater_DIR)/libice_updater-$(METHOD).la
+# dependency files
+ice_updater_deps      := $(patsubst %.cpp, %.$(obj-suffix).d, $(ice_updater_srcfiles))
 
 moose_INC_DIRS := $(shell find $(FRAMEWORK_DIR)/include -type d -not -path "*/.svn*")
 moose_INC_DIRS += $(shell find $(FRAMEWORK_DIR)/contrib/*/include -type d -not -path "*/.svn*")
@@ -24,7 +36,7 @@ moose_INCLUDE  := $(foreach i, $(moose_INC_DIRS), -I$(i))
 # Making a .la object instead.  This is what you make out of .lo objects...
 moose_LIB := $(FRAMEWORK_DIR)/libmoose-$(METHOD).la
 
-moose_LIBS := $(moose_LIB) $(pcre_LIB)
+moose_LIBS := $(moose_LIB) $(pcre_LIB) $(ice_updater_LIB)
 
 # source files
 moose_precompiled_headers := $(FRAMEWORK_DIR)/include/base/Precompiled.h
@@ -52,13 +64,23 @@ moose_analyzer := $(patsubst %.C, %.plist.$(obj-suffix), $(moose_srcfiles))
 app_INCLUDES := $(moose_INCLUDE)
 app_LIBS     := $(moose_LIBS)
 app_DIRS     := $(FRAMEWORK_DIR)
-all:: moose_revision moose
+all:: libmesh_submodule_status moose_revision moose
 
 # revision header
 moose_revision_header = $(FRAMEWORK_DIR)/include/base/MooseRevision.h
 moose_revision:
-  $(shell $(FRAMEWORK_DIR)/scripts/get_repo_revision.py $(FRAMEWORK_DIR) \
-    $(moose_revision_header) MOOSE)
+	$(shell $(FRAMEWORK_DIR)/scripts/get_repo_revision.py $(FRAMEWORK_DIR) \
+	  $(moose_revision_header) MOOSE)
+
+# libmesh submodule status
+libmesh_status := $(shell git -C $(MOOSE_DIR) submodule status 2>/dev/null)
+ifneq (,$(findstring +,$(libmesh_status)))
+  ifneq ($(origin MOOSE_DIR),environment)
+    libmesh_message = "\n***WARNING***\nYour libmesh is out of date.\nYou need to run update_and_rebuild_libmesh.sh in the scripts directory.\n\n"
+  endif
+endif
+libmesh_submodule_status:
+	@if [ x$(libmesh_message) != "x" ]; then printf $(libmesh_message); fi
 
 moose: $(moose_LIB)
 
@@ -70,11 +92,16 @@ $(pcre_LIB): $(pcre_objects)
 	  $(libmesh_CC) $(libmesh_CFLAGS) -o $@ $(pcre_objects) $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS) -rpath $(pcre_DIR)
 	@$(libmesh_LIBTOOL) --mode=install --quiet install -c $(pcre_LIB) $(pcre_DIR)
 
+$(ice_updater_LIB): $(ice_updater_objects)
+	@echo "Linking Library "$@"..."
+	@$(libmesh_LIBTOOL) --tag=CC $(LIBTOOLFLAGS) --mode=link --quiet \
+	  $(libmesh_CC) $(libmesh_CFLAGS) -o $@ $(ice_updater_objects) $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS) -rpath $(ice_updater_DIR)
+	@$(libmesh_LIBTOOL) --mode=install --quiet install -c $(ice_updater_LIB) $(ice_updater_DIR)
 
-$(moose_LIB): $(moose_precompiled_headers_objects) $(moose_objects) $(pcre_LIB)
+$(moose_LIB): $(moose_precompiled_headers_objects) $(moose_objects) $(pcre_LIB) $(ice_updater_LIB)
 	@echo "Linking Library "$@"..."
 	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=link --quiet \
-	  $(libmesh_CXX) $(libmesh_CXXFLAGS) -o $@ $(moose_objects) $(pcre_LIB) $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS) -rpath $(FRAMEWORK_DIR)
+	  $(libmesh_CXX) $(libmesh_CXXFLAGS) -o $@ $(moose_objects) $(pcre_LIB) $(ice_updater_LIB) $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS) -rpath $(FRAMEWORK_DIR)
 	@$(libmesh_LIBTOOL) --mode=install --quiet install -c $(moose_LIB) $(FRAMEWORK_DIR)
 
 ## Clang static analyzer
@@ -83,9 +110,9 @@ sa:: $(moose_analyzer)
 # include MOOSE dep files. Note: must use -include for deps, since they don't exist for first time builds.
 -include $(moose_deps)
 
--include $(wildcard $(FRAMEWORK_DIR)/contrib/mtwist-1.1/src/*.d)
--include $(wildcard $(FRAMEWORK_DIR)/contrib/dtk_moab/src/*.d)
+-include $(wildcard $(FRAMEWORK_DIR)/contrib/mtwist/src/*.d)
 -include $(wildcard $(FRAMEWORK_DIR)/contrib/pcre/src/*.d)
+-include $(wildcard $(FRAMEWORK_DIR)/contrib/ice_updater/src/*.d)
 
 ifdef PRECOMPILED
 -include $(FRAMEWORK_DIR)/include/base/Precompiled.h.gch/$(METHOD).h.gch.d
@@ -97,8 +124,10 @@ endif
 exodiff_DIR := $(FRAMEWORK_DIR)/contrib/exodiff
 exodiff_APP := $(exodiff_DIR)/exodiff
 exodiff_srcfiles := $(shell find $(exodiff_DIR) -name "*.C")
-exodiff_objfiles := $(patsubst %.C, %.$(obj-suffix), $(exodiff_srcfiles))
+exodiff_objects  := $(patsubst %.C, %.$(obj-suffix), $(exodiff_srcfiles))
 exodiff_includes := $(app_INCLUDES) -I$(exodiff_DIR) $(libmesh_INCLUDE)
+# dependency files
+exodiff_deps := $(patsubst %.C, %.$(obj-suffix).d, $(exodiff_srcfiles))
 
 all:: exodiff
 
@@ -106,22 +135,23 @@ all:: exodiff
 exodiff: app_INCLUDES := $(exodiff_includes)
 exodiff: $(exodiff_APP)
 
-$(exodiff_APP): $(exodiff_objfiles)
+$(exodiff_APP): $(exodiff_objects)
 	@echo "Linking "$@"..."
 	@$(libmesh_LIBTOOL) --tag=CXX $(LIBTOOLFLAGS) --mode=link --quiet \
-	  $(libmesh_CXX) $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) $(libmesh_INCLUDE) $(exodiff_objfiles) -o $@ $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS)
+	  $(libmesh_CXX) $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) $(libmesh_INCLUDE) $(exodiff_objects) -o $@ $(libmesh_LIBS) $(libmesh_LDFLAGS) $(EXTERNAL_FLAGS)
 
 -include $(wildcard $(exodiff_DIR)/*.d)
 
 #
 # Clean targets
 #
-.PHONY: clean clobber cleanall echo_include echo_library
+.PHONY: clean clobber cleanall echo_include echo_library libmesh_submodule_status
 
 # Set up app-specific variables for MOOSE, so that it can use the same clean target as the apps
-app_LIB := $(moose_LIBS) $(exodiff_APP) libmoose-$(METHOD).*
-app_objects := $(moose_objects)
-app_deps := $(moose_deps)
+app_EXEC := $(exodiff_APP)
+app_LIB  := $(moose_LIBS) $(pcre_LIB) $(ice_updater_LIB)
+app_objects := $(moose_objects) $(exodiff_objects) $(pcre_objects) $(ice_updater_objects)
+app_deps := $(moose_deps) $(exodiff_deps) $(pcre_deps) $(ice_updater_deps)
 
 # The clean target removes everything we can remove "easily",
 # i.e. stuff which we have Makefile variables for.  Notes:
@@ -132,7 +162,8 @@ app_deps := $(moose_deps)
 # .) Calling 'make clean' in an app should not remove MOOSE object
 #    files, libraries, etc.
 clean::
-	@rm -rf $(app_LIB) $(app_EXEC) $(app_objects) $(main_object) $(app_deps) $(app_HEADER)
+	@$(libmesh_LIBTOOL) --mode=uninstall --quiet rm -f $(app_LIB)
+	@rm -rf $(app_EXEC) $(app_objects) $(main_object) $(app_deps) $(app_HEADER)
 
 # The clobber target does 'make clean' and then uses 'find' to clean a
 # bunch more stuff.  We have to write this target as though it could
@@ -142,28 +173,19 @@ clean::
 # .) .git  (don't accidentally delete any of git's metadata)
 # .) .svn  (don't accidentally delete any of svn's metadata)
 # Notes:
-# .) -exec rm is the only way to delete stuff, it won't work right if
-#    you pipe the output of find to 'xargs rm -rf' or pass the -delete
-#    flag to find
-# .) The ./ in front of the path names is absolutely required for the
-#    find command to work correctly.
 # .) Be careful: running 'make -n clobber' will actually delete files!
-# .) Running 'make clobber' is a good way to clean up outdated
-#    dependency and object files when you upgrade OSX versions or as
-#    source files are deleted over time.
 # .) 'make clobber' does not respect $(METHOD), it just deletes
 #    everything it can find!
-# .) We send any errors from the find command to /dev/null, since we
-#    don't really care about them and find has this annoying "feature"
-#    where it tries to search in directories it has already deleted (in
-#    this case .libs) and prints an error message about it.
+# .) Running 'make clobberall' is a good way to clean up outdated
+#    dependency and object files when you upgrade OSX versions or as
+#    source files are deleted over time.
 clobber:: clean
-	$(shell find . \( -path ./moose -or -path ./.git -or -path ./.svn \) -prune -or \
+	$(shell find $(CURDIR) \( -path $(CURDIR)/moose -or -path $(CURDIR)/.git -or -path $(CURDIR)/.svn \) -prune -or \
           \( -name "*~" -or -name "*.lo" -or -name "*.la" -or -name "*.dylib" -or -name "*.so*" -or -name "*.a" \
           -or -name "*-opt" -or -name "*-dbg" -or -name "*-oprof" \
           -or -name "*.d" -or -name "*.pyc" -or -name "*.plugin" -or -name "*.mod" -or -name "*.plist" \
-          -or -name "*.gcda" -or -name "*.gcno" -or -name "*.gcov" -or -name "*.gch" -or -name .libs \) \
-          -exec rm -rf '{}' \; 2>/dev/null)
+          -or -name "*.gcda" -or -name "*.gcno" -or -name "*.gcov" -or -name "*.gch" -or -name .libs -or -path "*/.libs/*" \) \
+          -delete)
 
 # cleanall runs 'make clean' in all dependent application directories
 cleanall:: clean
@@ -171,6 +193,23 @@ cleanall:: clean
 	@for dir in $(app_DIRS); do \
           echo \ $$dir; \
           make -C $$dir clean ; \
+        done
+
+# clobberall runs 'make clobber' in all dependent application directories
+clobberall:: clobber
+	@echo "Clobbering in:"
+	@for dir in $(app_DIRS); do \
+          echo \ $$dir; \
+          make -C $$dir clobber ; \
+        done
+
+# clang_complete builds a clang configuration file for various clang-based autocompletion plugins
+clang_complete:
+	@echo "Building .clang_complete file"
+	@echo "-xc++" > .clang_complete
+	@echo "-std=c++11" >> .clang_complete
+	@for item in $(libmesh_CPPFLAGS) $(libmesh_CXXFLAGS) $(app_INCLUDES) $(libmesh_INCLUDE) $(ADDITIONAL_INCLUDES); do \
+          echo $$item >> .clang_complete;  \
         done
 
 # Debugging stuff

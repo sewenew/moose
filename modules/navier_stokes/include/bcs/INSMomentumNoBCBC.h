@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSMOMENTUMNOBCBC_H
 #define INSMOMENTUMNOBCBC_H
 
@@ -16,7 +22,7 @@ InputParameters validParams<INSMomentumNoBCBC>();
 class INSMomentumNoBCBC : public IntegratedBC
 {
 public:
-  INSMomentumNoBCBC(const std::string & name, InputParameters parameters);
+  INSMomentumNoBCBC(const InputParameters & parameters);
 
   virtual ~INSMomentumNoBCBC(){}
 

@@ -62,28 +62,20 @@
   type = Transient
   scheme = bdf2
 
-  #Preconditioned JFNK (default)
-  solve_type = 'PJFNK'
-
+  solve_type = 'NEWTON'
   petsc_options_iname = '-pc_type -pc_hypre_type -ksp_gmres_restart'
   petsc_options_value = 'hypre boomeramg 31'
+
   l_max_its = 20
   l_tol = 1.0e-5
   nl_max_its = 40
   nl_rel_tol = 5.0e-14
+
   start_time = 0.0
   num_steps = 1
   dt = 2.0
 []
 
 [Outputs]
-  file_base = circle_3D
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
-

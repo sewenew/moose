@@ -69,7 +69,11 @@
 
 [Executioner]
   type = Transient
-  scheme = 'crank-nicolson'
+
+  # Use the block format instead of the scheme parameter
+  [./TimeIntegrator]
+    type = CrankNicolson
+  [../]
 
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
@@ -86,10 +90,6 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

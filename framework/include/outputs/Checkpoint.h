@@ -20,7 +20,6 @@
 #include "FileOutput.h"
 #include "MaterialPropertyStorage.h"
 #include "RestartableData.h"
-#include "MaterialPropertyIO.h"
 #include "RestartableDataIO.h"
 
 #include <deque>
@@ -43,9 +42,6 @@ struct CheckpointFileNames
   /// Filename for EquationsSystems::write
   std::string system;
 
-  /// Filename for stateful material property file
-  std::string material;
-
   /// Filename for restartable data filename
   std::string restart;
 };
@@ -59,10 +55,9 @@ public:
 
   /**
    * Class constructor
-   * @param name
    * @param parameters
    */
-  Checkpoint(const std::string & name, InputParameters & parameters);
+  Checkpoint(const InputParameters & parameters);
 
   /**
    * Class destructor
@@ -112,9 +107,6 @@ private:
 
   /// Reference to the boundary material property storage
   const MaterialPropertyStorage & _bnd_material_property_storage;
-
-  /// MaterialProperty input/output interface
-  MaterialPropertyIO _material_property_io;
 
   /// RestrableData input/output interface
   RestartableDataIO _restartable_data_io;

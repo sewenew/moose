@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSPENALIZEDNORMALFLOWBC_H
 #define NSPENALIZEDNORMALFLOWBC_H
 
@@ -18,7 +24,7 @@ class NSPenalizedNormalFlowBC : public NSIntegratedBC
 {
 
 public:
-  NSPenalizedNormalFlowBC(const std::string & name, InputParameters parameters);
+  NSPenalizedNormalFlowBC(const InputParameters & parameters);
 
   virtual ~NSPenalizedNormalFlowBC(){}
 

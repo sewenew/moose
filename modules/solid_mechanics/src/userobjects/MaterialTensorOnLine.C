@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "MaterialTensorOnLine.h"
 #include "SymmTensor.h"
 #include "FEProblem.h"
@@ -17,14 +23,14 @@ InputParameters validParams<MaterialTensorOnLine>()
   params.addCoupledVar("element_line_id","Element line ID: if not zero, output stress at integration points");
   params.addRequiredParam<std::string>("filename","Output file name");
   params.addParam<int>("line_id",1,"ID of the line of elements to output stresses on");
-  params.set<MultiMooseEnum>("execute_on") = "timestep";
+  params.set<MultiMooseEnum>("execute_on") = "timestep_end";
 
   return params;
 }
 
-MaterialTensorOnLine :: MaterialTensorOnLine(const std::string & name, InputParameters parameters) :
-  ElementUserObject(name, parameters),
-  _material_tensor_calculator( name, parameters),
+MaterialTensorOnLine :: MaterialTensorOnLine(const InputParameters & parameters) :
+  ElementUserObject(parameters),
+  _material_tensor_calculator( parameters),
   _tensor( getMaterialProperty<SymmTensor>( getParam<std::string>("tensor") ) ),
   _lp1( getParam<RealVectorValue>("line_point1") ),
   _lp2( getParam<RealVectorValue>("line_point2") ),

@@ -176,12 +176,11 @@
 
 [Outputs]
   file_base = bh_lumped_07
+  execute_on = 'initial timestep_end final'
   interval = 10000
   exodus = true
-  output_on = 'initial timestep_end final'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
+[]
+
+[Problem]
+  use_legacy_uo_initialization = true
 []

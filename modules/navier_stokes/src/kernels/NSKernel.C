@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSKernel.h"
 
 template<>
@@ -25,8 +31,8 @@ InputParameters validParams<NSKernel>()
 
 
 
-NSKernel::NSKernel(const std::string & name, InputParameters parameters)
-    : Kernel(name, parameters),
+NSKernel::NSKernel(const InputParameters & parameters)
+    : Kernel(parameters),
 
       // Coupled variables
       _u_vel(coupledValue("u")),
@@ -85,3 +91,4 @@ unsigned NSKernel::map_var_number(unsigned var)
 
   return mapped_var_number;
 }
+

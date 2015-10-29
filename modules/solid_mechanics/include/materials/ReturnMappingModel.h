@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef RETURNMAPPINGMODEL_H
 #define RETURNMAPPINGMODEL_H
 
@@ -10,8 +16,7 @@
 class ReturnMappingModel : public ConstitutiveModel
 {
 public:
-  ReturnMappingModel( const std::string & name,
-                           InputParameters parameters );
+  ReturnMappingModel( const InputParameters & parameters);
   virtual ~ReturnMappingModel() {}
 
 

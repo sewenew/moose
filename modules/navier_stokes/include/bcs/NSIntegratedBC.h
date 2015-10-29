@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSINTEGRATEDBC_H
 #define NSINTEGRATEDBC_H
 
@@ -20,7 +26,7 @@ InputParameters validParams<NSIntegratedBC>();
 class NSIntegratedBC : public IntegratedBC
 {
 public:
-  NSIntegratedBC(const std::string & name, InputParameters parameters);
+  NSIntegratedBC(const InputParameters & parameters);
 
   virtual ~NSIntegratedBC(){}
 
@@ -58,8 +64,8 @@ protected:
   unsigned _rhoe_var_number;
 
   // Integrated BC can use Mat. properties...
-  MaterialProperty<Real> & _dynamic_viscosity;
-  MaterialProperty<RealTensorValue> & _viscous_stress_tensor; // Includes _dynamic_viscosity
+  const MaterialProperty<Real> & _dynamic_viscosity;
+  const MaterialProperty<RealTensorValue> & _viscous_stress_tensor; // Includes _dynamic_viscosity
 
   // Required parameters
   Real _gamma;

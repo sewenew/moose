@@ -214,8 +214,6 @@
 [Executioner]
   type = Transient
 
-  restart_file_base = restart_out_cp/0010
-
   # Preconditioned JFNK (default)
   solve_type = 'PJFNK'
   petsc_options = '-snes_ksp_ew'
@@ -230,10 +228,8 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
+[]
+
+[Problem]
+  restart_file_base = restart_out_cp/0010
 []

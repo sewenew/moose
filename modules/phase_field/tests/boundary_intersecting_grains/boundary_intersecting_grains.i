@@ -24,7 +24,7 @@
 
 [Variables]
   [./u]
-    # The NodalFloodCount object requires an *nodal* variable in order
+    # The FeatureFloodCount object requires an *nodal* variable in order
     # to work (otherwise it segfaults).
   [../]
 []
@@ -42,13 +42,13 @@
 
 [AuxKernels]
   [./nodal_flood_aux]
-    # We definitely need to execute this AuxKernel on TIMESTEP,
+    # We definitely need to execute this AuxKernel on TIMESTEP_END,
     # otherwise the grain_auxvar won't be shown in paraview...
-    execute_on = 'TIMESTEP'
+    execute_on = 'TIMESTEP_END'
     # This auxkernel is initialized *before* the variable u is set
     # from FunctionIC, so it will always be zero initially...
     variable = grain_auxvar
-    type = NodalFloodCountAux
+    type = FeatureFloodCountAux
     bubble_object = flood_count_pp
   [../]
   [./pid]
@@ -78,8 +78,8 @@
 
 [Postprocessors]
   [./flood_count_pp]
-    execute_on = 'TIMESTEP'
-    type = NodalFloodCount
+    execute_on = 'timestep_end'
+    type = FeatureFloodCount
     variable = u
     # For some reason I don't understand yet, the ImageFunction thing
     # returns either 0 or 62735 for the images we have... so a value
@@ -100,6 +100,7 @@
 [Problem]
   type = FEProblem
   solve = false
+  use_legacy_uo_initialization = true
 [../]
 
 [Executioner]
@@ -108,10 +109,4 @@
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

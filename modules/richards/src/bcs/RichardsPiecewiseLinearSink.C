@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsPiecewiseLinearSink.h"
 
@@ -18,15 +21,16 @@ InputParameters validParams<RichardsPiecewiseLinearSink>()
   params.addParam<std::vector<UserObjectName> >("seff_UO", "List of name of user objects that define effective saturation as a function of pressure list.  Only needed if fully_upwind is used");
   params.addParam<std::vector<UserObjectName> >("density_UO", "List of names of user objects that define the fluid density.  Only needed if fully_upwind is used");
   params.addRequiredParam<std::vector<Real> >("pressures", "Tuple of pressure values.  Must be monotonically increasing.");
-  params.addRequiredParam<std::vector<Real> >("bare_fluxes", "Tuple of flux values (measured in kg.m^-2.s^-1 for use_mobility=false, and in Pa.s^-1 if use_mobility=true).  A piecewise-linear fit is performed to the (pressure,bare_fluxes) pairs to obtain the flux at any arbitrary pressure.  If a quad-point pressure is less than the first pressure value, the first bare_flux value is used.  If quad-point pressure exceeds the final pressure value, the final bare_flux value is used.  This flux is OUT of the medium: hence positive values of flux means this will be a SINK, while negative values indicate this flux will be a SOURCE.");
+  params.addRequiredParam<std::vector<Real> >("bare_fluxes", "Tuple of flux values (measured in kg.m^-2.s^-1 for use_mobility=false, and in Pa.s^-1 if use_mobility=true).  This flux is OUT of the medium: hence positive values of flux means this will be a SINK, while negative values indicate this flux will be a SOURCE.  A piecewise-linear fit is performed to the (pressure,bare_fluxes) pairs to obtain the flux at any arbitrary pressure, and the first or last bare_flux values are used if the quad-point pressure falls outside this range.");
   params.addParam<FunctionName>("multiplying_fcn", 1.0, "If this function is provided, the flux will be multiplied by this function.  This is useful for spatially or temporally varying sinks");
   params.addRequiredParam<UserObjectName>("richardsVarNames_UO", "The UserObject that holds the list of Richards variable names.");
   params.addParam<bool>("fully_upwind", false, "Use full upwinding");
+  params.addParam<PostprocessorName>("area_pp", 1, "An area postprocessor.  If given, the bare_fluxes will be divided by this quantity.  This means the bare fluxes are measured in kg.s^-1.  This is useful for the case when you wish to provide the *total* flux, and let MOOSE proportion it uniformly across the boundary.  In that case you would have use_mobility=false=use_relperm, and only one bare flux should be specified");
   return params;
 }
 
-RichardsPiecewiseLinearSink::RichardsPiecewiseLinearSink(const std::string & name, InputParameters parameters) :
-    IntegratedBC(name,parameters),
+RichardsPiecewiseLinearSink::RichardsPiecewiseLinearSink(const InputParameters & parameters) :
+    IntegratedBC(parameters),
     _use_mobility(getParam<bool>("use_mobility")),
     _use_relperm(getParam<bool>("use_relperm")),
     _fully_upwind(getParam<bool>("fully_upwind")),
@@ -43,6 +47,8 @@ RichardsPiecewiseLinearSink::RichardsPiecewiseLinearSink(const std::string & nam
     _density_UO(_fully_upwind ? &getUserObjectByName<RichardsDensity>(getParam<std::vector<UserObjectName> >("density_UO")[_pvar]) : NULL),
     _seff_UO(_fully_upwind ? &getUserObjectByName<RichardsSeff>(getParam<std::vector<UserObjectName> >("seff_UO")[_pvar]) : NULL),
     _relperm_UO(_fully_upwind ? &getUserObjectByName<RichardsRelPerm>(getParam<std::vector<UserObjectName> >("relperm_UO")[_pvar]) : NULL),
+
+    _area_pp(getPostprocessorValue("area_pp")),
 
     _num_nodes(0),
     _nodal_density(0),
@@ -152,6 +158,16 @@ RichardsPiecewiseLinearSink::computeQpResidual()
 
   flux *= _m_func.value(_t, _q_point[_qp]);
 
+  if (_area_pp == 0.0)
+  {
+    if (flux != 0)
+      mooseError("RichardsPiecewiseLinearSink: flux is nonzero, but area is zero!\n");
+    // if flux == 0, then leave it as zero.
+  }
+  else
+    flux /= _area_pp;
+
+
   return flux;
 }
 
@@ -234,5 +250,15 @@ RichardsPiecewiseLinearSink::jac(unsigned int wrt_num)
 
   deriv *= _m_func.value(_t, _q_point[_qp]);
 
+  if (_area_pp == 0.0)
+  {
+    if (deriv != 0)
+      mooseError("RichardsPiecewiseLinearSink: deriv is nonzero, but area is zero!\n");
+    // if deriv == 0, then leave it as zero.
+  }
+  else
+    deriv /= _area_pp;
+
   return _test[_i][_qp]*deriv*phi;
 }
+

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYINVISCIDSPECIFIEDNORMALFLOWBC_H
 #define NSENERGYINVISCIDSPECIFIEDNORMALFLOWBC_H
 
@@ -17,7 +23,7 @@ class NSEnergyInviscidSpecifiedNormalFlowBC : public NSEnergyInviscidBC
 {
 
 public:
-  NSEnergyInviscidSpecifiedNormalFlowBC(const std::string & name, InputParameters parameters);
+  NSEnergyInviscidSpecifiedNormalFlowBC(const InputParameters & parameters);
 
   virtual ~NSEnergyInviscidSpecifiedNormalFlowBC(){}
 

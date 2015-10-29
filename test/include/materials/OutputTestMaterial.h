@@ -35,16 +35,15 @@ public:
    * Class constructor
    * @param prop_name
    */
-  OutputTestMaterial(const std::string & name, InputParameters parameters);
+  OutputTestMaterial(const InputParameters & parameters);
 
   /**
    * Class destructor
    */
   virtual ~OutputTestMaterial();
 
-  void computeQpProperties();
-
 protected:
+  virtual void computeQpProperties();
 
   MaterialProperty<Real> & _real_property;
   MaterialProperty<RealVectorValue> & _vector_property;

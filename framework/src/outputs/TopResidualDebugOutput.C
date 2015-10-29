@@ -32,12 +32,12 @@ InputParameters validParams<TopResidualDebugOutput>()
   params.addParam<unsigned int>("num_residuals", 0, "The number of top residuals to print out (0 = no output)");
 
   // By default operate on both nonlinear and linear residuals
-  params.set<MultiMooseEnum>("output_on") = "linear nonlinear timestep_end";
+  params.set<MultiMooseEnum>("execute_on") = "linear nonlinear timestep_end";
   return params;
 }
 
-TopResidualDebugOutput::TopResidualDebugOutput(const std::string & name, InputParameters & parameters) :
-    BasicOutput<PetscOutput>(name, parameters),
+TopResidualDebugOutput::TopResidualDebugOutput(const InputParameters & parameters) :
+    BasicOutput<PetscOutput>(parameters),
     _num_residuals(getParam<unsigned int>("num_residuals")),
     _sys(_problem_ptr->getNonlinearSystem().sys())
 {

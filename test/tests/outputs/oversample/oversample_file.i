@@ -40,9 +40,10 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   [./exodus]
     type = Exodus
-    refinements = 2
+    refinements = 1
     file_base = exodus_oversample_custom_name
   [../]
 []

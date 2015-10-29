@@ -54,7 +54,6 @@
     variable = c
     kappa_name = kappa_c
     mob_name = M
-    grad_mob_name = grad_M
   [../]
 []
 
@@ -78,10 +77,10 @@ active = 'Periodic'
 [Materials]
 
   [./constant]
-    type = PFMobility
+    type = GenericConstantMaterial
+    prop_names  = 'M kappa_c'
+    prop_values = '1.0 1.0'
     block = 0
-    mob = 1.0
-    kappa = 1.0
   [../]
 []
 
@@ -117,12 +116,4 @@ active = 'Periodic'
 [Outputs]
   file_base = gradbox
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
-
-

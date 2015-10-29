@@ -22,6 +22,7 @@
 #include "MooseTypes.h"
 #include "Restartable.h"
 #include "MooseEnum.h"
+#include "MoosePartitioner.h"
 
 // libMesh
 #include "libmesh/mesh.h"
@@ -73,7 +74,7 @@ public:
   /**
    * Typical "Moose-style" constructor and copy constructor.
    */
-  MooseMesh(const std::string & name, InputParameters parameters);
+  MooseMesh(const InputParameters & parameters);
   MooseMesh(const MooseMesh & other_mesh);
 
   /**
@@ -324,13 +325,15 @@ public:
    */
   void update();
 
-#ifdef LIBMESH_ENABLE_AMR
   /**
    * Returns the level of uniform refinement requested (zero if AMR is disabled).
    */
-  unsigned int & uniformRefineLevel();
-  const unsigned int & uniformRefineLevel() const;
-#endif //LIBMESH_ENABLE_AMR
+  unsigned int uniformRefineLevel() const;
+
+  /**
+   * Set uniform refinement level
+   */
+  void setUniformRefineLevel(unsigned int);
 
   /**
    * This will add the boundary ids to be ghosted to this processor
@@ -488,8 +491,7 @@ public:
 
   /**
    * This routine builds a multimap of boundary ids to matching boundary ids across all periodic boundaries
-   * in the system.  It does this only for active local elements so the list will not be globally complete when
-   * run in parallel!
+   * in the system.
    */
   void buildPeriodicNodeMap(std::multimap<dof_id_type, dof_id_type> & periodic_node_map, unsigned int var_number, PeriodicBoundaries *pbs) const;
 
@@ -660,14 +662,6 @@ public:
    */
   void allowRecovery(bool allow) { _allow_recovery = allow; }
 
-  /**
-   * Add surface
-   * @param name The name of the surface
-   * @param bnd_id Boundary ID in the existing mesh this surface mesh will be created from
-   * @param domain_id New domain ID assigned to the surface mesh
-   */
-  void addSurface(const std::string & name, BoundaryID bnd_id, SubdomainID domain_id);
-
   class MortarInterface
   {
   public:
@@ -688,6 +682,17 @@ public:
   MooseMesh::MortarInterface * getMortarInterfaceByName(const std::string name);
   MooseMesh::MortarInterface * getMortarInterface(BoundaryID master, BoundaryID slave);
 
+  /**
+   * Setter for custom partitioner
+   */
+  void setCustomPartitioner(Partitioner * partitioner);
+
+  /**
+   * Setter and getter for _custom_partitioner_requested
+   */
+  bool isCustomPartitionerRequested() const;
+  void setIsCustomPartitionerRequested(bool cpr);
+
 protected:
   /// Can be set to PARALLEL, SERIAL, or DEFAULT.  Determines whether
   /// the underlying libMesh mesh is a SerialMesh or ParallelMesh.
@@ -705,6 +710,10 @@ protected:
   /// The partitioner used on this mesh
   MooseEnum _partitioner_name;
   bool _partitioner_overridden;
+
+  /// The custom partitioner
+  UniquePtr<Partitioner> _custom_partitioner;
+  bool _custom_partitioner_requested;
 
   /// Convenience enums
   enum {
@@ -773,7 +782,7 @@ protected:
   std::set<BoundaryID> _mesh_boundary_ids;
 
   /// The boundary to normal map - valid only when AddAllSideSetsByNormals is active
-  AutoPtr<std::map<BoundaryID, RealVectorValue> > _boundary_to_normal_map;
+  UniquePtr<std::map<BoundaryID, RealVectorValue> > _boundary_to_normal_map;
 
   /// array of boundary nodes
   std::vector<BndNode *> _bnd_nodes;

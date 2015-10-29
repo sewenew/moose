@@ -59,14 +59,8 @@
 []
 
 [Outputs]
-  output_on = 'initial timestep_end'
   [./out]
     type = Gnuplot
     extension = ps
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []

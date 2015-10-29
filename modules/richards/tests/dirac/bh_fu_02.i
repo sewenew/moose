@@ -119,18 +119,16 @@
     type = RichardsMass
     variable = pressure
     execute_on = timestep_begin
-    #output = file
   [../]
 
   [./fluid_mass1]
     type = RichardsMass
     variable = pressure
     execute_on = timestep_end
-    #output = file
   [../]
 
   [./zmass_error]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = mass_bal_fcn
     execute_on = timestep_end
   [../]
@@ -204,10 +202,8 @@
   file_base = bh_fu_02
   exodus = false
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
+[]
+
+[Problem]
+  use_legacy_uo_initialization = true
 []

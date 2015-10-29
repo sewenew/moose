@@ -28,8 +28,8 @@ InputParameters validParams<DotCouplingKernel>();
 class DotCouplingKernel : public Kernel
 {
 public:
-  DotCouplingKernel(const std::string & name, InputParameters parameters);
-  virtual ~DotCouplingKernel();
+  DotCouplingKernel(const InputParameters & parameters);
+  virtual ~DotCouplingKernel(){};
 
 protected:
   virtual Real computeQpResidual();

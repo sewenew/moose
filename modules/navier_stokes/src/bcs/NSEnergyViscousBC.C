@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSEnergyViscousBC.h"
 
 template<>
@@ -13,8 +19,8 @@ InputParameters validParams<NSEnergyViscousBC>()
 
 
 
-NSEnergyViscousBC::NSEnergyViscousBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters),
+NSEnergyViscousBC::NSEnergyViscousBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters),
 
       // Coupled gradients
       _grad_temperature(coupledGradient("temperature")),
@@ -97,7 +103,7 @@ Real NSEnergyViscousBC::computeQpOffDiagJacobian(unsigned jvar)
   // Note: This function requires both _vst_derivs *and* _temp_derivs
 
   // Convenience variables
-  RealTensorValue& tau = _viscous_stress_tensor[_qp];
+  const RealTensorValue & tau = _viscous_stress_tensor[_qp];
 
   Real rho  = _rho[_qp];
   Real phij = _phi[_j][_qp];
@@ -199,3 +205,4 @@ Real NSEnergyViscousBC::computeQpOffDiagJacobian(unsigned jvar)
   // sign) multiply by the test function, and return.
   return (-thermal_term - visc_term) * _test[_i][_qp];
 }
+

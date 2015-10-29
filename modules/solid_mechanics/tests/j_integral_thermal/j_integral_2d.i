@@ -77,7 +77,7 @@
     tensor = stress
     variable = stress_xx
     index = 0
-    execute_on = timestep     # for efficiency, only compute at the end of a timestep
+    execute_on = timestep_end     # for efficiency, only compute at the end of a timestep
   [../]
   [./stress_yy]
     type = MaterialTensorAux
@@ -186,30 +186,9 @@
 
 []
 
-[Postprocessors]
-  [./_dt]
-    type = TimestepSize
-  [../]
-
-  [./nl_its]
-    type = NumNonlinearIterations
-  [../]
-
-  [./lin_its]
-    type = NumLinearIterations
-  [../]
-[]
-
-
 [Outputs]
   file_base = j_integral_2d_out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
 
 [Preconditioning]

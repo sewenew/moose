@@ -137,6 +137,10 @@ Assembly::buildFE(FEType type)
   {
     if (!_fe[dim][type])
       _fe[dim][type] = FEBase::build(dim, type).release();
+    _fe[dim][type]->get_phi();
+    _fe[dim][type]->get_dphi();
+    if (_need_second_derivative.find(type) != _need_second_derivative.end())
+      _fe[dim][type]->get_d2phi();
   }
 }
 
@@ -151,6 +155,10 @@ Assembly::buildFaceFE(FEType type)
   {
     if (!_fe_face[dim][type])
       _fe_face[dim][type] = FEBase::build(dim, type).release();
+    _fe_face[dim][type]->get_phi();
+    _fe_face[dim][type]->get_dphi();
+    if (_need_second_derivative.find(type) != _need_second_derivative.end())
+      _fe_face[dim][type]->get_d2phi();
   }
 }
 
@@ -165,6 +173,10 @@ Assembly::buildFaceNeighborFE(FEType type)
   {
     if (!_fe_neighbor[dim][type])
       _fe_neighbor[dim][type] = FEBase::build(dim, type).release();
+    _fe_neighbor[dim][type]->get_phi();
+    _fe_neighbor[dim][type]->get_dphi();
+    if (_need_second_derivative.find(type) != _need_second_derivative.end())
+      _fe_neighbor[dim][type]->get_d2phi();
   }
 }
 
@@ -189,6 +201,72 @@ Assembly::getFEFaceNeighbor(FEType type, unsigned int dim)
   return _fe_neighbor[dim][type];
 }
 
+const VariablePhiValue &
+Assembly::fePhi(FEType type)
+{
+  buildFE(type);
+  return _fe_shape_data[type]->_phi;
+}
+
+const VariablePhiGradient &
+Assembly::feGradPhi(FEType type)
+{
+  buildFE(type);
+  return _fe_shape_data[type]->_grad_phi;
+}
+
+const VariablePhiSecond &
+Assembly::feSecondPhi(FEType type)
+{
+  _need_second_derivative[type] = true;
+  buildFE(type);
+  return _fe_shape_data[type]->_second_phi;
+}
+
+const VariablePhiValue &
+Assembly::fePhiFace(FEType type)
+{
+  buildFaceFE(type);
+  return _fe_shape_data_face[type]->_phi;
+}
+
+const VariablePhiGradient &
+Assembly::feGradPhiFace(FEType type)
+{
+  buildFaceFE(type);
+  return _fe_shape_data_face[type]->_grad_phi;
+}
+
+const VariablePhiSecond &
+Assembly::feSecondPhiFace(FEType type)
+{
+  _need_second_derivative[type] = true;
+  buildFaceFE(type);
+  return _fe_shape_data_face[type]->_second_phi;
+}
+
+const VariablePhiValue &
+Assembly::fePhiFaceNeighbor(FEType type)
+{
+  buildFaceNeighborFE(type);
+  return _fe_shape_data_face_neighbor[type]->_phi;
+}
+
+const VariablePhiGradient &
+Assembly::feGradPhiFaceNeighbor(FEType type)
+{
+  buildFaceNeighborFE(type);
+  return _fe_shape_data_face_neighbor[type]->_grad_phi;
+}
+
+const VariablePhiSecond &
+Assembly::feSecondPhiFaceNeighbor(FEType type)
+{
+  _need_second_derivative[type] = true;
+  buildFaceNeighborFE(type);
+  return _fe_shape_data_face_neighbor[type]->_second_phi;
+}
+
 void
 Assembly::createQRules(QuadratureType type, Order order, Order volume_order, Order face_order)
 {
@@ -207,9 +285,6 @@ Assembly::createQRules(QuadratureType type, Order order, Order volume_order, Ord
   _holder_qrule_arbitrary.clear();
   for (unsigned int dim=1; dim<=_mesh_dimension; dim++)
     _holder_qrule_arbitrary[dim] = new ArbitraryQuadrature(dim, order);
-
-//  setVolumeQRule(_qrule_volume);
-//  setFaceQRule(_qrule_face);
 }
 
 void
@@ -296,7 +371,7 @@ Assembly::reinitFE(const Elem * elem)
 
       fesd->_phi.shallowCopy(const_cast<std::vector<std::vector<Real> > &>(fe->get_phi()));
       fesd->_grad_phi.shallowCopy(const_cast<std::vector<std::vector<RealGradient> > &>(fe->get_dphi()));
-      if (_need_second_derivative[fe_type])
+      if (_need_second_derivative.find(fe_type) != _need_second_derivative.end())
         fesd->_second_phi.shallowCopy(const_cast<std::vector<std::vector<RealTensor> > &>(fe->get_d2phi()));
 
       if (do_caching)
@@ -314,7 +389,7 @@ Assembly::reinitFE(const Elem * elem)
     {
       fesd->_phi.shallowCopy(cached_fesd->_phi);
       fesd->_grad_phi.shallowCopy(cached_fesd->_grad_phi);
-      if (_need_second_derivative[fe_type])
+      if (_need_second_derivative.find(fe_type) != _need_second_derivative.end())
         fesd->_second_phi.shallowCopy(cached_fesd->_second_phi);
     }
   }
@@ -357,7 +432,7 @@ Assembly::reinitFEFace(const Elem * elem, unsigned int side)
 
     fesd->_phi.shallowCopy(const_cast<std::vector<std::vector<Real> > &>(fe_face->get_phi()));
     fesd->_grad_phi.shallowCopy(const_cast<std::vector<std::vector<RealGradient> > &>(fe_face->get_dphi()));
-    if (_need_second_derivative[fe_type])
+    if (_need_second_derivative.find(fe_type) != _need_second_derivative.end())
       fesd->_second_phi.shallowCopy(const_cast<std::vector<std::vector<RealTensor> > &>(fe_face->get_d2phi()));
   }
 
@@ -389,6 +464,7 @@ Assembly::reinit(const Elem * elem)
   // set the coord transformation
   _coord.resize(_current_qrule->n_points());
   _coord_type = _sys.subproblem().getCoordSystem(elem->subdomain_id());
+  unsigned int rz_radial_coord = _sys.subproblem().getAxisymmetricRadialCoord();
   switch (_coord_type)
   {
   case Moose::COORD_XYZ:
@@ -398,7 +474,7 @@ Assembly::reinit(const Elem * elem)
 
   case Moose::COORD_RZ:
     for (unsigned int qp = 0; qp < _current_qrule->n_points(); qp++)
-      _coord[qp] = 2 * M_PI * _current_q_points[qp](0);
+      _coord[qp] = 2 * M_PI * _current_q_points[qp](rz_radial_coord);
     break;
 
   case Moose::COORD_RSPHERICAL:
@@ -502,7 +578,7 @@ Assembly::reinit(const Elem * elem, unsigned int side)
     break;
   }
 
-  //Compute the area of the element
+  // Compute the area of the element
   _current_side_volume = 0.;
   for (unsigned int qp = 0; qp < _current_qrule_face->n_points(); qp++)
     _current_side_volume += _current_JxW_face[qp] * _coord[qp];
@@ -554,7 +630,7 @@ Assembly::reinitNeighborAtReference(const Elem * neighbor, const std::vector<Poi
 
     fesd->_phi.shallowCopy(const_cast<std::vector<std::vector<Real> > &>(fe_neighbor->get_phi()));
     fesd->_grad_phi.shallowCopy(const_cast<std::vector<std::vector<RealGradient> > &>(fe_neighbor->get_dphi()));
-    if (_need_second_derivative[fe_type])
+    if (_need_second_derivative.find(fe_type) != _need_second_derivative.end())
       fesd->_second_phi.shallowCopy(const_cast<std::vector<std::vector<RealTensor> > &>(fe_neighbor->get_d2phi()));
   }
 
@@ -567,7 +643,7 @@ Assembly::reinitNeighborAtReference(const Elem * neighbor, const std::vector<Poi
   // Calculate the volume of the neighbor
 
   FEType fe_type (neighbor->default_order() , LAGRANGE);
-  AutoPtr<FEBase> fe (FEBase::build(neighbor->dim(), fe_type));
+  UniquePtr<FEBase> fe (FEBase::build(neighbor->dim(), fe_type));
 
   const std::vector<Real> & JxW = fe->get_JxW();
   const std::vector<Point> & q_points = fe->get_xyz();
@@ -582,6 +658,7 @@ Assembly::reinitNeighborAtReference(const Elem * neighbor, const std::vector<Poi
   MooseArray<Real> coord;
   coord.resize(qrule.n_points());
   Moose::CoordinateSystemType coord_type = _sys.subproblem().getCoordSystem(neighbor->subdomain_id());
+  unsigned int rz_radial_coord = _sys.subproblem().getAxisymmetricRadialCoord();
   switch (coord_type) // coord type should be the same for the neighbor
   {
   case Moose::COORD_XYZ:
@@ -591,7 +668,7 @@ Assembly::reinitNeighborAtReference(const Elem * neighbor, const std::vector<Poi
 
   case Moose::COORD_RZ:
     for (unsigned int qp = 0; qp < qrule.n_points(); qp++)
-      coord[qp] = 2 * M_PI * q_points[qp](0);
+      coord[qp] = 2 * M_PI * q_points[qp](rz_radial_coord);
     break;
 
   case Moose::COORD_RSPHERICAL:
@@ -1039,6 +1116,14 @@ Assembly::cacheResidual()
 }
 
 void
+Assembly::cacheResidualContribution(dof_id_type dof, Real value, Moose::KernelType type)
+{
+  _cached_residual_values[type].push_back(value);
+  _cached_residual_rows[type].push_back(dof);
+}
+
+
+void
 Assembly::cacheResidualNeighbor()
 {
   const std::vector<MooseVariable *> & vars = _sys.getVariables(_tid);
@@ -1051,6 +1136,18 @@ Assembly::cacheResidualNeighbor()
   }
 }
 
+void
+Assembly::cacheResidualNodes(DenseVector<Number> & res, std::vector<dof_id_type> & dof_index)
+{
+  // Add the residual value and dof_index to cache_residual_values and cached_residual_rows respectively.
+  // This is used by NodalConstraint.C to cache the residual calculated for master and slave node.
+  Moose::KernelType type = Moose::KT_NONTIME;
+  for (unsigned int i = 0; i < dof_index.size(); ++i)
+  {
+    _cached_residual_values[type].push_back(res(i));
+    _cached_residual_rows[type].push_back(dof_index[i]);
+  }
+}
 
 void
 Assembly::addCachedResidual(NumericVector<Number> & residual, Moose::KernelType type)
@@ -1386,4 +1483,61 @@ Assembly::addJacobianOffDiagScalar(SparseMatrix<Number> & jacobian, unsigned int
     if ((*_cm)(var_i.number(), var_j.number()) != 0 && _jacobian_block_used[var_i.number()][var_j.number()])
       addJacobianBlock(jacobian, jacobianBlock(var_i.number(), var_j.number()), var_i.dofIndices(), var_j.dofIndices(), var_i.scalingFactor());
   }
+}
+
+void
+Assembly::cacheJacobianContribution(numeric_index_type i, numeric_index_type j, Real value)
+{
+  _cached_jacobian_contribution_rows.push_back(i);
+  _cached_jacobian_contribution_cols.push_back(j);
+  _cached_jacobian_contribution_vals.push_back(value);
+}
+
+void
+Assembly::setCachedJacobianContributions(SparseMatrix<Number> & jacobian)
+{
+  // First zero the rows (including the diagonals) to prepare for
+  // setting the cached values.
+  jacobian.zero_rows(_cached_jacobian_contribution_rows, 0.0);
+
+  // TODO: Use SparseMatrix::set_values() for efficiency
+  for (unsigned int i = 0; i < _cached_jacobian_contribution_vals.size(); ++i)
+    jacobian.set(_cached_jacobian_contribution_rows[i],
+                 _cached_jacobian_contribution_cols[i],
+                 _cached_jacobian_contribution_vals[i]);
+
+  clearCachedJacobianContributions();
+}
+
+void
+Assembly::addCachedJacobianContributions(SparseMatrix<Number> & jacobian)
+{
+  // TODO: Use SparseMatrix::add_values() for efficiency
+  for (unsigned int i = 0; i < _cached_jacobian_contribution_vals.size(); ++i)
+    jacobian.add(_cached_jacobian_contribution_rows[i],
+                 _cached_jacobian_contribution_cols[i],
+                 _cached_jacobian_contribution_vals[i]);
+
+  clearCachedJacobianContributions();
+}
+
+void
+Assembly::clearCachedJacobianContributions()
+{
+  unsigned int orig_size = _cached_jacobian_contribution_rows.size();
+
+  _cached_jacobian_contribution_rows.clear();
+  _cached_jacobian_contribution_cols.clear();
+  _cached_jacobian_contribution_vals.clear();
+
+  // It's possible (though massively unlikely) that clear() will
+  // change the capacity of the vectors, so let's be paranoid and
+  // explicitly reserve() the same amount of memory to avoid multiple
+  // push_back() induced allocations.  We reserve 20% more than the
+  // original size that was cached to account for variations in the
+  // number of BCs assigned to each thread (for when the Jacobian
+  // contributions are computed threaded).
+  _cached_jacobian_contribution_rows.reserve(1.2*orig_size);
+  _cached_jacobian_contribution_cols.reserve(1.2*orig_size);
+  _cached_jacobian_contribution_vals.reserve(1.2*orig_size);
 }

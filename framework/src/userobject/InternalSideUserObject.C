@@ -20,17 +20,18 @@ InputParameters validParams<InternalSideUserObject>()
   InputParameters params = validParams<UserObject>();
   params += validParams<BlockRestrictable>();
   params.addPrivateParam<bool>("use_bnd_material", true);
+  params.addPrivateParam<bool>("use_neighbor_material", true);
   return params;
 }
 
-InternalSideUserObject::InternalSideUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    MaterialPropertyInterface(name, parameters),
+InternalSideUserObject::InternalSideUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BlockRestrictable(parameters),
+    TwoMaterialPropertyInterface(parameters, blockIDs()),
     NeighborCoupleable(parameters, false, false),
     MooseVariableDependencyInterface(),
     UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "internal_side_user_object"),
+    TransientInterface(parameters, "internal_side_user_object"),
     PostprocessorInterface(parameters),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
@@ -55,3 +56,4 @@ InternalSideUserObject::InternalSideUserObject(const std::string & name, InputPa
 InternalSideUserObject::~InternalSideUserObject()
 {
 }
+

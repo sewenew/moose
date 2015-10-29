@@ -80,14 +80,11 @@
 
 [Outputs]
   file_base = single_quick_out
+  execute_on = 'initial timestep_end final'
   interval = 1000000
   exodus = true
-  output_on = 'initial timestep_end final'
   [./console]
     type = Console
-    perf_log = true
     interval = 1
-    output_on = 'timestep_end failed nonlinear linear'
   [../]
 []
-

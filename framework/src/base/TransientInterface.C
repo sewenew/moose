@@ -20,12 +20,14 @@ template<>
 InputParameters validParams<TransientInterface>()
 {
   InputParameters params = emptyInputParameters();
-  params.addPrivateParam<bool>("implicit", true);
+  params.addParam<bool>("implicit", true, "Determines whether this object is calculated using an implicit or explicit form");
+
+  params.addParamNamesToGroup("implicit", "Advanced");
   return params;
 }
 
 
-TransientInterface::TransientInterface(InputParameters & parameters, const std::string & name, const std::string & object_type) :
+TransientInterface::TransientInterface(const InputParameters & parameters, const std::string & object_type) :
     _ti_feproblem(*parameters.get<FEProblem *>("_fe_problem")),
     _is_implicit(parameters.have_parameter<bool>("implicit") ? parameters.get<bool>("implicit") : true),
     _t(_is_implicit ? _ti_feproblem.time() : _ti_feproblem.timeOld()),
@@ -35,22 +37,8 @@ TransientInterface::TransientInterface(InputParameters & parameters, const std::
     _is_transient(_ti_feproblem.isTransient()),
     _object_type(object_type),
     _time_periods(_ti_feproblem.getTimePeriods()),
-    _ti_name(name)
+    _ti_name(MooseUtils::shortName(parameters.get<std::string>("_object_name")))
 {
-  /*
-  if (parameters.have_parameter<std::vector<std::string> >("time_periods"))
-  {
-    const std::vector<std::string> & tp = parameters.get<std::vector<std::string> >("time_periods");
-    for (std::vector<std::string>::const_iterator it = tp.begin(); it != tp.end(); ++it)
-    {
-      TimePeriod * tp = _ti_feproblem.getTimePeriodByName(*it);
-      if (tp != NULL)
-        _time_periods.push_back(tp);
-      else
-        mooseWarning("Time period '" + *it + "' does not exists. Typo?");
-    }
-  }
-  */
 }
 
 TransientInterface::~TransientInterface()
@@ -71,7 +59,6 @@ TransientInterface::isActive()
     {
       bool ret_value;
       const std::vector<std::string> & objects = _time_periods[i-1]->getObjectList(_object_type, ret_value);
-
       if (std::find(objects.begin(), objects.end(), _ti_name) != objects.end())
         return ret_value;
       else

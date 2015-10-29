@@ -33,12 +33,15 @@
     type = DifferencePostprocessor
     value1 = nodes
     value2 = elems
+    execute_on = 'initial timestep_end'
   [../]
   [./nodes]
     type = NumNodes
+    execute_on = 'initial timestep_end'
   [../]
   [./elems]
     type = NumElems
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -54,10 +57,4 @@
 
 [Outputs]
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef CONVECTIVEFLUXFUNCTION_H
 #define CONVECTIVEFLUXFUNCTION_H
 
@@ -7,7 +13,7 @@ class ConvectiveFluxFunction : public IntegratedBC
 {
 public:
 
-  ConvectiveFluxFunction(const std::string & name, InputParameters parameters);
+  ConvectiveFluxFunction(const InputParameters & parameters);
   virtual ~ConvectiveFluxFunction() {}
 
 protected:

@@ -100,27 +100,25 @@
     type = ElementAverageValue
     block = 1
     variable = constantVar
+    execute_on = 'initial timestep_end'
   [../]
   [./volume1]
     type = VolumePostprocessor
     block = 1
+    execute_on = 'initial timestep_end'
   [../]
   [./volume2]
     type = VolumePostprocessor
     block = 2
+    execute_on = 'initial timestep_end'
   [../]
   [./volume3]
     type = VolumePostprocessor
     block = 3
+    execute_on = 'initial timestep_end'
   [../]
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 [] # Output

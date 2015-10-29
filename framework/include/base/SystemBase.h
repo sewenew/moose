@@ -23,7 +23,6 @@
 #include "ParallelUniqueId.h"
 #include "SubProblem.h"
 #include "MooseVariableScalar.h"
-#include "MooseException.h"
 
 // libMesh
 #include "libmesh/equation_systems.h"
@@ -38,6 +37,7 @@ class Factory;
 class MooseApp;
 class MooseVariable;
 class MooseMesh;
+class SystemBase;
 
 /**
  * ///< Type of coordinate system
@@ -51,6 +51,20 @@ void extraSparsity(SparsityPattern::Graph & sparsity,
                    std::vector<dof_id_type> & n_nz,
                    std::vector<dof_id_type> & n_oz,
                    void * context);
+
+/**
+ * IO Methods for restart, backup and restore.
+ */
+template<>
+void
+dataStore(std::ostream & stream, SystemBase & system_base, void * context);
+
+/**
+ * IO Methods for restart, backup and restore.
+ */
+template<>
+void
+dataLoad(std::istream & stream, SystemBase & system_base, void * context);
 
 /**
  * Base class for a system (of equations)
@@ -334,6 +348,13 @@ public:
   virtual void reinitNodes(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
 
   /**
+   * Reinit variables at a set of neighbor nodes
+   * @param nodes List of node ids to reinit
+   * @param tid Thread ID
+   */
+  virtual void reinitNodesNeighbor(const std::vector<dof_id_type> & nodes, THREAD_ID tid);
+
+  /**
    * Reinit scalar varaibles
    * @param tid Thread ID
    */
@@ -342,10 +363,11 @@ public:
   /**
    * Add info about variable that will be copied
    *
-   * @param name Name of the nodal variable being used for copying (name is from the exodusII file)
+   * @param dest_name Name of the nodal variable being used for copying into (name is from the exodusII file)
+   * @param source_name Name of the nodal variable being used for copying from (name is from the exodusII file)
    * @param timestep Timestep in the file being used
    */
-  virtual void addVariableToCopy(const std::string & name, unsigned int timestep) = 0;
+  virtual void addVariableToCopy(const std::string & dest_name, const std::string & source_name, const std::string & timestep) = 0;
 
   const std::vector<MooseVariable *> & getVariables(THREAD_ID tid) { return _vars[tid].variables(); }
   const std::vector<MooseVariableScalar *> & getScalarVariables(THREAD_ID tid) { return _vars[tid].scalars(); }
@@ -378,13 +400,15 @@ protected:
  * Information about variables that will be copied
  */
 struct VarCopyInfo {
-  VarCopyInfo(const std::string & name, unsigned int timestep) :
-    _name(name),
+  VarCopyInfo(const std::string & dest_name, const std::string & source_name, const std::string & timestep) :
+    _dest_name(dest_name),
+    _source_name(source_name),
     _timestep(timestep)
   {}
 
-  std::string _name;
-  unsigned int _timestep;
+  std::string _dest_name;
+  std::string _source_name;
+  std::string _timestep;
 };
 
 /**
@@ -401,8 +425,7 @@ public:
       _solution(*_sys.solution),
       _solution_old(*_sys.old_local_solution),
       _solution_older(*_sys.older_local_solution),
-      _dummy_vec(NULL),
-      _exception(0)
+      _dummy_vec(NULL)
   {
   }
 
@@ -552,24 +575,39 @@ public:
   virtual DofMap & dofMap() { return _sys.get_dof_map(); }
   virtual System & system() { return _sys; }
 
-  virtual void addVariableToCopy(const std::string & name, unsigned int timestep)
+  virtual void addVariableToCopy(const std::string & dest_name, const std::string & source_name, const std::string & timestep)
   {
-    _var_to_copy.push_back(VarCopyInfo(name, timestep));
+    _var_to_copy.push_back(VarCopyInfo(dest_name, source_name, timestep));
   }
 
   void copyVars(ExodusII_IO & io)
   {
+    int n_steps = io.get_num_time_steps();
+
     bool did_copy = false;
     for (std::vector<VarCopyInfo>::iterator it = _var_to_copy.begin();
         it != _var_to_copy.end();
         ++it)
     {
-      did_copy = true;
       VarCopyInfo & vci = *it;
-      if (getVariable(0, vci._name).isNodal())
-        io.copy_nodal_solution(_sys, vci._name, vci._timestep);
+      int timestep = -1;
+
+      if (vci._timestep == "LATEST")
+        // Use the last time step in the file from which to retrieve the solution
+        timestep = n_steps;
       else
-        io.copy_elemental_solution(_sys, vci._name, vci._name, vci._timestep);
+      {
+        std::istringstream ss(vci._timestep);
+        if (!(ss >> timestep) || timestep > n_steps)
+          mooseError("Invalid value passed as \"initial_from_file_timestep\". Expected \"LATEST\" or a valid integer less than "
+                     << n_steps << ", received " << vci._timestep);
+      }
+
+      did_copy = true;
+      if (getVariable(0, vci._dest_name).isNodal())
+        io.copy_nodal_solution(_sys, vci._dest_name, vci._source_name, timestep);
+      else
+        io.copy_elemental_solution(_sys, vci._dest_name, vci._source_name, timestep);
     }
 
     if (did_copy)
@@ -589,42 +627,12 @@ protected:
   NumericVector<Number> * _dummy_vec;                     // to satisfy the interface
 
   std::vector<VarCopyInfo> _var_to_copy;
-
-  MooseException _exception;
 };
 
 
-// Parallel exception handling
+#define PARALLEL_TRY
 
-#define PARALLEL_TRY        try
-#ifdef LIBMESH_HAVE_TBB_API
-// with TBB, our exceptions got turned into tbb::captured_exception thus we need to reconvert them
-// however we loose the number thrown by user code
-#define PARALLEL_CATCH                                                                  \
-  catch (tbb::captured_exception & ex)                                                  \
-  {                                                                                     \
-    _exception = MooseException(1);                                                     \
-  }                                                                                     \
-  catch (MooseException & e)                                                            \
-  {                                                                                     \
-    _exception = e;                                                                     \
-  }                                                                                     \
-  {                                                                                     \
-    _communicator.max<MooseException>(_exception);                                      \
-    if (_exception > 0)                                                                 \
-      throw _exception;                                                                 \
-  }
-#else
-#define PARALLEL_CATCH                                                                  \
-  catch (MooseException & e)                                                            \
-  {                                                                                     \
-    _exception = e;                                                                     \
-  }                                                                                     \
-  {                                                                                     \
-    _communicator.max<MooseException>(_exception);                                      \
-    if (_exception > 0)                                                                 \
-      throw _exception;                                                                 \
-  }
-#endif
+#define PARALLEL_CATCH _fe_problem.checkExceptionAndStopSolve();
+
 
 #endif /* SYSTEMBASE_H */

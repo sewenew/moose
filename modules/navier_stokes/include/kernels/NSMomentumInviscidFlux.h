@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMINVISCIDFLUX_H
 #define NSMOMENTUMINVISCIDFLUX_H
 
@@ -20,7 +26,7 @@ class NSMomentumInviscidFlux : public NSKernel
 {
 public:
 
-  NSMomentumInviscidFlux(const std::string & name, InputParameters parameters);
+  NSMomentumInviscidFlux(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

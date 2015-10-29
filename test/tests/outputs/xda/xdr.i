@@ -41,5 +41,4 @@
 
 [Outputs]
   xdr = true
-  output_on = 'initial timestep_end'
 []

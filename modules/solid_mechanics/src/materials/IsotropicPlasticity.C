@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "IsotropicPlasticity.h"
 
 #include "SymmIsotropicElasticityTensor.h"
@@ -18,9 +24,8 @@ InputParameters validParams<IsotropicPlasticity>()
 }
 
 
-IsotropicPlasticity::IsotropicPlasticity( const std::string & name,
-                                      InputParameters parameters )
-  :ReturnMappingModel( name, parameters ),
+IsotropicPlasticity::IsotropicPlasticity( const InputParameters & parameters)
+  :ReturnMappingModel(parameters),
    _yield_stress(getParam<Real>("yield_stress")),
    _hardening_constant(isParamValid("hardening_constant") ? getParam<Real>("hardening_constant") : 0),
    _hardening_function(isParamValid("hardening_function") ? dynamic_cast<PiecewiseLinear*>(&getFunction("hardening_function")) : NULL),
@@ -129,3 +134,4 @@ IsotropicPlasticity::computeHardening( unsigned qp, Real /*scalar*/ )
   }
   return slope;
 }
+

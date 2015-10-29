@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "Kernel.h"
 
 #ifndef COUPLEDBEEQUILIBRIUMSUB_H
@@ -33,7 +39,7 @@ public:
    * It is ok to have the definition in the .h if the function body
    * is really small.  Otherwise it should be in the .C
    */
-  CoupledBEEquilibriumSub(const std::string & name, InputParameters parameters);
+  CoupledBEEquilibriumSub(const InputParameters & parameters);
 
 protected:
   /**
@@ -68,7 +74,7 @@ private:
   std::vector<Real> _sto_v;
 
   /// Material property of porosity.
-  MaterialProperty<Real> & _porosity;
+  const MaterialProperty<Real> & _porosity;
 
   std::vector<unsigned int> _vars;
   /// Coupled primary species concentrations.

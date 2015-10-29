@@ -35,8 +35,8 @@ InputParameters validParams<CSV>()
   return params;
 }
 
-CSV::CSV(const std::string & name, InputParameters & parameters) :
-    TableOutput(name, parameters),
+CSV::CSV(const InputParameters & parameters) :
+    TableOutput(parameters),
     _align(getParam<bool>("align")),
     _precision(getParam<unsigned int>("precision")),
     _set_delimiter(isParamValid("delimiter")),
@@ -49,6 +49,9 @@ CSV::CSV(const std::string & name, InputParameters & parameters) :
 void
 CSV::initialSetup()
 {
+  // Call the base class method
+  TableOutput::initialSetup();
+
   // Set the delimiter
   if (_set_delimiter)
     _all_data_table.setDelimiter(_delimiter);
@@ -99,14 +102,14 @@ CSV::output(const ExecFlagType & type)
     for (std::map<std::string, FormattedTable>::iterator it = _vector_postprocessor_tables.begin(); it != _vector_postprocessor_tables.end(); ++it)
     {
       std::ostringstream output;
-      output << _file_base << "_" << it->first;
+      output << _file_base << "_" << MooseUtils::shortName(it->first);
       output << "_" << std::setw(_padding) << std::setprecision(0) << std::setfill('0') << std::right << timeStep() << ".csv";
 
       if (_set_delimiter)
         it->second.setDelimiter(_delimiter);
       it->second.setPrecision(_precision);
       it->second.printCSV(output.str(), 1, _align);
-  }
+    }
 
   // Re-set write flags
   _write_all_table = false;

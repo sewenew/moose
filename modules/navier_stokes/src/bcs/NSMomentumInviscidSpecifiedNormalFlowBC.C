@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumInviscidSpecifiedNormalFlowBC.h"
 
 template<>
@@ -17,8 +23,8 @@ InputParameters validParams<NSMomentumInviscidSpecifiedNormalFlowBC>()
 
 
 
-NSMomentumInviscidSpecifiedNormalFlowBC::NSMomentumInviscidSpecifiedNormalFlowBC(const std::string & name, InputParameters parameters)
-    : NSMomentumInviscidBC(name, parameters),
+NSMomentumInviscidSpecifiedNormalFlowBC::NSMomentumInviscidSpecifiedNormalFlowBC(const InputParameters & parameters)
+    : NSMomentumInviscidBC(parameters),
 
       // Aux Variables
       _pressure(coupledValue("pressure")),
@@ -54,3 +60,4 @@ Real NSMomentumInviscidSpecifiedNormalFlowBC::computeQpOffDiagJacobian(unsigned 
 {
   return this->pressure_qp_jacobian( this->map_var_number(jvar) );
 }
+

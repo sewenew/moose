@@ -27,44 +27,49 @@
 // Mutex to use when accessing _penetration_info;
 Threads::spin_mutex pinfo_mutex;
 
-PenetrationThread::PenetrationThread(SubProblem & subproblem,
-                                     const MooseMesh & mesh,
-                                     BoundaryID master_boundary,
-                                     BoundaryID slave_boundary,
-                                     std::map<dof_id_type, PenetrationInfo *> & penetration_info,
-                                     bool update_location,
-                                     Real tangential_tolerance,
-                                     bool do_normal_smoothing,
-                                     Real normal_smoothing_distance,
-                                     PenetrationLocator::NORMAL_SMOOTHING_METHOD normal_smoothing_method,
-                                     std::vector<std::vector<FEBase *> > & fes,
-                                     FEType & fe_type,
-                                     NearestNodeLocator & nearest_node,
-                                     std::map<dof_id_type, std::vector<dof_id_type> > & node_to_elem_map,
-                                     std::vector<dof_id_type> & elem_list,
-                                     std::vector<unsigned short int> & side_list,
-                                     std::vector<boundary_id_type> & id_list) :
-  _subproblem(subproblem),
-  _mesh(mesh),
-  _master_boundary(master_boundary),
-  _slave_boundary(slave_boundary),
-  _penetration_info(penetration_info),
-  _update_location(update_location),
-  _tangential_tolerance(tangential_tolerance),
-  _do_normal_smoothing(do_normal_smoothing),
-  _normal_smoothing_distance(normal_smoothing_distance),
-  _normal_smoothing_method(normal_smoothing_method),
-  _nodal_normal_x(NULL),
-  _nodal_normal_y(NULL),
-  _nodal_normal_z(NULL),
-  _fes(fes),
-  _fe_type(fe_type),
-  _nearest_node(nearest_node),
-  _node_to_elem_map(node_to_elem_map),
-  _elem_list(elem_list),
-  _side_list(side_list),
-  _id_list(id_list),
-  _n_elems(elem_list.size())
+PenetrationThread::PenetrationThread(
+  SubProblem & subproblem,
+  const MooseMesh & mesh,
+  BoundaryID master_boundary,
+  BoundaryID slave_boundary,
+  std::map<dof_id_type, PenetrationInfo *> & penetration_info,
+  bool check_whether_reasonable,
+  bool update_location,
+  Real tangential_tolerance,
+  bool do_normal_smoothing,
+  Real normal_smoothing_distance,
+  PenetrationLocator::NORMAL_SMOOTHING_METHOD normal_smoothing_method,
+  std::vector<std::vector<FEBase *> > & fes,
+  FEType & fe_type,
+  NearestNodeLocator & nearest_node,
+  std::map<dof_id_type, std::vector<dof_id_type> > & node_to_elem_map,
+  std::vector<dof_id_type> & elem_list,
+  std::vector<unsigned short int> & side_list,
+  std::vector<boundary_id_type> & id_list,
+  bool skip_off_process_slaves)
+  : _subproblem(subproblem),
+    _mesh(mesh),
+    _master_boundary(master_boundary),
+    _slave_boundary(slave_boundary),
+    _penetration_info(penetration_info),
+    _check_whether_reasonable(check_whether_reasonable),
+    _update_location(update_location),
+    _tangential_tolerance(tangential_tolerance),
+    _do_normal_smoothing(do_normal_smoothing),
+    _normal_smoothing_distance(normal_smoothing_distance),
+    _normal_smoothing_method(normal_smoothing_method),
+    _nodal_normal_x(NULL),
+    _nodal_normal_y(NULL),
+    _nodal_normal_z(NULL),
+    _fes(fes),
+    _fe_type(fe_type),
+    _nearest_node(nearest_node),
+    _node_to_elem_map(node_to_elem_map),
+    _elem_list(elem_list),
+    _side_list(side_list),
+    _id_list(id_list),
+    _n_elems(elem_list.size()),
+    _skip_off_process_slaves(skip_off_process_slaves)
 {
 }
 
@@ -75,6 +80,7 @@ PenetrationThread::PenetrationThread(PenetrationThread & x, Threads::split /*spl
   _master_boundary(x._master_boundary),
   _slave_boundary(x._slave_boundary),
   _penetration_info(x._penetration_info),
+  _check_whether_reasonable(x._check_whether_reasonable),
   _update_location(x._update_location),
   _tangential_tolerance(x._tangential_tolerance),
   _do_normal_smoothing(x._do_normal_smoothing),
@@ -87,7 +93,8 @@ PenetrationThread::PenetrationThread(PenetrationThread & x, Threads::split /*spl
   _elem_list(x._elem_list),
   _side_list(x._side_list),
   _id_list(x._id_list),
-  _n_elems(x._n_elems)
+  _n_elems(x._n_elems),
+  _skip_off_process_slaves(x._skip_off_process_slaves)
 {
 }
 
@@ -110,6 +117,12 @@ PenetrationThread::operator() (const NodeIdRange & range)
   {
     const Node & node = _mesh.node(*nd);
 
+    // Never allocate pinfos for off-process slave nodes. This is because when the constraints get
+    // applied, we loop over local slave nodes, never over master nodes. So we only ever use the
+    // pinfos that are on nodes owned by this process.
+    if ( _skip_off_process_slaves && node.processor_id() != _subproblem.processor_id())
+      continue;
+
     // We're going to get a reference to the pointer for the pinfo for this node
     // This will allow us to manipulate this pointer without having to go through
     // the _penetration_info map... meaning this is the only mutex we'll have to do!
@@ -125,7 +138,7 @@ PenetrationThread::operator() (const NodeIdRange & range)
     {
       FEBase * fe = _fes[_tid][info->_side->dim()];
 
-      if ((!_update_location || !info->_update) && info->_distance >= 0)
+      if (!_update_location && (info->_distance >= 0 || info->isCaptured()))
       {
         const Point contact_ref = info->_closest_point_ref;
         bool contact_point_on_side(false);
@@ -187,8 +200,7 @@ PenetrationThread::operator() (const NodeIdRange & range)
         std::vector<PenetrationInfo*> thisElemInfo;
         std::vector<const Node*> nodesThatMustBeOnSide;
         nodesThatMustBeOnSide.push_back(closest_node);
-        bool check_whether_reasonable = true;
-        createInfoForElem(thisElemInfo, p_info, &node, elem, nodesThatMustBeOnSide, check_whether_reasonable);
+        createInfoForElem(thisElemInfo, p_info, &node, elem, nodesThatMustBeOnSide, _check_whether_reasonable);
       }
 
       if (p_info.size() == 1)
@@ -204,9 +216,9 @@ PenetrationThread::operator() (const NodeIdRange & range)
 
         //Loop through all pairs of faces, and check for contact on ridge betweeen each face pair
         std::vector<RidgeData> ridgeDataVec;
-        for ( unsigned int i(0); i < p_info.size()-1; ++i )
+        for (unsigned int i = 0; i + 1 < p_info.size(); ++i)
         {
-          for ( unsigned int j(i+1); j < p_info.size(); ++j )
+          for (unsigned int j = i + 1; j < p_info.size(); ++j)
           {
             Point closest_coor;
             Real tangential_distance(0.0);
@@ -432,8 +444,16 @@ PenetrationThread::switchInfo( PenetrationInfo * & info,
     infoNew->_starting_elem = info->_starting_elem;
     infoNew->_starting_side_num = info->_starting_side_num;
     infoNew->_starting_closest_point_ref = info->_starting_closest_point_ref;
+    infoNew->_incremental_slip = info->_incremental_slip;
+    infoNew->_accumulated_slip = info->_accumulated_slip;
+    infoNew->_accumulated_slip_old = info->_accumulated_slip_old;
+    infoNew->_frictional_energy = info->_frictional_energy;
+    infoNew->_frictional_energy_old = info->_frictional_energy_old;
     infoNew->_contact_force = info->_contact_force;
     infoNew->_contact_force_old = info->_contact_force_old;
+    infoNew->_lagrange_multiplier = info->_lagrange_multiplier;
+    infoNew->_locked_this_step = info->_locked_this_step;
+    infoNew->_mech_status = info->_mech_status;
   }
   else
   {
@@ -1178,11 +1198,11 @@ PenetrationThread::computeSlip(FEBase & fe, PenetrationInfo & info)
   //   original projected position of slave node
   std::vector<Point> points(1);
   points[0] = info._starting_closest_point_ref;
-  AutoPtr<Elem> side = info._starting_elem->build_side(info._starting_side_num, false);
+  UniquePtr<Elem> side = info._starting_elem->build_side(info._starting_side_num, false);
   fe.reinit(side.get(), &points);
   const std::vector<Point> & starting_point = fe.get_xyz();
   info._incremental_slip = info._closest_point - starting_point[0];
-  if (info._mech_status != PenetrationInfo::MS_NO_CONTACT)
+  if (info.isCaptured())
   {
     info._frictional_energy = info._frictional_energy_old + info._contact_force*info._incremental_slip;
     info._accumulated_slip = info._accumulated_slip_old + info._incremental_slip.size();
@@ -1327,7 +1347,7 @@ PenetrationThread::getSmoothingFacesAndWeights(PenetrationInfo* info,
       Real fw1 = edge_face_weights[1];
 
       //Corner weight is product of edge weights.  Spread out over multiple neighbors.
-      Real fw_corner = (fw0 * fw1) / ((Real)num_corner_neighbors);
+      Real fw_corner = (fw0 * fw1) / static_cast<Real>(num_corner_neighbors);
 
       //Adjust original edge weights
       edge_face_weights[0] *= (1.0 - fw1);

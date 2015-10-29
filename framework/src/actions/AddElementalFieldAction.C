@@ -27,8 +27,8 @@ InputParameters validParams<AddElementalFieldAction>()
   return params;
 }
 
-AddElementalFieldAction::AddElementalFieldAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddElementalFieldAction::AddElementalFieldAction(InputParameters params) :
+    Action(params)
 {
 }
 
@@ -45,7 +45,7 @@ AddElementalFieldAction::act()
 
   FEType fe_type(CONSTANT, MONOMIAL);
 
-  std::string variable = getShortName();
+  std::string variable = name();
 
   if (blocks.empty())
     _problem->addAuxVariable(variable, fe_type);

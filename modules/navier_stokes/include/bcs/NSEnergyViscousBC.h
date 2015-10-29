@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYVISCOUSBC_H
 #define NSENERGYVISCOUSBC_H
 
@@ -27,7 +33,7 @@ class NSEnergyViscousBC : public NSIntegratedBC
 {
 
 public:
-  NSEnergyViscousBC(const std::string & name, InputParameters parameters);
+  NSEnergyViscousBC(const InputParameters & parameters);
 
   virtual ~NSEnergyViscousBC(){}
 
@@ -44,7 +50,7 @@ protected:
   VariableGradient& _grad_temperature;
 
   // Material properties
-  MaterialProperty<Real>& _thermal_conductivity;
+  const MaterialProperty<Real>& _thermal_conductivity;
 
   // An object for computing viscous stress tensor derivatives.
   // Constructed via a reference to ourself so we can access all of our data.

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari,  O. Heinonen
 
 #ifndef COSSERATLINEARELASTICMATERIAL_H
@@ -14,7 +20,7 @@
 class CosseratLinearElasticMaterial : public TensorMechanicsMaterial
 {
 public:
-  CosseratLinearElasticMaterial(const std::string & name, InputParameters parameters);
+  CosseratLinearElasticMaterial(const InputParameters & parameters);
 
 protected:
   virtual void computeQpStrain();

@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "FiniteStrainRatePlasticMaterial.h"
 
 
@@ -13,16 +19,15 @@ template<>
 InputParameters validParams<FiniteStrainRatePlasticMaterial>()
 {
   InputParameters params = validParams<FiniteStrainPlasticMaterial>();
-
+  params.addClassDescription("Associative rate dependent J2 plasticity with isotropic hardening: Overstress based on Perzyna model");
   params.addRequiredParam< Real >("ref_pe_rate", "Reference plastic strain rate parameter for rate dependent plasticity (Overstress model)");
   params.addRequiredParam< Real >("exponent", "Exponent for rate dependent plasticity (Perzyna)");
 
   return params;
 }
 
-FiniteStrainRatePlasticMaterial::FiniteStrainRatePlasticMaterial(const std::string & name,
-                                                                 InputParameters parameters) :
-    FiniteStrainPlasticMaterial(name, parameters),
+FiniteStrainRatePlasticMaterial::FiniteStrainRatePlasticMaterial(const InputParameters & parameters) :
+    FiniteStrainPlasticMaterial(parameters),
     _ref_pe_rate(getParam<Real>("ref_pe_rate")),
     _exponent(getParam<Real>("exponent"))
 {
@@ -235,3 +240,4 @@ FiniteStrainRatePlasticMaterial::macaulayBracket(Real val)
   else
     return 0.0;
 }
+

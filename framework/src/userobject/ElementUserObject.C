@@ -26,17 +26,17 @@ InputParameters validParams<ElementUserObject>()
   return params;
 }
 
-ElementUserObject::ElementUserObject(const std::string & name, InputParameters parameters) :
-    UserObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    MaterialPropertyInterface(name, parameters),
+ElementUserObject::ElementUserObject(const InputParameters & parameters) :
+    UserObject(parameters),
+    BlockRestrictable(parameters),
+    MaterialPropertyInterface(parameters, blockIDs()),
     UserObjectInterface(parameters),
     Coupleable(parameters, false),
     ScalarCoupleable(parameters),
     MooseVariableDependencyInterface(),
-    TransientInterface(parameters, name, "element_user_objects"),
+    TransientInterface(parameters, "element_user_objects"),
     PostprocessorInterface(parameters),
-    RandomInterface(name, parameters, _fe_problem, _tid, false),
+    RandomInterface(parameters, _fe_problem, _tid, false),
     ZeroInterface(parameters),
     _mesh(_subproblem.mesh()),
     _current_elem(_assembly.elem()),
@@ -51,3 +51,4 @@ ElementUserObject::ElementUserObject(const std::string & name, InputParameters p
   for (unsigned int i=0; i<coupled_vars.size(); i++)
     addMooseVariableDependency(coupled_vars[i]);
 }
+

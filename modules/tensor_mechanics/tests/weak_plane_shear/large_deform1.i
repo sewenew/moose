@@ -26,9 +26,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -183,14 +181,20 @@
 []
 
 [Materials]
-  [./mc]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     fill_method = symmetric_isotropic
     C_ijkl = '0 1E6'
+  [../]
+  [./strain]
+    type = ComputeFiniteStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./mc]
+    type = ComputeMultiPlasticityStress
+    block = 0
     plastic_models = wps
     transverse_direction = '0 0 1'
     ep_plastic_tolerance = 1E-5
@@ -209,18 +213,10 @@
 
 [Outputs]
   file_base = large_deform1
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
   [./exodus]
     type = Exodus
-    interval = 1
-  [../]
+    [../]
 []

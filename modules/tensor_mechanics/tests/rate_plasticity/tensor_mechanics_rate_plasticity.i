@@ -18,13 +18,13 @@
   [./cnode]
     type = AddExtraNodeset
     coord = '0.0 0.0 0.0'
-    boundary = 6
+    new_boundary = 6
   [../]
 
   [./snode]
     type = AddExtraNodeset
     coord = '1.0 0.0 0.0'
-    boundary = 7
+    new_boundary = 7
   [../]
 []
 
@@ -47,9 +47,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = x_disp
-    disp_y = y_disp
-    disp_z = z_disp
+    displacements = 'x_disp y_disp z_disp'
     use_displaced_mesh = true
   [../]
 []
@@ -180,14 +178,13 @@
     index_j = 2
   [../]
   [./eqv_plastic_strain]
-    type = FiniteStrainPlasticAux
+    type = MaterialRealAux
+    property = eqv_plastic_strain
     variable = peeq
   [../]
 []
 
 [Preconditioning]
-#active = ''
-
   [./SMP]
    type = SMP
    full=true
@@ -202,7 +199,6 @@
   dtmin=0.0001
   type = Transient
 
-  #Preconditioned JFNK (default)
   solve_type = 'PJFNK'
 
 
@@ -215,10 +211,4 @@
 [Outputs]
   file_base = out
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

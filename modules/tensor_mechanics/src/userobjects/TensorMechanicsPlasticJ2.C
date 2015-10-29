@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsPlasticJ2.h"
 
 template<>
@@ -10,9 +16,8 @@ InputParameters validParams<TensorMechanicsPlasticJ2>()
   return params;
 }
 
-TensorMechanicsPlasticJ2::TensorMechanicsPlasticJ2(const std::string & name,
-                                                         InputParameters parameters) :
-    TensorMechanicsPlasticModel(name, parameters),
+TensorMechanicsPlasticJ2::TensorMechanicsPlasticJ2(const InputParameters & parameters) :
+    TensorMechanicsPlasticModel(parameters),
     _strength(getUserObject<TensorMechanicsHardeningModel>("yield_strength"))
 {
 }
@@ -83,4 +88,9 @@ TensorMechanicsPlasticJ2::dyieldStrength(const Real & intnl) const
   return _strength.derivative(intnl);
 }
 
+std::string
+TensorMechanicsPlasticJ2::modelName() const
+{
+  return "J2";
+}
 

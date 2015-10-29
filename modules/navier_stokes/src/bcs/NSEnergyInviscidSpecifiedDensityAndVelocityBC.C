@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // This was experimental code and did not really work out, do not use!
 #include "NSEnergyInviscidSpecifiedDensityAndVelocityBC.h"
 
@@ -20,8 +26,8 @@ InputParameters validParams<NSEnergyInviscidSpecifiedDensityAndVelocityBC>()
 
 
 
-NSEnergyInviscidSpecifiedDensityAndVelocityBC::NSEnergyInviscidSpecifiedDensityAndVelocityBC(const std::string & name, InputParameters parameters)
-    : NSEnergyInviscidBC(name, parameters),
+NSEnergyInviscidSpecifiedDensityAndVelocityBC::NSEnergyInviscidSpecifiedDensityAndVelocityBC(const InputParameters & parameters)
+    : NSEnergyInviscidBC(parameters),
 
       // Aux Variables
       _pressure(coupledValue("pressure")),
@@ -72,3 +78,4 @@ Real NSEnergyInviscidSpecifiedDensityAndVelocityBC::computeQpOffDiagJacobian(uns
 //   // When both pressure and u.n are specified, only term B of the Jacobian is non-zero.
 //   return this->qp_jacobian_termB(var_number, _un);
 // }
+

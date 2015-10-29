@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "SolidMechanicsMaterial.h"
 #include "Problem.h"
 
@@ -17,8 +23,8 @@ InputParameters validParams<SolidMechanicsMaterial>()
   return params;
 }
 
-SolidMechanicsMaterial::SolidMechanicsMaterial(const std::string & name, InputParameters parameters)
-  :Material(name, parameters),
+SolidMechanicsMaterial::SolidMechanicsMaterial(const InputParameters & parameters)
+  :Material(parameters),
    _appended_property_name( getParam<std::string>("appended_property_name") ),
    _grad_disp_x(coupledGradient("disp_x")),
    _grad_disp_y(coupledGradient("disp_y")),
@@ -35,4 +41,5 @@ SolidMechanicsMaterial::SolidMechanicsMaterial(const std::string & name, InputPa
    _d_stress_dT(createProperty<SymmTensor>("d_stress_dT")),
    _elastic_strain(createProperty<SymmTensor>("elastic_strain"))
 {}
+
 

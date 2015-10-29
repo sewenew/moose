@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSWeakStagnationBC.h"
 
 // Full specialization of the validParams function for this object
@@ -22,8 +28,8 @@ InputParameters validParams<NSWeakStagnationBC>()
 
 
 // Constructor, be sure to call the base class constructor first!
-NSWeakStagnationBC::NSWeakStagnationBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters),
+NSWeakStagnationBC::NSWeakStagnationBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters),
 
       // Required parameters
       _stagnation_pressure(getParam<Real>("stagnation_pressure")),
@@ -82,3 +88,4 @@ Real NSWeakStagnationBC::sdotn()
     _sy*_normals[_qp](1) +
     _sz*_normals[_qp](2);
 }
+

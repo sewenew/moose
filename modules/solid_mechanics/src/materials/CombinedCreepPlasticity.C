@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CombinedCreepPlasticity.h"
 
 #include "ReturnMappingModel.h"
@@ -19,9 +25,8 @@ InputParameters validParams<CombinedCreepPlasticity>()
 }
 
 
-CombinedCreepPlasticity::CombinedCreepPlasticity( const std::string & name,
-                                                  InputParameters parameters )
-  :ConstitutiveModel( name, parameters ),
+CombinedCreepPlasticity::CombinedCreepPlasticity( const InputParameters & parameters)
+  :ConstitutiveModel(parameters),
    _submodels(),
    _max_its(parameters.get<unsigned int>("max_its")),
    _output_iteration_info(getParam<bool>("output_iteration_info")),
@@ -37,15 +42,15 @@ CombinedCreepPlasticity::initialSetup()
   const std::vector<std::string> & submodels = getParam<std::vector<std::string> >("submodels");
   for (unsigned i(0); i < block_id.size(); ++i)
   {
+    std::string suffix;
     const std::vector<Material*> * mats_p;
     if (_bnd)
     {
-      mats_p = &_fe_problem.getFaceMaterials( block_id[i], _tid );
+      mats_p = &_fe_problem.getMaterialWarehouse(_tid).getFaceMaterials( block_id[i] );
+      suffix = "_face";
     }
     else
-    {
-      mats_p = &_fe_problem.getMaterials( block_id[i], _tid );
-    }
+      mats_p = &_fe_problem.getMaterialWarehouse(_tid).getMaterials( block_id[i] );
 
     const std::vector<Material*> & mats = *mats_p;
     for (unsigned int i_name(0); i_name < submodels.size(); ++i_name)
@@ -54,7 +59,7 @@ CombinedCreepPlasticity::initialSetup()
       for (unsigned int j=0; j < mats.size(); ++j)
       {
         ReturnMappingModel * rmm = dynamic_cast<ReturnMappingModel*>(mats[j]);
-        if (rmm && rmm->name() == submodels[i_name])
+        if (rmm && rmm->name() == submodels[i_name] + suffix)
         {
           _submodels[block_id[i]].push_back( rmm );
           found = true;
@@ -174,3 +179,4 @@ CombinedCreepPlasticity::modifyStrainIncrement(const Elem & current_elem, unsign
   }
   return modified;
 }
+

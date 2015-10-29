@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -28,6 +28,21 @@ if [[ $? == 0 && "x$git_dir" == "x" ]]; then
   fi
 fi
 
+# check if the user has ccache configured
+DISABLE_TIMESTAMPS=""
+echo $CXX | cut -d ' ' -f1 | grep '^ccache$' > /dev/null
+if [ $? == 0 ]; then
+  echo -n "ccache detected - "
+  # check if timestamps are explicitly enabled
+  echo "$* " | grep -- '--enable-timestamps ' > /dev/null
+  if [ $? == 0 ]; then
+    echo "warning: setting --enable-timestamps explicitly will negatively impact the ccache performance"
+  else
+    echo "configuring libmesh with --disable-timestamps to improve cache hit rate"
+    DISABLE_TIMESTAMPS="--disable-timestamps"
+  fi
+fi
+
 cd $SCRIPT_DIR/../libmesh
 
 rm -rf build
@@ -40,7 +55,9 @@ cd build
              --enable-unique-id \
              --disable-warnings \
              --disable-cxx11 \
-             --enable-openmp $*
+             --enable-unique-ptr \
+             --enable-openmp \
+             $DISABLE_TIMESTAMPS $*
 
 # let LIBMESH_JOBS be either MOOSE_JOBS, or 1 if MOOSE_JOBS
 # is not set (not using our package). Make will then build
@@ -48,9 +65,9 @@ cd build
 LIBMESH_JOBS=${MOOSE_JOBS:-1}
 
 if [ -z "${MOOSE_MAKE}" ]; then
-  make -j ${JOBS:-$LIBMESH_JOBS}
-  make install
+  make -j ${JOBS:-$LIBMESH_JOBS} && \
+    make install
 else
-  ${MOOSE_MAKE}
-  ${MOOSE_MAKE} install
+  ${MOOSE_MAKE} && \
+    ${MOOSE_MAKE} install
 fi

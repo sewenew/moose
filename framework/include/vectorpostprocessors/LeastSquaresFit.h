@@ -34,10 +34,9 @@ class LeastSquaresFit :
 public:
   /**
     * Class constructor
-    * @param name The name of the object
     * @param parameters The input parameters
     */
-  LeastSquaresFit(const std::string & name, InputParameters parameters);
+  LeastSquaresFit(const InputParameters & parameters);
 
   /**
    * Destructor
@@ -82,6 +81,14 @@ protected:
 
   /// The number of samples to be taken
   unsigned int _num_samples;
+
+  /// Did the user specify the min and max x values for sampling?
+  bool _have_sample_x_min;
+  bool _have_sample_x_max;
+
+  /// The min and max x values for sampling
+  Real _sample_x_min;
+  Real _sample_x_max;
 
   /// The variables used to write out samples of the least squares fit
   VectorPostprocessorValue * _sample_x;

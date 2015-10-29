@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef COUPLEDCONVECTIVEFLUX_H
 #define COUPLEDCONVECTIVEFLUX_H
 
@@ -7,7 +13,7 @@ class CoupledConvectiveFlux : public IntegratedBC
 {
 public:
 
-  CoupledConvectiveFlux(const std::string & name, InputParameters parameters);
+  CoupledConvectiveFlux(const InputParameters & parameters);
   virtual ~CoupledConvectiveFlux() {}
 
 protected:

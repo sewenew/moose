@@ -13,7 +13,10 @@ class RunApp(Tester):
     params.addParam('input_switch', '-i', "The default switch used for indicating an input to the executable")
     params.addParam('errors',             ['ERROR', 'command not found', 'erminate called after throwing an instance of'], "The error messages to detect a failed run")
     params.addParam('expect_out',         "A regular expression that must occur in the input in order for the test to be considered passing.")
-    params.addParam('should_crash',False, "Inidicates that the test is expected to crash or otherwise terminate early")
+    params.addParam('match_literal', False, "Treat expect_out as a string not a regular expression.")
+    params.addParam('absent_out',         "A regular expression that must be *absent* from the output for the test to pass.")
+    params.addParam('should_crash', False, "Inidicates that the test is expected to crash or otherwise terminate early")
+    params.addParam('executable_pattern', "A test that only runs if the exectuable name matches the given pattern")
 
     params.addParam('walltime',           "The max time as pbs understands it")
     params.addParam('job_name',           "The test name as pbs understands it")
@@ -46,9 +49,14 @@ class RunApp(Tester):
 
   def checkRunnable(self, options):
     if options.enable_recover:
-      if self.specs.isValid('expect_out') or self.specs['should_crash'] == True:
+      if self.specs.isValid('expect_out') or self.specs.isValid('absent_out') or self.specs['should_crash'] == True:
         reason = 'skipped (expect_out RECOVER)'
         return (False, reason)
+
+    if self.specs.isValid('executable_pattern') and re.search(self.specs['executable_pattern'], self.specs['executable']) == None:
+      reason = 'skipped (EXECUTABLE PATTERN)'
+      return (False, reason)
+
     return (True, '')
 
 
@@ -74,6 +82,7 @@ class RunApp(Tester):
     timing_string = ' '
     if options.timing:
       specs['cli_args'].append('--timing')
+      specs['cli_args'].append('Outputs/print_perf_log=true')
 
     if options.colored == False:
       specs['cli_args'].append('--no-color')
@@ -83,6 +92,10 @@ class RunApp(Tester):
 
     if options.scaling and specs['scale_refine'] > 0:
       specs['cli_args'].insert(0, ' -r ' + str(specs['scale_refine']))
+
+    # The test harness should never use GDB backtraces: they don't
+    # work well when dozens of expect_err jobs run at the same time.
+    specs['cli_args'].append('--no-gdb-backtrace')
 
     # Raise the floor
     ncpus = max(default_ncpus, int(specs['min_parallel']))
@@ -144,12 +157,17 @@ class RunApp(Tester):
     if options.parallel or ncpus > 1 or nthreads > 1:
       extra_args = ' --n-threads=' + str(nthreads) + ' ' + ' '.join(self.specs['cli_args'])
 
+    timing_string = ' '
+    if options.timing:
+      self.specs['cli_args'].append('--timing')
+      self.specs['cli_args'].append('Outputs/print_perf_log=true')
+
     # Append any extra args to the cluster_launcher
     if extra_args != '':
       self.specs['cli_args'] = extra_args
     else:
       self.specs['cli_args'] = ' '.join(self.specs['cli_args'])
-    self.specs['cli_args'] = self.specs['cli_args'].strip()
+    self.specs['cli_args'] = "'" + self.specs['cli_args'].strip() + "'"
 
     # Open our template. This should probably be done at the same time as cluster_handle.
     template_script = open(os.path.join(self.specs['moose_dir'], 'python', 'TestHarness', 'pbs_template.i'), 'r')
@@ -183,18 +201,31 @@ class RunApp(Tester):
     # Write the cluster_launcher input file
     options.cluster_handle.write(content + '\n')
 
-    return os.path.join(self.specs['moose_dir'], 'framework', 'scripts', 'cluster_launcher.py') + ' ' + options.pbs + '.cluster'
+    return os.path.join(self.specs['moose_dir'], 'scripts', 'cluster_launcher.py') + ' ' + options.pbs + '.cluster'
 
 
   def processResults(self, moose_dir, retcode, options, output):
     reason = ''
     specs = self.specs
     if specs.isValid('expect_out'):
-      out_ok = self.checkOutputForPattern(output, specs['expect_out'])
+      if specs['match_literal']:
+        out_ok = self.checkOutputForLiteral(output, specs['expect_out'])
+      else:
+        out_ok = self.checkOutputForPattern(output, specs['expect_out'])
+      # Process out_ok
       if (out_ok and retcode != 0):
         reason = 'OUT FOUND BUT CRASH'
       elif (not out_ok):
         reason = 'NO EXPECTED OUT'
+
+    elif specs.isValid('absent_out'):
+      out_ok = self.checkOutputForPattern(output, specs['absent_out'])
+      # Process out_ok
+      if (not out_ok and retcode != 0):
+        reason = 'OUTPUT ABSENT BUT CRASH'
+      elif (out_ok):
+        reason = 'OUTPUT NOT ABSENT'
+
     if reason == '':
       # We won't pay attention to the ERROR strings if EXPECT_ERR is set (from the derived class)
       # since a message to standard error might actually be a real error.  This case should be handled
@@ -218,6 +249,12 @@ class RunApp(Tester):
 
   def checkOutputForPattern(self, output, re_pattern):
     if re.search(re_pattern, output, re.MULTILINE | re.DOTALL) == None:
+      return False
+    else:
+      return True
+
+  def checkOutputForLiteral(self, output, literal):
+    if output.find(literal) == -1:
       return False
     else:
       return True

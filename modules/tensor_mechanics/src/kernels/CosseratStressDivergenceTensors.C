@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CosseratStressDivergenceTensors.h"
 
 #include "Material.h"
@@ -14,8 +20,8 @@ InputParameters validParams<CosseratStressDivergenceTensors>()
   return params;
 }
 
-CosseratStressDivergenceTensors::CosseratStressDivergenceTensors(const std::string & name, InputParameters parameters) :
-    StressDivergenceTensors(name, parameters),
+CosseratStressDivergenceTensors::CosseratStressDivergenceTensors(const InputParameters & parameters) :
+    StressDivergenceTensors(parameters),
     _wc_x_var(coupled("wc_x")),
     _wc_y_var(coupled("wc_y")),
     _wc_z_var(coupled("wc_z"))
@@ -40,3 +46,4 @@ CosseratStressDivergenceTensors::computeQpOffDiagJacobian(unsigned int jvar)
 
   return StressDivergenceTensors::computeQpOffDiagJacobian(jvar);
 }
+

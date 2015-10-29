@@ -6,12 +6,12 @@
   type = GeneratedMesh
   dim = 3
   nx = 1000
-  ny = 1234
+  ny = 125
   nz = 1
   xmin = 0
   xmax = 1000
   ymin = 0
-  ymax = 1234
+  ymax = 125
   zmin = 0
   zmax = 1
 []
@@ -28,9 +28,7 @@
 
 [Kernels]
   [./TensorMechanics]
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    displacements = 'disp_x disp_y disp_z'
   [../]
 []
 
@@ -82,6 +80,10 @@
     order = CONSTANT
     family = MONOMIAL
   [../]
+  [./iter]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
 []
 
 [AuxKernels]
@@ -90,6 +92,11 @@
     index = 0
     property = plastic_yield_function
     variable = yield_fcn
+  [../]
+  [./iter]
+    type = MaterialRealAux
+    property = plastic_NR_iterations
+    variable = iter
   [../]
 []
 
@@ -101,8 +108,13 @@
     outputs = 'console'
   [../]
   [./should_be_zero]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = should_be_zero_fcn
+  [../]
+  [./av_iter]
+    type = ElementAverageValue
+    variable = iter
+    outputs = 'console'
   [../]
 []
 
@@ -136,21 +148,27 @@
     friction_angle = mc_phi
     dilation_angle = mc_psi
     mc_tip_smoother = 0.1E3
-    mc_edge_smoother = 10
+    mc_edge_smoother = 25
     yield_function_tolerance = 1E-3
     internal_constraint_tolerance = 1E-6
   [../]
 []
 
 [Materials]
-  [./mc]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
     fill_method = symmetric_isotropic
-    C_ijkl = '0 1E7'
+    C_ijkl = '0.7E7 1E7'
+  [../]
+  [./strain]
+    type = ComputeFiniteStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./mc]
+    type = ComputeMultiPlasticityStress
+    block = 0
     max_NR_iterations = 1000
     ep_plastic_tolerance = 1E-6
     min_stepsize = 1E-3
@@ -171,14 +189,7 @@
 [Outputs]
   file_base = random
   exodus = false
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
 []

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 //  Rogers-Stallybrass-Clements version of effective saturation of water phase as a function of pressure, and derivatives wrt that pressure.
 //  This is mostly useful for 2phase, not single phase, models.
@@ -22,8 +25,8 @@ InputParameters validParams<RichardsSeff1RSC>()
   return params;
 }
 
-RichardsSeff1RSC::RichardsSeff1RSC(const std::string & name, InputParameters parameters) :
-    RichardsSeff(name, parameters),
+RichardsSeff1RSC::RichardsSeff1RSC(const InputParameters & parameters) :
+    RichardsSeff(parameters),
     _oil_viscosity(getParam<Real>("oil_viscosity")),
     _scale_ratio(getParam<Real>("scale_ratio")),
     _shift(getParam<Real>("shift")),
@@ -50,3 +53,4 @@ RichardsSeff1RSC::d2seff(std::vector<VariableValue *> p, unsigned int qp, std::v
   Real pc = -(*p[0])[qp];
   result[0][0] =  RichardsSeffRSC::d2seff(pc, _shift, _scale);
 }
+

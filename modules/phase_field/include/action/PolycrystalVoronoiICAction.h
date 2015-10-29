@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef POLYCRYSTALVORONOIICACTION_H
 #define POLYCRYSTALVORONOIICACTION_H
 
@@ -10,7 +16,7 @@
 class PolycrystalVoronoiICAction: public Action
 {
 public:
-  PolycrystalVoronoiICAction(const std::string & name, InputParameters params);
+  PolycrystalVoronoiICAction(const InputParameters & params);
 
   virtual void act();
 

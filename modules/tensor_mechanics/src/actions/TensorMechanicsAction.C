@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "TensorMechanicsAction.h"
 
 #include "Factory.h"
@@ -8,9 +14,11 @@ template<>
 InputParameters validParams<TensorMechanicsAction>()
 {
   InputParameters params = validParams<Action>();
-  params.addRequiredParam<NonlinearVariableName>("disp_x", "The x displacement");
-  params.addParam<NonlinearVariableName>("disp_y", "The y displacement");
-  params.addParam<NonlinearVariableName>("disp_z", "The z displacement");
+  params.addClassDescription("Set up stress divergence kernels");
+  params.addParam<std::vector<NonlinearVariableName> >("displacements", "The nonlinear displacement variables for the problem");
+  params.addParam<NonlinearVariableName>("disp_x", "The x displacement");  // depricated
+  params.addParam<NonlinearVariableName>("disp_y", "The y displacement");  // depricated
+  params.addParam<NonlinearVariableName>("disp_z", "The z displacement");  // depricated
   params.addParam<NonlinearVariableName>("temp", "The temperature");
   params.addParam<std::string>("base_name", "Material property base name");
   params.addParam<bool>("use_displaced_mesh", false, "Whether to use displaced mesh in the kernels");
@@ -22,37 +30,44 @@ InputParameters validParams<TensorMechanicsAction>()
   return params;
 }
 
-TensorMechanicsAction::TensorMechanicsAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+TensorMechanicsAction::TensorMechanicsAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
 void
 TensorMechanicsAction::act()
 {
-  unsigned int dim = 1;
-  std::vector<std::string> keys;
-  std::vector<VariableName> vars;
-  std::string type("StressDivergenceTensors");
+  std::vector<NonlinearVariableName> displacements;
+  //This code will be the up-to-date version using the displacement string
+  if (isParamValid("displacements"))
+    displacements = getParam<std::vector<NonlinearVariableName> > ("displacements");
 
-  std::vector<std::vector<AuxVariableName> > save_in;
-  //Prepare displacements and set value for dim
-  keys.push_back("disp_x");
-  vars.push_back(getParam<NonlinearVariableName>("disp_x"));
-
-  if (isParamValid("disp_y"))
+  //This code is for the depricated version that allows three unique displacement variables
+  else if (isParamValid("disp_x"))
   {
-    ++dim;
-    keys.push_back("disp_y");
-    vars.push_back(getParam<NonlinearVariableName>("disp_y"));
-    if (isParamValid("disp_z"))
+    mooseDeprecated("StressDivergenceTensors has been updated to accept a string of displacement variable names, e.g. displacements = 'disp_x disp_y' in the input file.");
+    displacements.push_back(getParam<NonlinearVariableName>("disp_x"));
+    if (isParamValid("disp_y"))
     {
-      ++dim;
-      keys.push_back("disp_z");
-      vars.push_back(getParam<NonlinearVariableName>("disp_z"));
+      displacements.push_back(getParam<NonlinearVariableName>("disp_y"));
+      if (isParamValid("disp_z"))
+         displacements.push_back(getParam<NonlinearVariableName>("disp_z"));
     }
   }
 
+  else
+    mooseError("The input file should specify a string of displacement names; these names should match the Variable block names.");
+
+  std::vector<VariableName> coupled_displacements;  //vector to hold the string of coupled disp variables
+  unsigned int dim = displacements.size();
+
+  for (unsigned int i = 0; i < dim; ++i)
+    coupled_displacements.push_back(displacements[i]);
+
+
+  // Retain this code 'as is' because StressDivergenceTensors inherits from Kernel.C
+  std::vector<std::vector<AuxVariableName> > save_in;
   save_in.resize(dim);
 
   if (isParamValid("save_in_disp_x"))
@@ -64,21 +79,12 @@ TensorMechanicsAction::act()
   if (isParamValid("save_in_disp_z"))
     save_in[2] = getParam<std::vector<AuxVariableName> >("save_in_disp_z");
 
-  //Add in the temperature
-  unsigned int num_coupled(dim);
-  if (isParamValid("temp"))
-  {
-    ++num_coupled;
-    keys.push_back("temp");
-    vars.push_back(getParam<NonlinearVariableName>("temp"));
-  }
 
-  InputParameters params = _factory.getValidParams(type);
-  for (unsigned int j = 0; j < num_coupled; ++j)
-  {
-    params.addCoupledVar(keys[j], "");
-    params.set<std::vector<VariableName> >(keys[j]) = std::vector<VariableName>(1, vars[j]);
-  }
+  InputParameters params = _factory.getValidParams("StressDivergenceTensors");
+  params.set<std::vector<VariableName> >("displacements") = coupled_displacements;
+
+  if (isParamValid("temp"))
+    params.addCoupledVar("temp", "");
 
   params.set<bool>("use_displaced_mesh") = getParam<bool>("use_displaced_mesh");
 
@@ -94,9 +100,15 @@ TensorMechanicsAction::act()
     name << i;
 
     params.set<unsigned int>("component") = i;
-    params.set<NonlinearVariableName>("variable") = vars[i];
+    params.set<NonlinearVariableName>("variable") = displacements[i];
     params.set<std::vector<AuxVariableName> >("save_in") = save_in[i];
 
-    _problem->addKernel(type, name.str(), params);
+    addkernel(name.str(), params);
   }
+}
+
+void
+TensorMechanicsAction::addkernel(const std::string & name,  InputParameters & params)
+{
+  _problem->addKernel("StressDivergenceTensors", name, params);
 }

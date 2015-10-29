@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSMass.h"
 
 template<>
@@ -16,8 +22,8 @@ InputParameters validParams<INSMass>()
 
 
 
-INSMass::INSMass(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSMass::INSMass(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Gradients
   _grad_u_vel(coupledGradient("u")),
@@ -67,3 +73,4 @@ Real INSMass::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

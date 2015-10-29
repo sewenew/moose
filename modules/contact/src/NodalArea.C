@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NodalArea.h"
 
 #include <numeric>
@@ -11,11 +17,9 @@ InputParameters validParams<NodalArea>()
   return params;
 }
 
-
-
-NodalArea::NodalArea(const std::string & name, InputParameters parameters) :
-    SideIntegralVariableUserObject(name, parameters),
-    _phi( _var.phiFace() ),
+NodalArea::NodalArea(const InputParameters & parameters) :
+    SideIntegralVariableUserObject(parameters),
+    _phi(getCoupledVars().find("variable")->second[0]->phiFace()),
     _system( _variable->sys() ),
     _aux_solution( _system.solution() )
 {}
@@ -103,3 +107,4 @@ NodalArea::nodalArea( const Node * node ) const
   }
   return retVal;
 }
+

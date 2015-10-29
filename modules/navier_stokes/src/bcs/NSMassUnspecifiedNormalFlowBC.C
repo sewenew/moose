@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMassUnspecifiedNormalFlowBC.h"
 
 template<>
@@ -10,8 +16,8 @@ InputParameters validParams<NSMassUnspecifiedNormalFlowBC>()
 
 
 
-NSMassUnspecifiedNormalFlowBC::NSMassUnspecifiedNormalFlowBC(const std::string & name, InputParameters parameters)
-    : NSMassBC(name, parameters)
+NSMassUnspecifiedNormalFlowBC::NSMassUnspecifiedNormalFlowBC(const InputParameters & parameters)
+    : NSMassBC(parameters)
 {
 }
 
@@ -41,3 +47,4 @@ Real NSMassUnspecifiedNormalFlowBC::computeQpOffDiagJacobian(unsigned jvar)
 {
   return this->qp_jacobian( this->map_var_number(jvar) );
 }
+

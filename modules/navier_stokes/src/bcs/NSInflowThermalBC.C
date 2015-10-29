@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSInflowThermalBC.h"
 
 template<>
@@ -20,8 +26,8 @@ InputParameters validParams<NSInflowThermalBC>()
 
 
 
-NSInflowThermalBC::NSInflowThermalBC(const std::string & name, InputParameters parameters)
-  :NodalBC(name, parameters),
+NSInflowThermalBC::NSInflowThermalBC(const InputParameters & parameters)
+  :NodalBC(parameters),
    _R(getParam<Real>("R")),
    _gamma(getParam<Real>("gamma")),
    _specified_rho(getParam<Real>("specified_rho")),
@@ -47,3 +53,4 @@ NSInflowThermalBC::computeQpResidual()
   Real cv = _R / (_gamma-1.);
   return _u[_qp] - _specified_rho * (cv * _specified_temperature + 0.5*_specified_velocity_magnitude*_specified_velocity_magnitude);
 }
+

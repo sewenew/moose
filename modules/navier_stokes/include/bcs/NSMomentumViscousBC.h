@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMVISCOUSBC_H
 #define NSMOMENTUMVISCOUSBC_H
 
@@ -26,7 +32,7 @@ class NSMomentumViscousBC : public NSIntegratedBC
 {
 public:
 
-  NSMomentumViscousBC(const std::string & name, InputParameters parameters);
+  NSMomentumViscousBC(const InputParameters & parameters);
 
   virtual ~NSMomentumViscousBC(){}
 

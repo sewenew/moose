@@ -68,11 +68,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   exodus = true
   checkpoint = true
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

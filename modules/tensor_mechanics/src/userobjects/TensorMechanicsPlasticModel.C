@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 //  Plastic Model base class.
 //
 #include "TensorMechanicsPlasticModel.h"
@@ -12,8 +18,8 @@ InputParameters validParams<TensorMechanicsPlasticModel>()
   return params;
 }
 
-TensorMechanicsPlasticModel::TensorMechanicsPlasticModel(const std::string & name, InputParameters parameters) :
-  GeneralUserObject(name, parameters),
+TensorMechanicsPlasticModel::TensorMechanicsPlasticModel(const InputParameters & parameters) :
+  GeneralUserObject(parameters),
   _f_tol(getParam<Real>("yield_function_tolerance")),
   _ic_tol(getParam<Real>("internal_constraint_tolerance"))
 {}
@@ -151,10 +157,17 @@ TensorMechanicsPlasticModel::dhardPotential_dintnlV(const RankTwoTensor & stress
 
 
 void
-TensorMechanicsPlasticModel::activeConstraints(const std::vector<Real> & f, const RankTwoTensor & /*stress*/, const Real & /*intnl*/, std::vector<bool> & act) const
+TensorMechanicsPlasticModel::activeConstraints(const std::vector<Real> & f, const RankTwoTensor & /*stress*/, const Real & /*intnl*/, const RankFourTensor & /*Eijkl*/, std::vector<bool> & act, RankTwoTensor & /*returned_stress*/) const
 {
   mooseAssert(f.size() == numberSurfaces(), "f incorrectly sized at " << f.size() << " in activeConstraints");
   act.resize(numberSurfaces());
   for (unsigned surface = 0 ; surface < numberSurfaces() ; ++surface)
     act[surface] = (f[surface] > _f_tol);
 }
+
+std::string
+TensorMechanicsPlasticModel::modelName() const
+{
+  return "None";
+}
+

@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSSATAUX_H
 #define RICHARDSSATAUX_H
@@ -22,7 +25,7 @@ InputParameters validParams<RichardsSatAux>();
 class RichardsSatAux: public AuxKernel
 {
 public:
-  RichardsSatAux(const std::string & name, InputParameters parameters);
+  RichardsSatAux(const InputParameters & parameters);
 
 protected:
   virtual Real computeValue();

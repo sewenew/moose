@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSStagnationBC.h"
 
 // Full specialization of the validParams function for this object
@@ -24,8 +30,8 @@ InputParameters validParams<NSStagnationBC>()
 
 
 // Constructor, be sure to call the base class constructor first!
-NSStagnationBC::NSStagnationBC(const std::string & name, InputParameters parameters)
-    : NodalBC(name, parameters),
+NSStagnationBC::NSStagnationBC(const InputParameters & parameters)
+    : NodalBC(parameters),
 
       // Coupled variables
       _u_vel(coupledValue("u")),
@@ -38,6 +44,7 @@ NSStagnationBC::NSStagnationBC(const std::string & name, InputParameters paramet
       _gamma(getParam<Real>("gamma")),
       _R(getParam<Real>("R"))
 {}
+
 
 
 

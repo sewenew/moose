@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "MaterialTensorAux.h"
 #include "SymmTensor.h"
@@ -20,15 +14,15 @@ InputParameters validParams<MaterialTensorAux>()
 {
   InputParameters params = validParams<AuxKernel>();
   params += validParams<MaterialTensorCalculator>();
-  params.addRequiredParam<std::string>("tensor", "The material tensor name.");
+  params.addRequiredParam<MaterialPropertyName>("tensor", "The material tensor name.");
   params.addParam<unsigned int>("qp_select", "The quad point you want evaluated");
   return params;
 }
 
-MaterialTensorAux::MaterialTensorAux( const std::string & name, InputParameters parameters ) :
-    AuxKernel(name, parameters),
-    _material_tensor_calculator(name, parameters),
-    _tensor(getMaterialProperty<SymmTensor>(getParam<std::string>("tensor"))),
+MaterialTensorAux::MaterialTensorAux( const InputParameters & parameters) :
+    AuxKernel(parameters),
+    _material_tensor_calculator(parameters),
+    _tensor(getMaterialProperty<SymmTensor>("tensor")),
     _has_qp_select(isParamValid("qp_select")),
     _qp_select(_has_qp_select ? getParam<unsigned int>("qp_select") : 0)
 {

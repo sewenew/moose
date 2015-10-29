@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "ContactPressureAux.h"
 
 #include "NodalArea.h"
@@ -15,8 +21,8 @@ InputParameters validParams<ContactPressureAux>()
   return params;
 }
 
-ContactPressureAux::ContactPressureAux(const std::string & name, InputParameters params) :
-    AuxKernel(name, params),
+ContactPressureAux::ContactPressureAux(const InputParameters & params) :
+    AuxKernel(params),
     _nodal_area(coupledValue("nodal_area")),
     _penetration_locator(getPenetrationLocator(getParam<BoundaryName>("paired_boundary"), getParam<std::vector<BoundaryName> >("boundary")[0], Utility::string_to_enum<Order>(getParam<MooseEnum>("order"))))
 {
@@ -45,3 +51,4 @@ ContactPressureAux::computeValue()
   }
   return value;
 }
+

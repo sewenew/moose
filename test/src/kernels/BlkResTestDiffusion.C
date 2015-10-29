@@ -1,3 +1,16 @@
+/****************************************************************/
+/*               DO NOT MODIFY THIS HEADER                      */
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*           (c) 2010 Battelle Energy Alliance, LLC             */
+/*                   ALL RIGHTS RESERVED                        */
+/*                                                              */
+/*          Prepared by Battelle Energy Alliance, LLC           */
+/*            Under Contract No. DE-AC07-05ID14517              */
+/*            With the U. S. Department of Energy               */
+/*                                                              */
+/*            See COPYRIGHT for full restrictions               */
+/****************************************************************/
 #include "BlkResTestDiffusion.h"
 #include "MooseEnum.h"
 #include "MooseTypes.h"
@@ -11,9 +24,12 @@ InputParameters validParams<BlkResTestDiffusion>()
   return params;
 }
 
-// A function to modify the paramters for testing purposes
-InputParameters & modifyParams(InputParameters & params)
+// A function to modify the parameters for testing purposes
+InputParameters & modifyParams(const InputParameters & parameters)
 {
+  // This is only a test, so hack it up
+  InputParameters & params = const_cast<InputParameters &>(parameters);
+
   // Get the FEProblem pointer
   FEProblem* fe_ptr = params.get<FEProblem*>("_fe_problem");
 
@@ -48,8 +64,8 @@ InputParameters & modifyParams(InputParameters & params)
 }
 
 
-BlkResTestDiffusion::BlkResTestDiffusion(const std::string & name, InputParameters parameters) :
-    Kernel(name, modifyParams(parameters))
+BlkResTestDiffusion::BlkResTestDiffusion(const InputParameters & parameters) :
+    Kernel(modifyParams(parameters))
 {
 
   // Get an test enum from the kernel parameters
@@ -165,7 +181,7 @@ BlkResTestDiffusion::BlkResTestDiffusion(const std::string & name, InputParamete
   // Test that hasMaterialPropertyBlock is working properly
   else if (test == "hasBlockMaterialProperty_true")
   {
-    if (hasBlockMaterialProperty("a"))
+    if (hasBlockMaterialProperty<Real>("a"))
       mooseError("hasBlockMaterialProperty is true, test passed"); // expected error
     else
       mooseError("hasBlockMaterialProperty is false, test failed");
@@ -173,7 +189,7 @@ BlkResTestDiffusion::BlkResTestDiffusion(const std::string & name, InputParamete
 
   else if (test == "hasBlockMaterialProperty_false")
   {
-    if (hasBlockMaterialProperty("b"))
+    if (hasBlockMaterialProperty<Real>("b"))
       mooseError("hasBlockMaterialProperty is true, test failed");
     else
       mooseError("hasBlockMaterialProperty is false, test passed"); // expected error

@@ -24,8 +24,8 @@ InputParameters validParams<KernelGrad>()
 }
 
 
-KernelGrad::KernelGrad(const std::string & name, InputParameters parameters):
-    Kernel(name, parameters)
+KernelGrad::KernelGrad(const InputParameters & parameters):
+    Kernel(parameters)
 {
 }
 
@@ -116,3 +116,4 @@ KernelGrad::precomputeQpJacobian()
 {
   return RealGradient(0.0);
 }
+

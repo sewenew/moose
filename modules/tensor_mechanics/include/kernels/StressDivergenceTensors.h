@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef STRESSDIVERGENCETENSORS_H
 #define STRESSDIVERGENCETENSORS_H
 
@@ -21,7 +27,7 @@ InputParameters validParams<StressDivergenceTensors>();
 class StressDivergenceTensors : public Kernel
 {
 public:
-  StressDivergenceTensors(const std::string & name, InputParameters parameters);
+  StressDivergenceTensors(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -30,22 +36,23 @@ protected:
 
   std::string _base_name;
 
-  MaterialProperty<RankTwoTensor> & _stress;
-  MaterialProperty<ElasticityTensorR4> & _Jacobian_mult;
+  const MaterialProperty<RankTwoTensor> & _stress;
+  const MaterialProperty<ElasticityTensorR4> & _Jacobian_mult;
   // MaterialProperty<RankTwoTensor> & _d_stress_dT;
 
   const unsigned int _component;
 
-private:
-  const bool _xdisp_coupled;
-  const bool _ydisp_coupled;
-  const bool _zdisp_coupled;
+  /// Coupled displacement variables
+  unsigned int _ndisp;
+  std::vector<VariableValue *> _disp;
+  std::vector<unsigned int> _disp_var;
+
   const bool _temp_coupled;
 
-  const unsigned int _xdisp_var;
-  const unsigned int _ydisp_var;
-  const unsigned int _zdisp_var;
   const unsigned int _temp_var;
+
+private:
+
 };
 
 #endif //STRESSDIVERGENCETENSORS_H

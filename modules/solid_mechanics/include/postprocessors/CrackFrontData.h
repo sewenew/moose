@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef CRACKFRONTDATA_H
 #define CRACKFRONTDATA_H
@@ -31,7 +25,7 @@ InputParameters validParams<CrackFrontData>();
 class CrackFrontData : public GeneralPostprocessor
 {
 public:
-  CrackFrontData(const std::string & name, InputParameters parameters);
+  CrackFrontData(const InputParameters & parameters);
 
   virtual void initialize();
   virtual void execute() {}
@@ -44,7 +38,7 @@ public:
 
 protected:
   const CrackFrontDefinition * const _crack_front_definition;
-  const unsigned int _crack_front_node_index;
+  const unsigned int _crack_front_point_index;
   const Node * _crack_front_node;
   MooseMesh & _mesh;
   std::string _var_name;

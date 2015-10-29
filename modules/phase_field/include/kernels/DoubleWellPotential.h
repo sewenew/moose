@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef DOUBLEWELLPOTENTIAL_H
 #define DOUBLEWELLPOTENTIAL_H
 
@@ -15,7 +21,7 @@ InputParameters validParams<DoubleWellPotential>();
 class DoubleWellPotential : public ACBulk
 {
 public:
-  DoubleWellPotential(const std::string & name, InputParameters parameters);
+  DoubleWellPotential(const InputParameters & parameters);
 
 protected:
   virtual Real computeDFDOP(PFFunctionType type);

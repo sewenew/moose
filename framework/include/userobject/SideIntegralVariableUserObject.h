@@ -35,12 +35,10 @@ class SideIntegralVariableUserObject :
   public MooseVariableInterface
 {
 public:
-  SideIntegralVariableUserObject(const std::string & name, InputParameters parameters);
+  SideIntegralVariableUserObject(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpIntegral();
-
-  MooseVariable & _var;
 
   /// Holds the solution at current quadrature points
   VariableValue & _u;

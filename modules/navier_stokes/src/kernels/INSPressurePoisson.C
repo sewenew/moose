@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "INSPressurePoisson.h"
 
 template<>
@@ -18,8 +24,8 @@ InputParameters validParams<INSPressurePoisson>()
 
 
 
-INSPressurePoisson::INSPressurePoisson(const std::string & name, InputParameters parameters) :
-  Kernel(name, parameters),
+INSPressurePoisson::INSPressurePoisson(const InputParameters & parameters) :
+  Kernel(parameters),
 
   // Gradients
   _grad_a1(coupledGradient("a1")),
@@ -75,3 +81,4 @@ Real INSPressurePoisson::computeQpOffDiagJacobian(unsigned jvar)
   else
     return 0;
 }
+

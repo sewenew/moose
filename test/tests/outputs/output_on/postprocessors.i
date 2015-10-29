@@ -57,11 +57,8 @@
 
 [Outputs]
   exodus = false
-  output_on = 'initial timestep_end'
   [./console]
     type = Console
-    perf_log = true
-    output_postprocessors_on = 'initial nonlinear timestep_end'
-    output_on = 'timestep_end failed nonlinear linear'
+    execute_postprocessors_on = 'initial nonlinear timestep_end'
   [../]
 []

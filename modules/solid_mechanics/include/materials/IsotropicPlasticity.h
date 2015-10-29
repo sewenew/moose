@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef ISOTROPICPLASTICITY_H
 #define ISOTROPICPLASTICITY_H
 
@@ -11,8 +17,7 @@ class PiecewiseLinear;
 class IsotropicPlasticity : public ReturnMappingModel
 {
 public:
-  IsotropicPlasticity( const std::string & name,
-                       InputParameters parameters );
+  IsotropicPlasticity( const InputParameters & parameters);
 
   virtual void initStatefulProperties(unsigned n_points);
 

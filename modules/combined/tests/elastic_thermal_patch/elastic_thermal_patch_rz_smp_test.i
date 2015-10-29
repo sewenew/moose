@@ -284,12 +284,7 @@
   [./exodus]
     type = Exodus
     elemental_as_nodal = true
+    execute_on = 'initial timestep_end nonlinear'
     nonlinear_residual_dt_divisor = 100
-    output_on = 'initial timestep_end nonlinear'
-  [../]
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'initial timestep_end failed nonlinear linear'
   [../]
 [] # Outputs

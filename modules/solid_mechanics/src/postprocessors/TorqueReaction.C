@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #include "TorqueReaction.h"
 
@@ -27,8 +21,8 @@ InputParameters validParams<TorqueReaction>()
   return params;
 }
 
-TorqueReaction::TorqueReaction(const std::string & name, InputParameters parameters) :
-    NodalPostprocessor(name, parameters),
+TorqueReaction::TorqueReaction(const InputParameters & parameters) :
+    NodalPostprocessor(parameters),
     _aux(_fe_problem.getAuxiliarySystem()),
     _react_x_var(_aux.getVariable(_tid, parameters.get<AuxVariableName>("react_x"))),
     _react_y_var(_aux.getVariable(_tid, parameters.get<AuxVariableName>("react_y"))),

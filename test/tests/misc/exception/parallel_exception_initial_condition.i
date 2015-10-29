@@ -13,13 +13,11 @@
   [./exception]
     type = ExceptionKernel
     variable = u
-    block = 1
     when = initial_condition
   [../]
   [./diff]
     type = Diffusion
     variable = u
-    block = 2
   [../]
 []
 
@@ -39,18 +37,10 @@
 []
 
 [Executioner]
-  type = ExceptionSteady
-
-  # Preconditioned JFNK (default)
+  type = TestSteady
   solve_type = 'PJFNK'
 []
 
 [Outputs]
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []

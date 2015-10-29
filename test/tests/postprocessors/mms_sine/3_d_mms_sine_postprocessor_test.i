@@ -112,10 +112,12 @@
     type = ElementL2Error
     variable = u
     function = solution
+    execute_on = 'initial timestep_end'
   [../]
 
   [./dofs]
     type = NumDOFs
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -123,10 +125,4 @@
 [Outputs]
   file_base = 3_d_postprocessor_out
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

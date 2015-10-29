@@ -49,21 +49,21 @@ InputParameters validParams<AuxKernel>()
   return params;
 }
 
-AuxKernel::AuxKernel(const std::string & name, InputParameters parameters) :
-    MooseObject(name, parameters),
-    BlockRestrictable(name, parameters),
-    BoundaryRestrictable(name, parameters),
+AuxKernel::AuxKernel(const InputParameters & parameters) :
+    MooseObject(parameters),
+    BlockRestrictable(parameters),
+    BoundaryRestrictable(parameters),
     SetupInterface(parameters),
     CoupleableMooseVariableDependencyIntermediateInterface(parameters, parameters.get<AuxiliarySystem *>("_aux_sys")->getVariable(parameters.get<THREAD_ID>("_tid"), parameters.get<AuxVariableName>("variable")).isNodal()),
     FunctionInterface(parameters),
     UserObjectInterface(parameters),
-    TransientInterface(parameters, name, "aux_kernels"),
-    MaterialPropertyInterface(name, parameters),
+    TransientInterface(parameters, "aux_kernels"),
+    MaterialPropertyInterface(parameters, blockIDs(), boundaryIDs()),
     PostprocessorInterface(parameters),
     DependencyResolverInterface(),
-    RandomInterface(name, parameters, *parameters.get<FEProblem *>("_fe_problem"), parameters.get<THREAD_ID>("_tid"), parameters.get<AuxiliarySystem *>("_aux_sys")->getVariable(parameters.get<THREAD_ID>("_tid"), parameters.get<AuxVariableName>("variable")).isNodal()),
+    RandomInterface(parameters, *parameters.get<FEProblem *>("_fe_problem"), parameters.get<THREAD_ID>("_tid"), parameters.get<AuxiliarySystem *>("_aux_sys")->getVariable(parameters.get<THREAD_ID>("_tid"), parameters.get<AuxVariableName>("variable")).isNodal()),
     GeometricSearchInterface(parameters),
-    Restartable(name, parameters, "AuxKernels"),
+    Restartable(parameters, "AuxKernels"),
     ZeroInterface(parameters),
     MeshChangedInterface(parameters),
     _subproblem(*parameters.get<SubProblem *>("_subproblem")),
@@ -129,8 +129,7 @@ AuxKernel::getUserObjectBase(const std::string & name)
   return UserObjectInterface::getUserObjectBase(name);
 }
 
-
-PostprocessorValue &
+const PostprocessorValue &
 AuxKernel::getPostprocessorValue(const std::string & name)
 {
   _depend_uo.insert(_pars.get<PostprocessorName>(name));
@@ -213,4 +212,24 @@ bool
 AuxKernel::isNodal()
 {
   return _nodal;
+}
+
+VariableValue &
+AuxKernel::coupledDot(const std::string & var_name, unsigned int comp)
+{
+  MooseVariable * var = getVar(var_name, comp);
+  if (var->kind() == Moose::VAR_AUXILIARY)
+    mooseError(name() << ": Unable to couple time derivative of an auxiliary variable into the auxiliary system.");
+
+  return Coupleable::coupledDot(var_name, comp);
+}
+
+VariableValue &
+AuxKernel::coupledDotDu(const std::string & var_name, unsigned int comp)
+{
+  MooseVariable * var = getVar(var_name, comp);
+  if (var->kind() == Moose::VAR_AUXILIARY)
+    mooseError(name() << ": Unable to couple time derivative of an auxiliary variable into the auxiliary system.");
+
+  return Coupleable::coupledDotDu(var_name, comp);
 }

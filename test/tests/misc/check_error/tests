@@ -1,4 +1,10 @@
 [Tests]
+  [./steady_no_converge]
+    type = 'RunApp'
+    input = 'steady_no_converge.i'
+    expect_out = 'Aborting as solve did not converge'
+  [../]
+
   [./range_check_param]
     type = 'RunException'
     input = 'range_check_param.i'
@@ -68,7 +74,7 @@
   [./bad_second_order_test]
     type = 'RunException'
     input = 'bad_second_order_test.i'
-    expect_err = 'Bad ElemType'
+    expect_err = 'ERROR: Finite element LAGRANGE on geometric element QUAD4\nonly supports FEInterface::max_order = 1, not fe_type.order = 2'
     method = 'DBG'
   [../]
 
@@ -122,22 +128,28 @@
     expect_err = "The following dynamic boundary name is not unique: \w+"
   [../]
 
+  [./linear_interp_material_check]
+    type = 'RunException'
+    input = 'linear_interp_not_increasing.i'
+    expect_err = "In LinearInterpolationMaterial \S+: x-values are not strictly increasing"
+  [../]
+
   [./function_file_test1]
     type = 'RunException'
     input = 'function_file_test1.i'
-    expect_err = "Read more than two rows of data from file '\S+' for Piecewise function.  Did you mean to use \"format = columns\"?"
+    expect_err = "In Piecewise \S+: Read more than two rows of data from file '\S+'.  Did you mean to use \"format = columns\"?"
   [../]
 
   [./function_file_test2]
     type = 'RunException'
     input = 'function_file_test2.i'
-    expect_err = "Read more than 2 columns of data from file '\S+' for Piecewise function.  Did you mean to use \"format = rows\"?"
+    expect_err = "In Piecewise \S+: Read more than 2 columns of data from file '\S+'.  Did you mean to use \"format = rows\"?"
   [../]
 
   [./function_file_test3]
     type = 'RunException'
     input = 'function_file_test3.i'
-    expect_err = "Lengths of x and y data do not match in file '\S+' for Piecewise function."
+    expect_err = "In Piecewise \S+: Lengths of x and y data do not match in file '\S+'."
   [../]
 
   [./function_file_test4]
@@ -149,37 +161,37 @@
   [./function_file_test5]
     type = 'RunException'
     input = 'function_file_test5.i'
-    expect_err = "In Piecewise: Cannot specify 'data_file' and 'x', 'y', or 'xy_data' together."
+    expect_err = "In Piecewise \S+: Cannot specify 'data_file' and 'x', 'y', or 'xy_data' together."
   [../]
 
   [./function_file_test6]
     type = 'RunException'
     input = 'function_file_test6.i'
-    expect_err = "In Piecewise: Cannot specify 'x', 'y', and 'xy_data' together."
+    expect_err = "In Piecewise \S+: Cannot specify 'x', 'y', and 'xy_data' together."
   [../]
 
   [./function_file_test7]
     type = 'RunException'
     input = 'function_file_test7.i'
-    expect_err = "In Piecewise: Both 'x' and 'y' must be specified if either one is specified."
+    expect_err = "In Piecewise \S+: Both 'x' and 'y' must be specified if either one is specified."
   [../]
 
   [./function_file_test8]
     type = 'RunException'
     input = 'function_file_test8.i'
-    expect_err = "In Piecewise: Length of data provided in 'xy_data' must be a multiple of 2."
+    expect_err = "In Piecewise \S+: Length of data provided in 'xy_data' must be a multiple of 2."
   [../]
 
   [./function_file_test9]
     type = 'RunException'
     input = 'function_file_test9.i'
-    expect_err = "In Piecewise: Either 'data_file', 'x' and 'y', or 'xy_data' must be specified."
+    expect_err = "In Piecewise \S+: Either 'data_file', 'x' and 'y', or 'xy_data' must be specified."
   [../]
 
   [./function_file_test10]
     type = 'RunException'
     input = 'function_file_test10.i'
-    expect_err = "In Piecewise function axis=3 outside allowable range \(0-2\)."
+    expect_err = "In Piecewise \S+: axis=3 outside allowable range \(0-2\)."
   [../]
 
   [./incomplete_kernel_block_coverage_test]
@@ -218,10 +230,16 @@
     expect_err = "One or more Material Properties were not supplied on block"
   [../]
 
+  [./coupled_grad_without_declare]
+    type = 'RunException'
+    input = 'coupled_grad_without_declare.i'
+    expect_err = 'The coupled variable "\w+" was never added to this objects\'s InputParameters'
+  [../]
+
   [./missing_function_file_test]
     type = 'RunException'
     input = 'missing_function_file_test.i'
-    expect_err = "Error opening file \S+ from Piecewise function"
+    expect_err = "In Piecewise \S+: Error opening file '\S+'"
   [../]
 
   [./missing_function_test]
@@ -289,7 +307,6 @@
     type = 'RunException'
     input = 'multi_precond_test.i'
     expect_err = "More than one active Preconditioner detected"
-    max_parallel = 1
   [../]
 
   [./nan_test]
@@ -302,10 +319,15 @@
     # error on newer versions of PETSc.
   [../]
 
+  # This is a Steady test so it would be skipped anyway but it turns out that we read the
+  # mesh and initialize the system before exiting safely. However this input file
+  # is used by several other error tests that may also be accessing the checkpoint
+  # file so it's just easier to not execute it in the first place.
   [./nan_no_trap_fpe_test]
     type = 'RunApp'
     input = 'nan_test.i'
     cli_args = '--no-trap-fpe'
+    recover = false
   [../]
 
   [./nan_test_transient]
@@ -334,6 +356,7 @@
     type = 'RunApp'
     input = 'override_name_variable_test.i'
     expect_out = "The following variables were overridden or supplied multiple times:"
+    max_parallel = 1
   [../]
 
   [./rz_3d_error_check_test]
@@ -351,14 +374,13 @@
   [./subdomain_restricted_auxkernel_test]
     type = 'RunException'
     input = 'subdomain_restricted_auxkernel_mismatch.i'
-    expect_err = "In object \w+\ the defined blocks are outside of the domain of the variable"
-    max_parallel = 1  # Error output can interleave on multiple processes
+    expect_err = "In object foo the defined blocks are outside of the domain of the variable"
   [../]
 
   [./subdomain_restricted_kernel_test]
     type = 'RunException'
     input = 'subdomain_restricted_kernel_mismatch.i'
-    expect_err = "In object \w+\ the defined blocks are outside of the domain of the variable"
+    expect_err = "In object body_force the defined blocks are outside of the domain of the variable"
   [../]
 
   [./unused_param_test]
@@ -368,6 +390,7 @@
     cli_args = '--warn-unused'
     # Don't allow --error-unused on this test
     skip_test_harness_cli_args = true
+    max_parallel = 1 # warning can mix on multiple processes
   [../]
 
   [./unused_param_test_cli]
@@ -431,18 +454,13 @@
     method = 'dbg'
   [../]
 
-  [./lin_comb_incomp_len]
-    type = 'RunException'
-    input = 'lin_comb_incomp_len.i'
-    expect_err = 'lc-aux: the length of v and w has to be the same'
-  [../]
-
   # check syntax
   [./check_syntax_ok]
     type = 'RunApp'
     input = 'check_syntax_ok.i'
     cli_args = '--check-input'
     expect_out = 'Syntax OK'
+    max_parallel = 1
   [../]
 
   [./check_syntax_error]
@@ -457,5 +475,11 @@
     input = 'Foo'
     input_switch = '--check-input'
     expect_err = 'You specified --check-input, but did not provide an input file. Add -i <inputfile> to your command line.'
+  [../]
+
+  [./multiple_time_int_check]
+    type = 'RunException'
+    input = time_integrator_error.i
+    expect_err = 'You cannot specify time_scheme in the Executioner and independently add a TimeIntegrator.'
   [../]
 []

@@ -18,9 +18,9 @@
 []
 
 [GlobalParams]
-  disp_z = disp_z
-  disp_y = disp_y
-  disp_x = disp_x
+#  disp_z = disp_z
+#  disp_y = disp_y
+#  disp_x = disp_x
 []
 
 
@@ -35,6 +35,7 @@
 
 [Kernels]
   [./TensorMechanics]
+    displacements = 'disp_x disp_y disp_z'
   [../]
   [./weight]
     type = BodyForce
@@ -180,17 +181,23 @@
 []
 
 [Materials]
-  [./mc]
-    type = FiniteStrainMultiPlasticity
+  [./elasticity_tensor]
+    type = ComputeElasticityTensor
     block = 0
-    disp_x = disp_x
-    disp_y = disp_y
-    disp_z = disp_z
+    fill_method = symmetric_isotropic
+    C_ijkl = '0.4 0.4' # young = 1, poisson = 0.25
+  [../]
+  [./strain]
+    type = ComputeIncrementalSmallStrain
+    block = 0
+    displacements = 'disp_x disp_y disp_z'
+  [../]
+  [./mc]
+    type = ComputeMultiPlasticityStress
+    block = 0
     initial_stress = 'kxx 0 0  0 kxx 0  0 0 weight'
 
     # the rest of this stuff is irrelevant for this test
-    fill_method = symmetric_isotropic
-    C_ijkl = '0.4 0.4' # young's = 1, poisson = 0.25
     ep_plastic_tolerance = 1E-5
     plastic_models = mc
     debug_fspb = 1
@@ -209,7 +216,7 @@
 [Executioner]
   end_time = 1.0
   dt = 1.0
-  solve_type = PJFNK
+  solve_type = NEWTON
   type = Transient
 
   nl_abs_tol = 1E-8
@@ -227,14 +234,7 @@
 [Outputs]
   file_base = gravity
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    linear_residuals = false
-  [../]
   [./csv]
     type = CSV
-    interval = 1
-  [../]
+    [../]
 []

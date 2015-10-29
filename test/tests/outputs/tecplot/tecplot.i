@@ -41,5 +41,4 @@
 
 [Outputs]
   tecplot = true
-  output_on = 'initial timestep_end'
 []

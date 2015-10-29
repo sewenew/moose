@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMVISCOUSFLUX_H
 #define NSMOMENTUMVISCOUSFLUX_H
 
@@ -20,7 +26,7 @@ class NSMomentumViscousFlux : public NSKernel
 {
 public:
 
-  NSMomentumViscousFlux(const std::string & name, InputParameters parameters);
+  NSMomentumViscousFlux(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();

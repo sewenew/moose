@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #include "RichardsApp.h"
 #include "Moose.h"
@@ -46,10 +49,12 @@
 #include "RichardsRelPermAux.h"
 #include "RichardsRelPermPrimeAux.h"
 #include "RichardsRelPermPrimePrimeAux.h"
-#include "FunctionOfVariableAux.h"
+#include "DarcyFluxComponent.h"
 
 // Materials
 #include "RichardsMaterial.h"
+#include "PoroFullSatMaterial.h" // Used for mechanical coupling
+#include "DarcyMaterial.h"
 
 // DiracKernels
 #include "RichardsBorehole.h"
@@ -74,6 +79,8 @@
 #include "RichardsFlux.h"
 #include "RichardsFullyUpwindFlux.h"
 #include "RichardsPPenalty.h"
+#include "PoroFullSatTimeDerivative.h" // Used for mechanical coupling
+#include "DarcyFlux.h"
 
   // BoundaryConditions
 #include "RichardsExcav.h"
@@ -87,17 +94,14 @@ template<>
 InputParameters validParams<RichardsApp>()
 {
   InputParameters params = validParams<MooseApp>();
-  params.set<bool>("use_legacy_uo_initialization") = true;
+  params.set<bool>("use_legacy_uo_initialization") = false;
   params.set<bool>("use_legacy_uo_aux_computation") = false;
-
   return params;
 }
 
-RichardsApp::RichardsApp(const std::string & name, InputParameters parameters) :
-    MooseApp(name, parameters)
+RichardsApp::RichardsApp(const InputParameters & parameters) :
+    MooseApp(parameters)
 {
-  srand(processor_id());
-
   Moose::registerObjects(_factory);
   RichardsApp::registerObjects(_factory);
 
@@ -157,10 +161,12 @@ RichardsApp::registerObjects(Factory & factory)
   registerAux(RichardsRelPermAux);
   registerAux(RichardsRelPermPrimeAux);
   registerAux(RichardsRelPermPrimePrimeAux);
-  registerAux(FunctionOfVariableAux);
+  registerAux(DarcyFluxComponent);
 
   // Materials
   registerMaterial(RichardsMaterial);
+  registerMaterial(PoroFullSatMaterial); // Used for mechanical coupling
+  registerMaterial(DarcyMaterial);
 
   // DiracKernels
   registerDiracKernel(RichardsPolyLineSink);
@@ -185,6 +191,8 @@ RichardsApp::registerObjects(Factory & factory)
   registerKernel(RichardsFlux);
   registerKernel(RichardsFullyUpwindFlux);
   registerKernel(RichardsPPenalty);
+  registerKernel(PoroFullSatTimeDerivative); // Used for mechanical coupling
+  registerKernel(DarcyFlux);
 
   // BoundaryConditions
   registerBoundaryCondition(RichardsExcav);

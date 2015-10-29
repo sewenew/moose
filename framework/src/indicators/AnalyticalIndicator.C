@@ -23,8 +23,8 @@ InputParameters validParams<AnalyticalIndicator>()
 }
 
 
-AnalyticalIndicator::AnalyticalIndicator(const std::string & name, InputParameters parameters) :
-    ElementIntegralIndicator(name, parameters),
+AnalyticalIndicator::AnalyticalIndicator(const InputParameters & parameters) :
+    ElementIntegralIndicator(parameters),
     _func(getFunction("function"))
 {
 }
@@ -35,4 +35,5 @@ AnalyticalIndicator::computeQpIntegral()
   Real diff = _u[_qp]-_func.value(_t, _q_point[_qp]);
   return diff*diff;
 }
+
 

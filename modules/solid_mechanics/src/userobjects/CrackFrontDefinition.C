@@ -1,6 +1,13 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "CrackFrontDefinition.h"
 #include <map>
 #include <vector>
+#include "libmesh/mesh_tools.h"
 
 template<>
 InputParameters validParams<CrackFrontDefinition>()
@@ -16,6 +23,7 @@ void addCrackFrontDefinitionParams(InputParameters& params)
 {
   MooseEnum direction_method("CrackDirectionVector CrackMouth CurvedCrackFront");
   MooseEnum end_direction_method("NoSpecialTreatment CrackDirectionVector", "NoSpecialTreatment");
+  params.addParam<std::vector<Point> >("crack_front_points","Set of points to define crack front");
   params.addRequiredParam<MooseEnum>("crack_direction_method", direction_method, "Method to determine direction of crack propagation.  Choices are: " + direction_method.getRawNames());
   params.addParam<MooseEnum>("crack_end_direction_method", end_direction_method, "Method to determine direction of crack propagation at ends of crack.  Choices are: " + end_direction_method.getRawNames());
   params.addParam<RealVectorValue>("crack_direction_vector","Direction of crack propagation");
@@ -26,21 +34,43 @@ void addCrackFrontDefinitionParams(InputParameters& params)
   params.addParam<bool>("2d", false, "Treat body as two-dimensional");
   params.addRangeCheckedParam<unsigned int>("axis_2d", 2, "axis_2d>=0 & axis_2d<=2", "Out of plane axis for models treated as two-dimensional (0=x, 1=y, 2=z)");
   params.addParam<unsigned int>("symmetry_plane", "Account for a symmetry plane passing through the plane of the crack, normal to the specified axis (0=x, 1=y, 2=z)");
+  params.addParam<bool>("t_stress", false, "Calculate T-stress");
+  params.addParam<bool>("q_function_rings", false, "Generate rings of nodes for q-function");
+  params.addParam<unsigned int>("last_ring","The number of rings of nodes to generate");
+  params.addParam<VariableName>("disp_x","Variable containing the x displacement");
+  params.addParam<VariableName>("disp_y","Variable containing the y displacement");
+  params.addParam<VariableName>("disp_z","Variable containing the z displacement");
 }
 
-const Real CrackFrontDefinition::_tol = 1e-14;
+const Real CrackFrontDefinition::_tol = 1e-10;
 
-CrackFrontDefinition::CrackFrontDefinition(const std::string & name, InputParameters parameters) :
-    GeneralUserObject(name, parameters),
-    BoundaryRestrictable(name, parameters),
+CrackFrontDefinition::CrackFrontDefinition(const InputParameters & parameters) :
+    GeneralUserObject(parameters),
+    BoundaryRestrictable(parameters),
     _aux(_fe_problem.getAuxiliarySystem()),
     _mesh(_subproblem.mesh()),
     _treat_as_2d(getParam<bool>("2d")),
     _closed_loop(false),
     _axis_2d(getParam<unsigned int>("axis_2d")),
     _has_symmetry_plane(isParamValid("symmetry_plane")),
-    _symmetry_plane(_has_symmetry_plane ? getParam<unsigned int>("symmetry_plane") : std::numeric_limits<unsigned int>::max())
+    _symmetry_plane(_has_symmetry_plane ? getParam<unsigned int>("symmetry_plane") : std::numeric_limits<unsigned int>::max()),
+    _t_stress(getParam<bool>("t_stress")),
+    _q_function_rings(getParam<bool>("q_function_rings"))
 {
+  if (isParamValid("crack_front_points"))
+  {
+    _crack_front_points = getParam<std::vector<Point> >("crack_front_points");
+    _geom_definition_method = CRACK_FRONT_POINTS;
+    if (_t_stress)
+      mooseError("t_stress not yet supported with crack_front_points");
+    if (_q_function_rings)
+      mooseError("q_function_rings not supported with crack_front_points");
+  }
+  else if (isParamValid("boundary"))
+    _geom_definition_method = CRACK_FRONT_NODES;
+  else
+    mooseError("In CrackFrontDefinition, must define either 'boundary' or 'crack_front_points'");
+
   if (isParamValid("crack_mouth_boundary"))
     _crack_mouth_boundary_names = getParam<std::vector<BoundaryName> >("crack_mouth_boundary");
 
@@ -72,7 +102,11 @@ CrackFrontDefinition::CrackFrontDefinition(const std::string & name, InputParame
   }
 
   if (isParamValid("intersecting_boundary"))
+  {
     _intersecting_boundary_names = getParam<std::vector<BoundaryName> >("intersecting_boundary");
+    if (_geom_definition_method == CRACK_FRONT_POINTS)
+      mooseError("The use of 'intersecting_boundary' together with 'crack_front_points' is not yet supported");
+  }
 
   MooseEnum end_direction_method_moose_enum = getParam<MooseEnum>("crack_end_direction_method");
   if (end_direction_method_moose_enum.isValid())
@@ -88,6 +122,22 @@ CrackFrontDefinition::CrackFrontDefinition(const std::string & name, InputParame
       _crack_direction_vector_end_2 = getParam<RealVectorValue>("crack_direction_vector_end_2");
     }
   }
+
+  if (isParamValid("disp_x") && isParamValid("disp_y") && isParamValid("disp_z"))
+  {
+    _disp_x_var_name = getParam<VariableName>("disp_x");
+    _disp_y_var_name = getParam<VariableName>("disp_y");
+    _disp_z_var_name = getParam<VariableName>("disp_z");
+  }
+  else if (_t_stress == true && _treat_as_2d == false)
+    mooseError("Displacement variables must be provided for T-stress calculation");
+
+  if (_q_function_rings)
+  {
+    if (!isParamValid("last_ring"))
+      mooseError("The max number of rings of nodes to generate must be provided if q_function_rings = true");
+    _last_ring = getParam<unsigned int>("last_ring");
+  }
 }
 
 CrackFrontDefinition::~CrackFrontDefinition()
@@ -99,6 +149,8 @@ CrackFrontDefinition::execute()
 {
   //Because J-Integral is based on original geometry, the crack front geometry
   //is never updated, so everything that needs to happen is done in initialSetup()
+  if (_t_stress == true && _treat_as_2d == false)
+    calculateTangentialStrainAlongFront();
 }
 
 void
@@ -107,12 +159,24 @@ CrackFrontDefinition::initialSetup()
   _crack_mouth_boundary_ids = _mesh.getBoundaryIDs(_crack_mouth_boundary_names,true);
   _intersecting_boundary_ids = _mesh.getBoundaryIDs(_intersecting_boundary_names,true);
 
-  std::set<dof_id_type> nodes;
-  getCrackFrontNodes(nodes);
-  orderCrackFrontNodes(nodes);
+  if (_geom_definition_method == CRACK_FRONT_NODES)
+  {
+    std::set<dof_id_type> nodes;
+    getCrackFrontNodes(nodes);
+    orderCrackFrontNodes(nodes);
+  }
 
   updateCrackFrontGeometry();
 
+  if (_q_function_rings)
+    createQFunctionRings();
+
+  if (_t_stress)
+  {
+    unsigned int num_crack_front_nodes = _ordered_crack_front_nodes.size();
+    for (unsigned int i=0; i<num_crack_front_nodes; ++i)
+      _strain_along_front.push_back(-std::numeric_limits<Real>::max());
+  }
 }
 
 void
@@ -123,11 +187,8 @@ CrackFrontDefinition::initialize()
 void
 CrackFrontDefinition::finalize()
 {
-}
-
-void
-CrackFrontDefinition::threadJoin(const UserObject & /*uo*/)
-{
+  if (_t_stress)
+    _communicator.max(_strain_along_front);
 }
 
 void
@@ -147,7 +208,7 @@ CrackFrontDefinition::getCrackFrontNodes(std::set<dof_id_type>& nodes)
   {
     if (nodes.size() > 1)
     {
-      //Delete all but one node if they are collinear in the axis normal to the 2d plane
+      //Check that the nodes are collinear in the axis normal to the 2d plane
       unsigned int axis0;
       unsigned int axis1;
 
@@ -187,10 +248,6 @@ CrackFrontDefinition::getCrackFrontNodes(std::set<dof_id_type>& nodes)
             mooseError("Boundary provided in CrackFrontDefinition contains " << nodes.size() << " nodes, which are not collinear in the " << _axis_2d << " axis.  Must contain either 1 node or collinear nodes to treat as 2D.");
         }
       }
-
-      std::set<dof_id_type>::iterator second_node = nodes.begin();
-      ++second_node;
-      nodes.erase(second_node,nodes.end());
     }
   }
 }
@@ -209,9 +266,6 @@ CrackFrontDefinition::orderCrackFrontNodes(std::set<dof_id_type> &nodes)
   }
   else // nodes.size() > 1
   {
-    if (_treat_as_2d)
-      mooseError("Boundary provided in CrackFrontDefinition contains " << nodes.size() << " nodes.  Must contain 1 node to treat as 2D.");
-
     //Loop through the set of crack front nodes, and create a node to element map for just the crack front nodes
     //The main reason for creating a second map is that we need to do a sort prior to the set_intersection.
     //The original map contains vectors, and we can't sort them, so we create sets in the local map.
@@ -321,7 +375,7 @@ CrackFrontDefinition::orderCrackFrontNodes(std::set<dof_id_type> &nodes)
           break;
       }
       second_last_node = last_node;
-      last_node = _ordered_crack_front_nodes[_ordered_crack_front_nodes.size()-1];
+      last_node = _ordered_crack_front_nodes.back();
     }
   }
 }
@@ -534,21 +588,21 @@ CrackFrontDefinition::updateCrackFrontGeometry()
     RealVectorValue crack_direction;
     tangent_direction(_axis_2d) = 1.0;
     _tangent_directions.push_back(tangent_direction);
-    const Node* crack_front_node = _mesh.nodePtr(_ordered_crack_front_nodes[0]);
-    crack_direction = calculateCrackFrontDirection(crack_front_node,tangent_direction,MIDDLE_NODE);
+    const Point *crack_front_point = getCrackFrontPoint(0);
+    crack_direction = calculateCrackFrontDirection(*crack_front_point,tangent_direction,MIDDLE_NODE);
     _crack_directions.push_back(crack_direction);
-    _crack_plane_normal = crack_direction.cross(tangent_direction);
+    _crack_plane_normal = tangent_direction.cross(crack_direction);
     ColumnMajorMatrix rot_mat;
     rot_mat(0,0) = crack_direction(0);
-    rot_mat(1,0) = crack_direction(1);
-    rot_mat(2,0) = crack_direction(2);
-    rot_mat(0,1) = _crack_plane_normal(0);
+    rot_mat(0,1) = crack_direction(1);
+    rot_mat(0,2) = crack_direction(2);
+    rot_mat(1,0) = _crack_plane_normal(0);
     rot_mat(1,1) = _crack_plane_normal(1);
-    rot_mat(2,1) = _crack_plane_normal(2);
-    rot_mat(0,2) = 0.0;
-    rot_mat(1,2) = 0.0;
+    rot_mat(1,2) = _crack_plane_normal(2);
+    rot_mat(2,0) = 0.0;
+    rot_mat(2,1) = 0.0;
     rot_mat(2,2) = 0.0;
-    rot_mat(_axis_2d,2) = 1.0;
+    rot_mat(2,_axis_2d) = 1.0;
     _rot_matrix.push_back(rot_mat);
 
     _segment_lengths.push_back(std::make_pair(0.0,0.0));
@@ -558,35 +612,28 @@ CrackFrontDefinition::updateCrackFrontGeometry()
   }
   else
   {
-    unsigned int num_crack_front_nodes = _ordered_crack_front_nodes.size();
-    std::vector<Node*> crack_front_nodes;
-    crack_front_nodes.reserve(num_crack_front_nodes);
-    _segment_lengths.reserve(num_crack_front_nodes);
-    _tangent_directions.reserve(num_crack_front_nodes);
-    _crack_directions.reserve(num_crack_front_nodes);
-    for (unsigned int i=0; i<num_crack_front_nodes; ++i)
-    {
-      crack_front_nodes.push_back(_mesh.nodePtr(_ordered_crack_front_nodes[i]));
-    }
-
+    unsigned int num_crack_front_points = getNumCrackFrontPoints();
+    _segment_lengths.reserve(num_crack_front_points);
+    _tangent_directions.reserve(num_crack_front_points);
+    _crack_directions.reserve(num_crack_front_points);
     _overall_length = 0.0;
 
     RealVectorValue back_segment;
     Real back_segment_len = 0.0;
     if (_closed_loop)
     {
-      back_segment = *crack_front_nodes[0] - *crack_front_nodes[num_crack_front_nodes-1];
+      back_segment = *getCrackFrontPoint(0) - *getCrackFrontPoint(num_crack_front_points-1);
       back_segment_len = back_segment.size();
     }
 
-    for (unsigned int i=0; i<num_crack_front_nodes; ++i)
+    for (unsigned int i=0; i<num_crack_front_points; ++i)
     {
       CRACK_NODE_TYPE ntype;
       if (_closed_loop)
         ntype = MIDDLE_NODE;
       else if (i==0)
         ntype = END_1_NODE;
-      else if (i==num_crack_front_nodes-1)
+      else if (i==num_crack_front_points-1)
         ntype = END_2_NODE;
       else
         ntype = MIDDLE_NODE;
@@ -595,14 +642,14 @@ CrackFrontDefinition::updateCrackFrontGeometry()
       Real forward_segment_len;
       if (ntype == END_2_NODE)
         forward_segment_len = 0.0;
-      else if (_closed_loop && i==num_crack_front_nodes-1)
+      else if (_closed_loop && i==num_crack_front_points-1)
       {
-        forward_segment = *crack_front_nodes[0] - *crack_front_nodes[i];
+        forward_segment = *getCrackFrontPoint(0) - *getCrackFrontPoint(i);
         forward_segment_len = forward_segment.size();
       }
       else
       {
-        forward_segment = *crack_front_nodes[i+1] - *crack_front_nodes[i];
+        forward_segment = *getCrackFrontPoint(i+1) - *getCrackFrontPoint(i);
         forward_segment_len = forward_segment.size();
         _overall_length += forward_segment_len;
       }
@@ -616,8 +663,12 @@ CrackFrontDefinition::updateCrackFrontGeometry()
       RealVectorValue tangent_direction = back_segment + forward_segment;
       tangent_direction = tangent_direction / tangent_direction.size();
       _tangent_directions.push_back(tangent_direction);
-      _crack_directions.push_back(calculateCrackFrontDirection(crack_front_nodes[i],tangent_direction,ntype));
+      _crack_directions.push_back(calculateCrackFrontDirection(*getCrackFrontPoint(i),tangent_direction,ntype));
 
+      //If the end directions are given by the user, correct also the tangent at the end nodes
+      if (_direction_method == CURVED_CRACK_FRONT && _end_direction_method == END_CRACK_DIRECTION_VECTOR &&
+          (ntype == END_1_NODE || ntype == END_2_NODE))
+        _tangent_directions[i] = _crack_plane_normal.cross(_crack_directions[i]);
 
       back_segment = forward_segment;
       back_segment_len = forward_segment_len;
@@ -626,7 +677,7 @@ CrackFrontDefinition::updateCrackFrontGeometry()
     //For CURVED_CRACK_FRONT, _crack_plane_normal gets computed in updateDataForCrackDirection
     if (_direction_method != CURVED_CRACK_FRONT)
     {
-      unsigned int mid_id = (num_crack_front_nodes - 1) / 2;
+      unsigned int mid_id = (num_crack_front_points - 1) / 2;
       _crack_plane_normal = _tangent_directions[mid_id].cross(_crack_directions[mid_id]);
 
       //Make sure the normal vector is non-zero
@@ -639,15 +690,15 @@ CrackFrontDefinition::updateCrackFrontGeometry()
     //to a circle.
     if (hasAngleAlongFront())
     {
-      RealVectorValue origin_to_first_node = *crack_front_nodes[0] - _crack_mouth_coordinates;
+      RealVectorValue origin_to_first_node = *getCrackFrontPoint(0) - _crack_mouth_coordinates;
       Real hyp = origin_to_first_node.size();
       RealVectorValue norm_origin_to_first_node = origin_to_first_node / hyp;
       RealVectorValue tangent_to_first_node = -norm_origin_to_first_node.cross(_crack_plane_normal);
       tangent_to_first_node /= tangent_to_first_node.size();
 
-      for (unsigned int i=0; i<num_crack_front_nodes; ++i)
+      for (unsigned int i=0; i<num_crack_front_points; ++i)
       {
-        RealVectorValue origin_to_curr_node = *crack_front_nodes[i] - _crack_mouth_coordinates;
+        RealVectorValue origin_to_curr_node = *getCrackFrontPoint(i) - _crack_mouth_coordinates;
 
         Real adj = origin_to_curr_node*norm_origin_to_first_node;
         Real opp = origin_to_curr_node*tangent_to_first_node;
@@ -659,7 +710,7 @@ CrackFrontDefinition::updateCrackFrontGeometry()
       }
 
       //Correct angle on end nodes if they are 0 or 360 to be consistent with neighboring node
-      if (num_crack_front_nodes > 1)
+      if (num_crack_front_points > 1)
       {
         if (MooseUtils::absoluteFuzzyEqual(_angles_along_front[0], 0.0, _tol) &&
             _angles_along_front[1] > 180.0)
@@ -668,20 +719,19 @@ CrackFrontDefinition::updateCrackFrontGeometry()
             _angles_along_front[1] < 180.0)
           _angles_along_front[0] = 0.0;
 
-        unsigned int last_index = num_crack_front_nodes-1;
-        if (MooseUtils::absoluteFuzzyEqual(_angles_along_front[num_crack_front_nodes - 1], 0.0, _tol) &&
-            _angles_along_front[num_crack_front_nodes - 2] > 180.0)
-          _angles_along_front[num_crack_front_nodes - 1] = 360.0;
-        else if (MooseUtils::absoluteFuzzyEqual(_angles_along_front[num_crack_front_nodes - 1], 360.0, _tol) &&
-                 _angles_along_front[num_crack_front_nodes - 2] < 180.0)
-          _angles_along_front[num_crack_front_nodes - 1] = 0.0;
+        if (MooseUtils::absoluteFuzzyEqual(_angles_along_front[num_crack_front_points - 1], 0.0, _tol) &&
+            _angles_along_front[num_crack_front_points - 2] > 180.0)
+          _angles_along_front[num_crack_front_points - 1] = 360.0;
+        else if (MooseUtils::absoluteFuzzyEqual(_angles_along_front[num_crack_front_points - 1], 360.0, _tol) &&
+                 _angles_along_front[num_crack_front_points - 2] < 180.0)
+          _angles_along_front[num_crack_front_points - 1] = 0.0;
       }
     }
     else
-      _angles_along_front.resize(num_crack_front_nodes,0.0);
+      _angles_along_front.resize(num_crack_front_points,0.0);
 
     // Create rotation matrix
-    for (unsigned int i=0; i<num_crack_front_nodes; ++i)
+    for (unsigned int i=0; i<num_crack_front_points; ++i)
     {
       ColumnMajorMatrix rot_mat;
       rot_mat(0,0) = _crack_directions[i](0);
@@ -698,14 +748,19 @@ CrackFrontDefinition::updateCrackFrontGeometry()
 
     _console << "Summary of J-Integral crack front geometry:" << std::endl;
     _console << "index   node id   x coord       y coord       z coord       x dir         y dir          z dir        angle        position     seg length" << std::endl;
-    for (unsigned int i=0; i<crack_front_nodes.size(); ++i)
+    for (unsigned int i=0; i<num_crack_front_points; ++i)
     {
+      unsigned int point_id;
+      if (_geom_definition_method == CRACK_FRONT_NODES)
+        point_id = _ordered_crack_front_nodes[i];
+      else
+        point_id = i;
       _console << std::left
                << std::setw(8) << i + 1
-               << std::setw(10) << crack_front_nodes[i]->id()
-               << std::setw(14) << (*crack_front_nodes[i])(0)
-               << std::setw(14) << (*crack_front_nodes[i])(1)
-               << std::setw(14) << (*crack_front_nodes[i])(2)
+               << std::setw(10) << point_id
+               << std::setw(14) << (*getCrackFrontPoint(i))(0)
+               << std::setw(14) << (*getCrackFrontPoint(i))(1)
+               << std::setw(14) << (*getCrackFrontPoint(i))(2)
                << std::setw(14) << _crack_directions[i](0)
                << std::setw(14) << _crack_directions[i](1)
                << std::setw(14) << _crack_directions[i](2);
@@ -752,7 +807,7 @@ CrackFrontDefinition::updateDataForCrackDirection()
     {
       _crack_mouth_coordinates += **nit;
     }
-    _crack_mouth_coordinates /= (Real)crack_mouth_nodes.size();
+    _crack_mouth_coordinates /= static_cast<Real>(crack_mouth_nodes.size());
 
     if (_has_symmetry_plane)
       _crack_mouth_coordinates(_symmetry_plane) = 0.0;
@@ -806,7 +861,7 @@ CrackFrontDefinition::updateDataForCrackDirection()
 }
 
 RealVectorValue
-CrackFrontDefinition::calculateCrackFrontDirection(const Node* crack_front_node,
+CrackFrontDefinition::calculateCrackFrontDirection(const Point& crack_front_point,
                                                    const RealVectorValue& tangent_direction,
                                                    const CRACK_NODE_TYPE ntype) const
 {
@@ -836,11 +891,11 @@ CrackFrontDefinition::calculateCrackFrontDirection(const Node* crack_front_node,
     }
     else if (_direction_method == CRACK_MOUTH)
     {
-      if (_crack_mouth_coordinates.absolute_fuzzy_equals(*crack_front_node, _tol))
+      if (_crack_mouth_coordinates.absolute_fuzzy_equals(crack_front_point, _tol))
       {
         mooseError("Crack mouth too close to crack front node");
       }
-      RealVectorValue mouth_to_front = *crack_front_node - _crack_mouth_coordinates;
+      RealVectorValue mouth_to_front = crack_front_point - _crack_mouth_coordinates;
 
       RealVectorValue crack_plane_normal = mouth_to_front.cross(tangent_direction);
       if (crack_plane_normal.absolute_fuzzy_equals(zero_vec, _tol))
@@ -869,38 +924,54 @@ const Node *
 CrackFrontDefinition::getCrackFrontNodePtr(const unsigned int node_index) const
 {
   mooseAssert(node_index < _ordered_crack_front_nodes.size(),"node_index out of range");
-  return _mesh.nodePtr(_ordered_crack_front_nodes[node_index]);
+  const Node * crack_front_node = _mesh.nodePtr(_ordered_crack_front_nodes[node_index]);
+  mooseAssert(crack_front_node != NULL,"invalid crack front node");
+  return crack_front_node;
+}
+
+const Point *
+CrackFrontDefinition::getCrackFrontPoint(const unsigned int point_index) const
+{
+  if (_geom_definition_method == CRACK_FRONT_NODES)
+  {
+    return getCrackFrontNodePtr(point_index);
+  }
+  else
+  {
+    mooseAssert(point_index < _crack_front_points.size(),"point_index out of range");
+    return &_crack_front_points[point_index];
+  }
 }
 
 const RealVectorValue &
-CrackFrontDefinition::getCrackFrontTangent(const unsigned int node_index) const
+CrackFrontDefinition::getCrackFrontTangent(const unsigned int point_index) const
 {
-  mooseAssert(node_index < _ordered_crack_front_nodes.size(),"node_index out of range");
-  return _tangent_directions[node_index];
+  mooseAssert(point_index < _tangent_directions.size(),"point_index out of range");
+  return _tangent_directions[point_index];
 }
 
 Real
-CrackFrontDefinition::getCrackFrontForwardSegmentLength(const unsigned int node_index) const
+CrackFrontDefinition::getCrackFrontForwardSegmentLength(const unsigned int point_index) const
 {
-  return _segment_lengths[node_index].second;
+  return _segment_lengths[point_index].second;
 }
 
 Real
-CrackFrontDefinition::getCrackFrontBackwardSegmentLength(const unsigned int node_index) const
+CrackFrontDefinition::getCrackFrontBackwardSegmentLength(const unsigned int point_index) const
 {
-  return _segment_lengths[node_index].first;
+  return _segment_lengths[point_index].first;
 }
 
 const RealVectorValue &
-CrackFrontDefinition::getCrackDirection(const unsigned int node_index) const
+CrackFrontDefinition::getCrackDirection(const unsigned int point_index) const
 {
-  return _crack_directions[node_index];
+  return _crack_directions[point_index];
 }
 
 Real
-CrackFrontDefinition::getDistanceAlongFront(const unsigned int node_index) const
+CrackFrontDefinition::getDistanceAlongFront(const unsigned int point_index) const
 {
-  return _distances_along_front[node_index];
+  return _distances_along_front[point_index];
 }
 
 bool
@@ -910,24 +981,27 @@ CrackFrontDefinition::hasAngleAlongFront() const
 }
 
 Real
-CrackFrontDefinition::getAngleAlongFront(const unsigned int node_index) const
+CrackFrontDefinition::getAngleAlongFront(const unsigned int point_index) const
 {
   if (!hasAngleAlongFront())
     mooseError("In CrackFrontDefinition, Requested angle along crack front, but not available.  Must specify crack_mouth_boundary.");
-  return _angles_along_front[node_index];
+  return _angles_along_front[point_index];
 }
 
 unsigned int
-CrackFrontDefinition::getNumCrackFrontNodes() const
+CrackFrontDefinition::getNumCrackFrontPoints() const
 {
-  return _ordered_crack_front_nodes.size();
+  if (_geom_definition_method == CRACK_FRONT_NODES)
+    return _ordered_crack_front_nodes.size();
+  else
+    return _crack_front_points.size();
 }
 
 RealVectorValue
-CrackFrontDefinition::rotateToCrackFrontCoords(const RealVectorValue vector, const unsigned int node_index) const
+CrackFrontDefinition::rotateToCrackFrontCoords(const RealVectorValue vector, const unsigned int point_index) const
 {
   ColumnMajorMatrix vec3x1;
-  vec3x1 = _rot_matrix[node_index] * vector;
+  vec3x1 = _rot_matrix[point_index] * vector;
   RealVectorValue vec;
   vec(0) = vec3x1(0,0);
   vec(1) = vec3x1(1,0);
@@ -936,7 +1010,7 @@ CrackFrontDefinition::rotateToCrackFrontCoords(const RealVectorValue vector, con
 }
 
 ColumnMajorMatrix
-CrackFrontDefinition::rotateToCrackFrontCoords(const SymmTensor tensor, const unsigned int node_index) const
+CrackFrontDefinition::rotateToCrackFrontCoords(const SymmTensor tensor, const unsigned int point_index) const
 {
   ColumnMajorMatrix tensor_CMM;
   tensor_CMM(0,0) = tensor.xx();
@@ -949,38 +1023,38 @@ CrackFrontDefinition::rotateToCrackFrontCoords(const SymmTensor tensor, const un
   tensor_CMM(2,1) = tensor.yz();
   tensor_CMM(2,2) = tensor.zz();
 
-  ColumnMajorMatrix tmp = _rot_matrix[node_index] * tensor_CMM;
-  ColumnMajorMatrix rotT = _rot_matrix[node_index].transpose();
+  ColumnMajorMatrix tmp = _rot_matrix[point_index] * tensor_CMM;
+  ColumnMajorMatrix rotT = _rot_matrix[point_index].transpose();
   ColumnMajorMatrix rotated_tensor = tmp * rotT;
 
   return rotated_tensor;
 }
 
 ColumnMajorMatrix
-CrackFrontDefinition::rotateToCrackFrontCoords(const ColumnMajorMatrix tensor, const unsigned int node_index) const
+CrackFrontDefinition::rotateToCrackFrontCoords(const ColumnMajorMatrix tensor, const unsigned int point_index) const
 {
-  ColumnMajorMatrix tmp = _rot_matrix[node_index] * tensor;
-  ColumnMajorMatrix rotT = _rot_matrix[node_index].transpose();
+  ColumnMajorMatrix tmp = _rot_matrix[point_index] * tensor;
+  ColumnMajorMatrix rotT = _rot_matrix[point_index].transpose();
   ColumnMajorMatrix rotated_tensor = tmp * rotT;
 
   return rotated_tensor;
 }
 
 void
-CrackFrontDefinition::calculateRThetaToCrackFront(const Point qp, const unsigned int node_index, Real & r, Real & theta) const
+CrackFrontDefinition::calculateRThetaToCrackFront(const Point qp, const unsigned int point_index, Real & r, Real & theta) const
 {
   unsigned int num_nodes(_ordered_crack_front_nodes.size());
   Point p = qp;
   Point closest_node(0.0);
   RealVectorValue closest_node_to_p;
 
-  Node & crack_tip_node = _mesh.node(_ordered_crack_front_nodes[node_index]);
-  RealVectorValue crack_tip_node_rot = rotateToCrackFrontCoords(crack_tip_node,node_index);
+  const Point *crack_front_point = getCrackFrontPoint(point_index);
+  RealVectorValue crack_front_node_rot = rotateToCrackFrontCoords(*crack_front_point,point_index);
 
-  RealVectorValue crack_front_edge = rotateToCrackFrontCoords(_tangent_directions[node_index],node_index);
+  RealVectorValue crack_front_edge = rotateToCrackFrontCoords(_tangent_directions[point_index],point_index);
 
-  Point p_rot = rotateToCrackFrontCoords(p,node_index);
-  p_rot = p_rot - crack_tip_node_rot;
+  Point p_rot = rotateToCrackFrontCoords(p,point_index);
+  p_rot = p_rot - crack_front_node_rot;
 
   if (_treat_as_2d)
   {
@@ -1013,8 +1087,8 @@ CrackFrontDefinition::calculateRThetaToCrackFront(const Point qp, const unsigned
     }
 
     //Rotate coordinates to crack front coordinate system
-    closest_node = rotateToCrackFrontCoords(closest_node,node_index);
-    closest_node = closest_node - crack_tip_node_rot;
+    closest_node = rotateToCrackFrontCoords(closest_node,point_index);
+    closest_node = closest_node - crack_front_node_rot;
 
     //Find r, the distance between the qp and the crack front
     Real edge_length_sq = crack_front_edge.size_sq();
@@ -1028,7 +1102,7 @@ CrackFrontDefinition::calculateRThetaToCrackFront(const Point qp, const unsigned
   }
 
   //Find theta, the angle between r and the crack front plane
-  RealVectorValue crack_plane_normal = rotateToCrackFrontCoords(_crack_plane_normal,node_index);
+  RealVectorValue crack_plane_normal = rotateToCrackFrontCoords(_crack_plane_normal,point_index);
   Real p_to_plane_dist = std::abs(closest_node_to_p*crack_plane_normal);
 
   //Determine if p is above or below the crack plane
@@ -1048,17 +1122,32 @@ CrackFrontDefinition::calculateRThetaToCrackFront(const Point qp, const unsigned
 
   //Calculate theta based on in which quadrant in the crack front coordinate
   //system the qp is located
-  if (x_local >= 0 && y_local >= 0)
-    theta = std::asin(p_to_plane_dist/r);
+  if (r > 0)
+  {
+    Real theta_quadrant1(0.0);
+    if (MooseUtils::absoluteFuzzyEqual(r, p_to_plane_dist, _tol))
+      theta_quadrant1 = 0.5*libMesh::pi;
+    else if (p_to_plane_dist > r)
+      mooseError("Invalid distance p_to_plane_dist in CrackFrontDefinition::calculateRThetaToCrackFront");
+    else
+      theta_quadrant1 = std::asin(p_to_plane_dist/r);
 
-  else if (x_local < 0 && y_local >= 0)
-    theta = libMesh::pi - std::asin(p_to_plane_dist/r);
+    if (x_local >= 0 && y_local >= 0)
+      theta = theta_quadrant1;
 
-  else if (x_local < 0 && y_local < 0)
-    theta = -(libMesh::pi - std::asin(p_to_plane_dist/r));
+    else if (x_local < 0 && y_local >= 0)
+      theta = libMesh::pi - theta_quadrant1;
 
-  else if (x_local >= 0 && y_local < 0)
-    theta = -std::asin(p_to_plane_dist/r);
+    else if (x_local < 0 && y_local < 0)
+      theta = -(libMesh::pi - theta_quadrant1);
+
+    else if (x_local >= 0 && y_local < 0)
+      theta = -theta_quadrant1;
+  }
+  else if (r == 0)
+    theta = 0;
+  else
+    mooseError("Invalid distance r in CrackFrontDefinition::calculateRThetaToCrackFront");
 }
 
 bool
@@ -1076,4 +1165,332 @@ CrackFrontDefinition::isNodeOnIntersectingBoundary(const Node * const node) cons
     }
   }
   return is_on_boundary;
+}
+
+bool
+CrackFrontDefinition::isPointWithIndexOnIntersectingBoundary(const unsigned int point_index) const
+{
+  bool is_on_boundary = false;
+  if (_geom_definition_method == CRACK_FRONT_NODES)
+  {
+    const Node * crack_front_node = getCrackFrontNodePtr(point_index);
+    is_on_boundary = isNodeOnIntersectingBoundary(crack_front_node);
+  }
+  else
+  {
+    //TODO: Implement for CRACK_FRONT_POINTS
+  }
+  return is_on_boundary;
+}
+
+void
+CrackFrontDefinition::calculateTangentialStrainAlongFront()
+{
+  RealVectorValue disp_current_node;
+  RealVectorValue disp_previous_node;
+  RealVectorValue disp_next_node;
+
+  RealVectorValue forward_segment0;
+  RealVectorValue forward_segment1;
+  Real forward_segment0_len;
+  Real forward_segment1_len;
+  RealVectorValue back_segment0;
+  RealVectorValue back_segment1;
+  Real back_segment0_len;
+  Real back_segment1_len;
+
+  unsigned int num_crack_front_nodes = _ordered_crack_front_nodes.size();
+  const Node * current_node;
+  const Node * previous_node;
+  const Node * next_node;
+
+  // In finalize(), gatherMax builds and distributes the complete strain vector on all processors
+  // -> reset the vector every time
+  for (unsigned int i=0; i<num_crack_front_nodes; ++i)
+    _strain_along_front[i] = -std::numeric_limits<Real>::max();
+
+  current_node = getCrackFrontNodePtr(0);
+  if (current_node->processor_id() == processor_id())
+  {
+    disp_current_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*current_node);
+    disp_current_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*current_node);
+    disp_current_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*current_node);
+
+    next_node = getCrackFrontNodePtr(1);
+    disp_next_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*next_node);
+    disp_next_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*next_node);
+    disp_next_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*next_node);
+
+    forward_segment0 = *next_node - *current_node;
+    forward_segment0 = (forward_segment0 * _tangent_directions[0]) * _tangent_directions[0];
+    forward_segment0_len = forward_segment0.size();
+
+    forward_segment1 = (*next_node + disp_next_node) - (*current_node + disp_current_node);
+    forward_segment1 = (forward_segment1 * _tangent_directions[0]) * _tangent_directions[0];
+    forward_segment1_len = forward_segment1.size();
+
+    _strain_along_front[0] = (forward_segment1_len - forward_segment0_len) / forward_segment0_len;
+  }
+
+  for (unsigned int i=1; i<num_crack_front_nodes-1; ++i)
+  {
+    current_node = getCrackFrontNodePtr(i);
+    if (current_node->processor_id() == processor_id())
+    {
+      disp_current_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*current_node);
+      disp_current_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*current_node);
+      disp_current_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*current_node);
+
+      previous_node = getCrackFrontNodePtr(i-1);
+      disp_previous_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*previous_node);
+      disp_previous_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*previous_node);
+      disp_previous_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*previous_node);
+
+      next_node = getCrackFrontNodePtr(i+1);
+      disp_next_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*next_node);
+      disp_next_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*next_node);
+      disp_next_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*next_node);
+
+      back_segment0 = *current_node - *previous_node;
+      back_segment0 = (back_segment0 * _tangent_directions[i]) * _tangent_directions[i];
+      back_segment0_len = back_segment0.size();
+
+      back_segment1 = (*current_node + disp_current_node) - (*previous_node + disp_previous_node);
+      back_segment1 = (back_segment1 * _tangent_directions[i]) * _tangent_directions[i];
+      back_segment1_len = back_segment1.size();
+
+      forward_segment0 = *next_node - *current_node;
+      forward_segment0 = (forward_segment0 * _tangent_directions[i]) * _tangent_directions[i];
+      forward_segment0_len = forward_segment0.size();
+
+      forward_segment1 = (*next_node + disp_next_node) - (*current_node + disp_current_node);
+      forward_segment1 = (forward_segment1 * _tangent_directions[i]) * _tangent_directions[i];
+      forward_segment1_len = forward_segment1.size();
+
+      _strain_along_front[i] = 0.5 * ((back_segment1_len - back_segment0_len) / back_segment0_len
+                                      + (forward_segment1_len - forward_segment0_len) / forward_segment0_len);
+    }
+  }
+
+  current_node = getCrackFrontNodePtr(num_crack_front_nodes-1);
+  if (current_node->processor_id() == processor_id())
+  {
+    disp_current_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*current_node);
+    disp_current_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*current_node);
+    disp_current_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*current_node);
+
+    previous_node = getCrackFrontNodePtr(num_crack_front_nodes-2);
+    disp_previous_node(0) = _subproblem.getVariable(_tid, _disp_x_var_name).getNodalValue(*previous_node);
+    disp_previous_node(1) = _subproblem.getVariable(_tid, _disp_y_var_name).getNodalValue(*previous_node);
+    disp_previous_node(2) = _subproblem.getVariable(_tid, _disp_z_var_name).getNodalValue(*previous_node);
+
+    back_segment0 = *current_node - *previous_node;
+    back_segment0 = (back_segment0 * _tangent_directions[num_crack_front_nodes-1]) * _tangent_directions[num_crack_front_nodes-1];
+    back_segment0_len = back_segment0.size();
+
+    back_segment1 = (*current_node + disp_current_node) - (*previous_node + disp_previous_node);
+    back_segment1 = (back_segment1 * _tangent_directions[num_crack_front_nodes-1]) * _tangent_directions[num_crack_front_nodes-1];
+    back_segment1_len = back_segment1.size();
+
+    _strain_along_front[num_crack_front_nodes-1] = (back_segment1_len - back_segment0_len) / back_segment0_len;
+  }
+
+}
+
+Real
+CrackFrontDefinition::getCrackFrontTangentialStrain(const unsigned int node_index) const
+{
+  Real strain;
+  if (_t_stress)
+    strain = _strain_along_front[node_index];
+  else
+    mooseError("In CrackFrontDefinition, tangential strain not available");
+
+  return strain;
+}
+
+
+void
+CrackFrontDefinition::createQFunctionRings()
+{
+  //In the variable names, "cfn" = crack front node
+
+  if (_treat_as_2d) //2D: the q-function defines an integral domain that is constant along the crack front
+  {
+    std::vector<std::vector<const Elem *> > nodes_to_elem_map;
+    MeshTools::build_nodes_to_elem_map(_mesh.getMesh(), nodes_to_elem_map);
+
+    std::set<dof_id_type> nodes_prev_ring;
+    nodes_prev_ring.insert(_ordered_crack_front_nodes.begin(),_ordered_crack_front_nodes.end());
+
+    std::set<dof_id_type> connected_nodes_this_cfn;
+    connected_nodes_this_cfn.insert(_ordered_crack_front_nodes.begin(),_ordered_crack_front_nodes.end());
+
+    std::set<dof_id_type> old_ring_nodes_this_cfn = connected_nodes_this_cfn;
+
+    //The first ring contains only the crack front node(s)
+    std::pair<dof_id_type,unsigned int> node_ring_index = std::make_pair(_ordered_crack_front_nodes[0],1);
+    _crack_front_node_to_node_map[node_ring_index].insert(connected_nodes_this_cfn.begin(),connected_nodes_this_cfn.end());
+
+    //Build rings of nodes around the crack front node
+    for (unsigned int ring=2; ring<=_last_ring; ++ring)
+    {
+
+      //Find nodes connected to the nodes of the previous ring
+      std::set<dof_id_type> new_ring_nodes_this_cfn;
+      for (std::set<dof_id_type>::iterator nit = old_ring_nodes_this_cfn.begin();
+           nit != old_ring_nodes_this_cfn.end();
+           ++nit)
+      {
+        std::vector<const Node *> neighbors;
+        MeshTools::find_nodal_neighbors(_mesh.getMesh(), _mesh.node(*nit), nodes_to_elem_map, neighbors);
+        for (unsigned int inei=0; inei<neighbors.size(); ++inei)
+        {
+          std::set<dof_id_type>::iterator thisit = connected_nodes_this_cfn.find(neighbors[inei]->id());
+
+          //Add only nodes that are not already present in any of the rings
+          if (thisit == connected_nodes_this_cfn.end())
+            new_ring_nodes_this_cfn.insert(neighbors[inei]->id());
+        }
+      }
+
+      //Add new nodes to rings
+      connected_nodes_this_cfn.insert(new_ring_nodes_this_cfn.begin(),new_ring_nodes_this_cfn.end());
+      old_ring_nodes_this_cfn = new_ring_nodes_this_cfn;
+
+      std::pair<dof_id_type,unsigned int> node_ring_index = std::make_pair(_ordered_crack_front_nodes[0],ring);
+      _crack_front_node_to_node_map[node_ring_index].insert(connected_nodes_this_cfn.begin(),connected_nodes_this_cfn.end());
+    }
+  }
+  else //3D: The q-function defines one integral domain around each crack front node
+  {
+    unsigned int num_crack_front_points = _ordered_crack_front_nodes.size();
+    std::vector<std::vector<const Elem *> > nodes_to_elem_map;
+    MeshTools::build_nodes_to_elem_map(_mesh.getMesh(), nodes_to_elem_map);
+    for (unsigned int icfn=0; icfn<num_crack_front_points; ++icfn)
+    {
+      std::set<dof_id_type> nodes_prev_ring;
+      nodes_prev_ring.insert(_ordered_crack_front_nodes[icfn]);
+
+      std::set<dof_id_type> connected_nodes_prev_cfn;
+      std::set<dof_id_type> connected_nodes_this_cfn;
+      std::set<dof_id_type> connected_nodes_next_cfn;
+
+      connected_nodes_this_cfn.insert(_ordered_crack_front_nodes[icfn]);
+
+      if (_closed_loop && icfn==0)
+      {
+        connected_nodes_prev_cfn.insert(_ordered_crack_front_nodes[num_crack_front_points-1]);
+        connected_nodes_next_cfn.insert(_ordered_crack_front_nodes[icfn+1]);
+      }
+      else if (_closed_loop && icfn==num_crack_front_points-1)
+      {
+        connected_nodes_prev_cfn.insert(_ordered_crack_front_nodes[icfn-1]);
+        connected_nodes_next_cfn.insert(_ordered_crack_front_nodes[0]);
+      }
+      else if (icfn==0)
+      {
+        connected_nodes_next_cfn.insert(_ordered_crack_front_nodes[icfn+1]);
+      }
+      else if (icfn==num_crack_front_points-1)
+      {
+        connected_nodes_prev_cfn.insert(_ordered_crack_front_nodes[icfn-1]);
+      }
+      else
+      {
+        connected_nodes_prev_cfn.insert(_ordered_crack_front_nodes[icfn-1]);
+        connected_nodes_next_cfn.insert(_ordered_crack_front_nodes[icfn+1]);
+      }
+
+      std::set<dof_id_type> old_ring_nodes_prev_cfn = connected_nodes_prev_cfn;
+      std::set<dof_id_type> old_ring_nodes_this_cfn = connected_nodes_this_cfn;
+      std::set<dof_id_type> old_ring_nodes_next_cfn = connected_nodes_next_cfn;
+
+      //The first ring contains only the crack front node
+      std::pair<dof_id_type,unsigned int> node_ring_index = std::make_pair(_ordered_crack_front_nodes[icfn],1);
+      _crack_front_node_to_node_map[node_ring_index].insert(connected_nodes_this_cfn.begin(),connected_nodes_this_cfn.end());
+
+      //Build rings of nodes around the crack front node
+      for (unsigned int ring=2; ring<=_last_ring; ++ring)
+      {
+
+        //Find nodes connected to the nodes of the previous ring, but exclude nodes in rings of neighboring crack front nodes
+        std::set<dof_id_type> new_ring_nodes_this_cfn;
+        addNodesToQFunctionRing(new_ring_nodes_this_cfn,
+                                old_ring_nodes_this_cfn,
+                                connected_nodes_this_cfn,
+                                connected_nodes_prev_cfn,
+                                connected_nodes_next_cfn,
+                                nodes_to_elem_map);
+
+        std::set<dof_id_type> new_ring_nodes_prev_cfn;
+        addNodesToQFunctionRing(new_ring_nodes_prev_cfn,
+                                old_ring_nodes_prev_cfn,
+                                connected_nodes_prev_cfn,
+                                connected_nodes_this_cfn,
+                                connected_nodes_next_cfn,
+                                nodes_to_elem_map);
+
+        std::set<dof_id_type> new_ring_nodes_next_cfn;
+        addNodesToQFunctionRing(new_ring_nodes_next_cfn,
+                                old_ring_nodes_next_cfn,
+                                connected_nodes_next_cfn,
+                                connected_nodes_prev_cfn,
+                                connected_nodes_this_cfn,
+                                nodes_to_elem_map);
+
+        //Add new nodes to the three sets of nodes
+        connected_nodes_prev_cfn.insert(new_ring_nodes_prev_cfn.begin(),new_ring_nodes_prev_cfn.end());
+        connected_nodes_this_cfn.insert(new_ring_nodes_this_cfn.begin(),new_ring_nodes_this_cfn.end());
+        connected_nodes_next_cfn.insert(new_ring_nodes_next_cfn.begin(),new_ring_nodes_next_cfn.end());
+        old_ring_nodes_prev_cfn = new_ring_nodes_prev_cfn;
+        old_ring_nodes_this_cfn = new_ring_nodes_this_cfn;
+        old_ring_nodes_next_cfn = new_ring_nodes_next_cfn;
+
+        std::pair<dof_id_type,unsigned int> node_ring_index = std::make_pair(_ordered_crack_front_nodes[icfn],ring);
+        _crack_front_node_to_node_map[node_ring_index].insert(connected_nodes_this_cfn.begin(),connected_nodes_this_cfn.end());
+      }
+    }
+  }
+}
+
+void
+CrackFrontDefinition::addNodesToQFunctionRing(std::set<dof_id_type>& nodes_new_ring, const std::set<dof_id_type>& nodes_old_ring, const std::set<dof_id_type>& nodes_all_rings, const std::set<dof_id_type>& nodes_neighbor1, const std::set<dof_id_type>& nodes_neighbor2, std::vector<std::vector<const Elem *> >& nodes_to_elem_map)
+{
+  for (std::set<dof_id_type>::const_iterator nit = nodes_old_ring.begin();
+       nit != nodes_old_ring.end();
+       ++nit)
+  {
+    std::vector<const Node *> neighbors;
+    MeshTools::find_nodal_neighbors(_mesh.getMesh(), _mesh.node(*nit), nodes_to_elem_map, neighbors);
+    for (unsigned int inei=0; inei<neighbors.size(); ++inei)
+    {
+      std::set<dof_id_type>::const_iterator previt = nodes_all_rings.find(neighbors[inei]->id());
+      std::set<dof_id_type>::const_iterator thisit = nodes_neighbor1.find(neighbors[inei]->id());
+      std::set<dof_id_type>::const_iterator nextit = nodes_neighbor2.find(neighbors[inei]->id());
+
+      //Add only nodes that are not already present in any of the three sets of nodes
+      if (previt == nodes_all_rings.end() &&
+          thisit == nodes_neighbor1.end() &&
+          nextit == nodes_neighbor2.end())
+        nodes_new_ring.insert(neighbors[inei]->id());
+    }
+  }
+}
+
+bool
+CrackFrontDefinition::isNodeInRing(const unsigned int ring_index, const dof_id_type connected_node_id, const unsigned int node_index) const
+{
+  bool is_node_in_ring = false;
+  std::pair<dof_id_type,unsigned int> node_ring_key = std::make_pair(_ordered_crack_front_nodes[node_index],ring_index);
+  std::map<std::pair<dof_id_type,unsigned int>,std::set<dof_id_type> >::const_iterator nnmit = _crack_front_node_to_node_map.find(node_ring_key);
+
+  if (nnmit == _crack_front_node_to_node_map.end())
+    mooseError("Could not find crack front node " << _ordered_crack_front_nodes[node_index] << "in the crack front node to q-function ring-node map for ring " << ring_index);
+
+  std::set<dof_id_type> q_func_nodes = nnmit->second;
+  if (q_func_nodes.find(connected_node_id) != q_func_nodes.end())
+    is_node_in_ring = true;
+
+  return is_node_in_ring;
 }

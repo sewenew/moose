@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 // Original class author: A.M. Jokisaari, O. Heinonen
 
 #include "FiniteStrainElasticMaterial.h"
@@ -15,9 +21,8 @@ InputParameters validParams<FiniteStrainElasticMaterial>()
   return params;
 }
 
-FiniteStrainElasticMaterial::FiniteStrainElasticMaterial(const std::string & name,
-                                             InputParameters parameters) :
-    FiniteStrainMaterial(name, parameters)
+FiniteStrainElasticMaterial::FiniteStrainElasticMaterial(const InputParameters & parameters) :
+    FiniteStrainMaterial(parameters)
 {
 }
 
@@ -39,3 +44,4 @@ void FiniteStrainElasticMaterial::computeQpStress()
   _stress[_qp] = _rotation_increment[_qp] * _stress[_qp] * _rotation_increment[_qp].transpose();
 
 }
+

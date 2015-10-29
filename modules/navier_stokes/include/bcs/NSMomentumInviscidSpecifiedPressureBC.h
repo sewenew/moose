@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMOMENTUMINVISCIDSPECIFIEDPRESSUREBC_H
 #define NSMOMENTUMINVISCIDSPECIFIEDPRESSUREBC_H
 
@@ -17,7 +23,7 @@ InputParameters validParams<NSMomentumInviscidSpecifiedPressureBC>();
 class NSMomentumInviscidSpecifiedPressureBC : public NSMomentumInviscidBC
 {
 public:
-  NSMomentumInviscidSpecifiedPressureBC(const std::string & name, InputParameters parameters);
+  NSMomentumInviscidSpecifiedPressureBC(const InputParameters & parameters);
 
   virtual ~NSMomentumInviscidSpecifiedPressureBC(){}
 

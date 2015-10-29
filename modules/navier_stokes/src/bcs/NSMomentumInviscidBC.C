@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumInviscidBC.h"
 
 template<>
@@ -14,8 +20,8 @@ InputParameters validParams<NSMomentumInviscidBC>()
 
 
 
-NSMomentumInviscidBC::NSMomentumInviscidBC(const std::string & name, InputParameters parameters)
-    : NSIntegratedBC(name, parameters),
+NSMomentumInviscidBC::NSMomentumInviscidBC(const InputParameters & parameters)
+    : NSIntegratedBC(parameters),
 
       // Parameters to be specified in input file block...
       _component(getParam<unsigned>("component")),
@@ -119,3 +125,4 @@ Real NSMomentumInviscidBC::convective_qp_jacobian(unsigned var_number)
   // convenient for printing...
   return conv_term;
 }
+

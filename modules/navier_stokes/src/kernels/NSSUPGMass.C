@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSSUPGMass.h"
 
 template<>
@@ -11,8 +17,8 @@ InputParameters validParams<NSSUPGMass>()
 
 
 
-NSSUPGMass::NSSUPGMass(const std::string & name, InputParameters parameters)
-    : NSSUPGBase(name, parameters)
+NSSUPGMass::NSSUPGMass(const InputParameters & parameters)
+    : NSSUPGBase(parameters)
 {
 }
 
@@ -90,3 +96,4 @@ Real NSSUPGMass::compute_jacobian(unsigned var)
 
   return result;
 }
+

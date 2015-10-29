@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "AddCoupledSolidKinSpeciesAuxKernelsAction.h"
 #include "MooseUtils.h"
 #include "FEProblem.h"
@@ -33,8 +39,8 @@ InputParameters validParams<AddCoupledSolidKinSpeciesAuxKernelsAction>()
 }
 
 
-AddCoupledSolidKinSpeciesAuxKernelsAction::AddCoupledSolidKinSpeciesAuxKernelsAction(const std::string & name, InputParameters params) :
-    Action(name, params)
+AddCoupledSolidKinSpeciesAuxKernelsAction::AddCoupledSolidKinSpeciesAuxKernelsAction(const InputParameters & params) :
+    Action(params)
 {
 }
 
@@ -102,3 +108,4 @@ AddCoupledSolidKinSpeciesAuxKernelsAction::act()
   }
 
 }
+

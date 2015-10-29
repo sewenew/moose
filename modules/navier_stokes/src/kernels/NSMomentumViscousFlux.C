@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSMomentumViscousFlux.h"
 
 
@@ -16,8 +22,8 @@ InputParameters validParams<NSMomentumViscousFlux>()
 
 
 
-NSMomentumViscousFlux::NSMomentumViscousFlux(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters),
+NSMomentumViscousFlux::NSMomentumViscousFlux(const InputParameters & parameters)
+    : NSKernel(parameters),
       _component(getParam<unsigned>("component")),
       _vst_derivs(*this)
 {
@@ -30,7 +36,7 @@ NSMomentumViscousFlux::NSMomentumViscousFlux(const std::string & name, InputPara
 Real NSMomentumViscousFlux::computeQpResidual()
 {
   // Yay for less typing!
-  RealTensorValue & vst = _viscous_stress_tensor[_qp];
+  const RealTensorValue & vst = _viscous_stress_tensor[_qp];
 
   // _component'th column of vst...
   RealVectorValue vec(vst(0,_component),
@@ -75,3 +81,4 @@ Real NSMomentumViscousFlux::computeQpOffDiagJacobian(unsigned int jvar)
 
   return value;
 }
+

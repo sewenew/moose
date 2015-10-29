@@ -79,7 +79,5 @@
 []
 
 [Outputs]
-  [./console]
-    type = Console
-  [../]
+  execute_on = 'timestep_end'
 []

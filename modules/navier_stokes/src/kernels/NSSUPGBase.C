@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #include "NSSUPGBase.h"
 
 
@@ -16,8 +22,8 @@ InputParameters validParams<NSSUPGBase>()
 
 
 
-NSSUPGBase::NSSUPGBase(const std::string & name, InputParameters parameters)
-    : NSKernel(name, parameters),
+NSSUPGBase::NSSUPGBase(const InputParameters & parameters)
+    : NSKernel(parameters),
 
       // Material properties
       _viscous_stress_tensor(getMaterialProperty<RealTensorValue>("viscous_stress_tensor")),
@@ -60,3 +66,4 @@ NSSUPGBase::NSSUPGBase(const std::string & name, InputParameters parameters)
       _enthalpy(coupledValue("enthalpy"))
 {
 }
+

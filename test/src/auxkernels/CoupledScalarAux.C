@@ -19,15 +19,15 @@ InputParameters validParams<CoupledScalarAux>()
 {
   InputParameters params = validParams<AuxKernel>();
 
-  params.addRequiredCoupledVar("coupled", "Coupled Scalar Value for Calculation");
+  params.addCoupledVar("coupled", 2.71828, "Coupled Scalar Value for Calculation");
 
   params.addParam<unsigned int>("component", 0, "The individual component of the scalar variable to output");
 
   return params;
 }
 
-CoupledScalarAux::CoupledScalarAux(const std::string & name, InputParameters parameters) :
-    AuxKernel(name, parameters),
+CoupledScalarAux::CoupledScalarAux(const InputParameters & parameters) :
+    AuxKernel(parameters),
     _coupled_val(coupledScalarValue("coupled")),
     _component(getParam<unsigned int>("component"))
 {

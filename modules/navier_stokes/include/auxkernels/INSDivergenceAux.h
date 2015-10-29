@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef INSDIVERGENCEAUX_H
 #define INSDIVERGENCEAUX_H
 
@@ -15,7 +21,7 @@ InputParameters validParams<INSDivergenceAux>();
 class INSDivergenceAux : public AuxKernel
 {
 public:
-  INSDivergenceAux(const std::string & name, InputParameters parameters);
+  INSDivergenceAux(const InputParameters & parameters);
 
   virtual ~INSDivergenceAux() {}
 

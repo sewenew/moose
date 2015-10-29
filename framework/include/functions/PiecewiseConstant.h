@@ -21,15 +21,22 @@
 class PiecewiseConstant : public Piecewise
 {
 public:
-  PiecewiseConstant(const std::string & name, InputParameters parameters);
+  PiecewiseConstant(const InputParameters & parameters);
   virtual ~PiecewiseConstant();
 
   /**
-   * This function will return a value based on the first input argument only.
+   * Get the value of the function (based on time only)
+   * \param t The time
+   * \param pt The point in space (x,y,z) (unused)
+   * \return The value of the function at the specified time
    */
   virtual Real value(Real t, const Point & pt);
+
   /**
-   * This function will return a value based on the first input argument only.
+   * Get the time derivative of the function (based on time only)
+   * \param t The time
+   * \param pt The point in space (x,y,z) (unused)
+   * \return The time derivative of the function at the specified time
    */
   virtual Real timeDerivative(Real t, const Point & pt);
 
@@ -38,7 +45,6 @@ public:
   virtual Real average();
 
 private:
-
   enum DirectionEnum {
     LEFT = 0,
     RIGHT,
@@ -47,7 +53,6 @@ private:
   DirectionEnum getDirection( const std::string & direction );
 
   const DirectionEnum _direction;
-
 };
 
 template<>

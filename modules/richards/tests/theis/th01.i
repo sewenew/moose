@@ -158,8 +158,6 @@
 
   [./TimeStepper]
     type = FunctionDT
-    #time_dt = '0.1 0.5 1 2'
-    #time_t = '0 1 10 100'
     time_dt = '0.5 1 2 10'
     time_t = '0 1 10 100'
   [../]
@@ -168,12 +166,7 @@
 []
 
 [Outputs]
+  execute_on = 'timestep_end'
   file_base = th01
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
 []

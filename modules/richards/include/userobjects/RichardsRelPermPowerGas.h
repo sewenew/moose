@@ -1,7 +1,10 @@
-/*****************************************/
-/* Written by andrew.wilkins@csiro.au    */
-/* Please contact me if you make changes */
-/*****************************************/
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
+
 
 #ifndef RICHARDSRELPERMPOWERGAS_H
 #define RICHARDSRELPERMPOWERGAS_H
@@ -22,7 +25,7 @@ InputParameters validParams<RichardsRelPermPowerGas>();
 class RichardsRelPermPowerGas : public RichardsRelPerm
 {
 public:
-  RichardsRelPermPowerGas(const std::string & name, InputParameters parameters);
+  RichardsRelPermPowerGas(const InputParameters & parameters);
 
   /**
    * Relative permeability

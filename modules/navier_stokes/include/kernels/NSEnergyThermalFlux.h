@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSENERGYTHERMALFLUX_H
 #define NSENERGYTHERMALFLUX_H
 
@@ -20,7 +26,7 @@ class NSEnergyThermalFlux : public NSKernel
 {
 public:
 
-  NSEnergyThermalFlux(const std::string & name, InputParameters parameters);
+  NSEnergyThermalFlux(const InputParameters & parameters);
 
 protected:
   virtual Real computeQpResidual();
@@ -31,7 +37,7 @@ protected:
   VariableGradient& _grad_temp;
 
   // Material properties
-  MaterialProperty<Real> &_thermal_conductivity;
+  const MaterialProperty<Real> &_thermal_conductivity;
 
   // A helper object for computing temperature gradient and Hessians.
   // Constructed via a reference to ourself so we can access all of our data.

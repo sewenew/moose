@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef LINEAR_H
 #define LINEAR_H
 
@@ -12,7 +18,7 @@ namespace SolidMechanics
 class Linear : public Element
 {
 public:
-  Linear(SolidModel & solid_model, const std::string & name, InputParameters parameters);
+  Linear(SolidModel & solid_model, const std::string & name, const InputParameters & parameters);
   virtual ~Linear();
 
 protected:

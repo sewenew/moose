@@ -34,7 +34,7 @@
   [./SeffVG]
     type = RichardsSeff1VG
     m = 0.5
-    al = 1 # same deal with PETSc's "constant state"
+    al = 1 # same deal with PETSc constant state
   [../]
   [./RelPermPower]
     type = RichardsRelPermPower
@@ -112,7 +112,7 @@
     variable = pressure
   [../]
   [./mass_bal]
-    type = PlotFunction
+    type = FunctionValuePostprocessor
     function = mass_bal_fcn
   [../]
 []
@@ -163,7 +163,6 @@
   [./andy]
     type = SMP
     full = true
-    #petsc_options = '-snes_test_display'
     petsc_options_iname = '-ksp_type -pc_type -snes_atol -snes_rtol -snes_max_it'
     petsc_options_value = 'bcgs bjacobi 1E-12 1E-10 10000'
   [../]
@@ -179,10 +178,8 @@
 [Outputs]
   file_base = s_fu_01
   csv = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear'
-  [../]
+[]
+
+[Problem]
+  use_legacy_uo_initialization = true
 []

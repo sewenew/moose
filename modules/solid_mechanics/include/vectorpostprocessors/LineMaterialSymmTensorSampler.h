@@ -1,16 +1,10 @@
 /****************************************************************/
-/*               DO NOT MODIFY THIS HEADER                      */
 /* MOOSE - Multiphysics Object Oriented Simulation Environment  */
 /*                                                              */
-/*           (c) 2010 Battelle Energy Alliance, LLC             */
-/*                   ALL RIGHTS RESERVED                        */
-/*                                                              */
-/*          Prepared by Battelle Energy Alliance, LLC           */
-/*            Under Contract No. DE-AC07-05ID14517              */
-/*            With the U. S. Department of Energy               */
-/*                                                              */
-/*            See COPYRIGHT for full restrictions               */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 
 #ifndef LINEMATERIALTENSORSAMPLER_H
 #define LINEMATERIALTENSORSAMPLER_H
@@ -37,10 +31,9 @@ public:
   /**
    * Class constructor
    * Sets up variables for output based on the properties to be output
-   * @param name The name of the class
    * @param parameters The input parameters
    */
-  LineMaterialSymmTensorSampler(const std::string & name, InputParameters parameters);
+  LineMaterialSymmTensorSampler(const InputParameters & parameters);
 
   virtual ~LineMaterialSymmTensorSampler() {}
 
@@ -52,7 +45,7 @@ public:
    * @param curr_point The point corresponding to this material property
    * @return A scalar value from this material property to be output
    */
-  virtual Real getScalarFromProperty(SymmTensor &property, const Point * curr_point);
+  virtual Real getScalarFromProperty(const SymmTensor &property, const Point * curr_point);
 };
 
 #endif

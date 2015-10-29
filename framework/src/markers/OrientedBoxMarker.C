@@ -39,9 +39,9 @@ InputParameters validParams<OrientedBoxMarker>()
 }
 
 
-OrientedBoxMarker::OrientedBoxMarker(const std::string & name, InputParameters parameters) :
-  Marker(name, parameters),
-  OrientedBoxInterface(name, parameters),
+OrientedBoxMarker::OrientedBoxMarker(const InputParameters & parameters) :
+  Marker(parameters),
+  OrientedBoxInterface(parameters),
   _inside((MarkerValue)(int)parameters.get<MooseEnum>("inside")),
   _outside((MarkerValue)(int)parameters.get<MooseEnum>("outside"))
 {
@@ -60,3 +60,4 @@ OrientedBoxMarker::computeElementMarker()
 
   return _outside;
 }
+

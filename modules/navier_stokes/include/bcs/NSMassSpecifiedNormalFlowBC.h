@@ -1,3 +1,9 @@
+/****************************************************************/
+/* MOOSE - Multiphysics Object Oriented Simulation Environment  */
+/*                                                              */
+/*          All contents are licensed under LGPL V2.1           */
+/*             See LICENSE for full restrictions                */
+/****************************************************************/
 #ifndef NSMASSSPECIFIEDNORMALFLOWBC_H
 #define NSMASSSPECIFIEDNORMALFLOWBC_H
 
@@ -21,7 +27,7 @@ class NSMassSpecifiedNormalFlowBC : public NSMassBC
 {
 public:
 
-  NSMassSpecifiedNormalFlowBC(const std::string & name, InputParameters parameters);
+  NSMassSpecifiedNormalFlowBC(const InputParameters & parameters);
 
   virtual ~NSMassSpecifiedNormalFlowBC(){}
 

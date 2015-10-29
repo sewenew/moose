@@ -23,8 +23,10 @@
 #include "DamperWarehouse.h"
 #include "ConstraintWarehouse.h"
 #include "SplitWarehouse.h"
+#include "NodalKernelWarehouse.h"
 #include "TimeIntegrator.h"
 #include "Predictor.h"
+#include "NodalKernelWarehouse.h"
 
 // libMesh includes
 #include "libmesh/transient_system.h"
@@ -45,7 +47,8 @@ class JacobianBlock;
  *
  * It is a part of FEProblem ;-)
  */
-class NonlinearSystem : public SystemTempl<TransientNonlinearImplicitSystem>
+class NonlinearSystem : public SystemTempl<TransientNonlinearImplicitSystem>,
+                        public ConsoleStreamInterface
 {
 public:
   NonlinearSystem(FEProblem & problem, const std::string & name);
@@ -54,6 +57,11 @@ public:
   virtual void init();
   virtual void solve();
   virtual void restoreSolutions();
+
+  /**
+   * Quit the current solve as soon as possible.
+   */
+  virtual void stopSolve();
 
   /**
    * Returns true if this system is currently computing the initial residual for a solve.
@@ -96,6 +104,14 @@ public:
    * @param parameters Kernel parameters
    */
   virtual void addKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
+
+  /**
+   * Adds a NodalKernel
+   * @param kernel_name The type of the nodal kernel
+   * @param name The name of the kernel
+   * @param parameters Kernel parameters
+   */
+  virtual void addNodalKernel(const std::string & kernel_name, const std::string & name, InputParameters parameters);
 
   /**
    * Adds a scalar kernel
@@ -237,6 +253,11 @@ public:
    * @return returns The damping factor
    */
   Real computeDamping(const NumericVector<Number>& update);
+
+  /**
+   * Computes the time derivative vector
+   */
+  void computeTimeDerivatives();
 
   /**
    * Called at the beginning of the time step
@@ -414,7 +435,18 @@ public:
   const BCWarehouse & getBCWarehouse(THREAD_ID tid);
   const DiracKernelWarehouse & getDiracKernelWarehouse(THREAD_ID tid);
   const DamperWarehouse & getDamperWarehouse(THREAD_ID tid);
+  const NodalKernelWarehouse & getNodalKernelWarehouse(THREAD_ID tid);
   //@}
+
+  /**
+   * Weather or not the nonlinear system has save-ins
+   */
+  bool hasSaveIn() const { return _has_save_in || _has_nodalbc_save_in; }
+
+  /**
+   * Weather or not the nonlinear system has diagonal Jacobian save-ins
+   */
+  bool hasDiagSaveIn() const { return _has_diag_save_in || _has_nodalbc_diag_save_in; }
 
 public:
   FEProblem & _fe_problem;
@@ -422,16 +454,13 @@ public:
   Real _last_rnorm;
   Real _last_nl_rnorm;
   Real _l_abs_step_tol;
-  Real _initial_residual;
+  Real _initial_residual_before_preset_bcs;
+  Real _initial_residual_after_preset_bcs;
   std::vector<unsigned int> _current_l_its;
   unsigned int _current_nl_its;
+  bool _compute_initial_residual_before_preset_bcs;
 
 protected:
-  /**
-   * Computes the time derivative vector
-   */
-  void computeTimeDerivatives();
-
   /**
    * Compute the residual
    * @param type The type of kernels for which the residual is to be computed.
@@ -490,6 +519,8 @@ protected:
   std::vector<DGKernelWarehouse> _dg_kernels;
   /// Dampers for each thread
   std::vector<DamperWarehouse> _dampers;
+  /// NodalKernels for each thread
+  std::vector<NodalKernelWarehouse> _nodal_kernels;
 
   /// Decomposition splits
   SplitWarehouse _splits;
@@ -555,6 +586,18 @@ protected:
   bool _computing_initial_residual;
 
   bool _print_all_var_norms;
+
+  /// If there is any Kernel or IntegratedBC having save_in
+  bool _has_save_in;
+
+  /// If there is any Kernel or IntegratedBC having diag_save_in
+  bool _has_diag_save_in;
+
+  /// If there is a nodal BC having save_in
+  bool _has_nodalbc_save_in;
+
+  /// If there is a nodal BC having diag_save_in
+  bool _has_nodalbc_diag_save_in;
 
   void getNodeDofs(unsigned int node_id, std::vector<dof_id_type> & dofs);
 };

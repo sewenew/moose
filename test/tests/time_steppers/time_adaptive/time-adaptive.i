@@ -88,11 +88,6 @@
 
 [Outputs]
   file_base = out
-  output_on = 'initial timestep_end'
   csv = true
   exodus = true
-  [./console]
-    type = Console
-    perf_log = true
-  [../]
 []

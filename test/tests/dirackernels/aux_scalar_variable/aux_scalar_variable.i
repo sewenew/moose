@@ -44,6 +44,7 @@
   [./source_value]
     type = ScalarVariable
     variable = shared
+    execute_on = 'initial timestep_end'
   [../]
 []
 
@@ -58,12 +59,6 @@
 [Outputs]
   hide = shared
   exodus = true
-  output_on = 'initial timestep_end'
-  [./console]
-    type = Console
-    perf_log = true
-    output_on = 'timestep_end failed nonlinear linear'
-  [../]
 []
 
 [DiracKernels]
