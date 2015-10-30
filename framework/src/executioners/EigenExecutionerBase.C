@@ -16,6 +16,7 @@
 #include "EigenSystem.h"
 
 #include "MooseApp.h"
+#include "DisplacedProblem.h"
 
 template<>
 InputParameters validParams<EigenExecutionerBase>()
@@ -39,12 +40,19 @@ InputParameters validParams<EigenExecutionerBase>()
   return params;
 }
 
+const Real &
+EigenExecutionerBase::eigenvalueOld()
+{
+  return _source_integral_old;
+}
+
 EigenExecutionerBase::EigenExecutionerBase(const InputParameters & parameters) :
     Executioner(parameters),
     _problem(_fe_problem),
      _eigen_sys(static_cast<EigenSystem &>(_problem.getNonlinearSystem())),
      _eigenvalue(declareRestartableData("eigenvalue", 1.0)),
      _source_integral(getPostprocessorValue("bx_norm")),
+     _source_integral_old(1),
      _normalization(isParamValid("normalization") ? getPostprocessorValue("normalization")
                     : getPostprocessorValue("bx_norm")) // use |Bx| for normalization by default
 {
@@ -103,11 +111,7 @@ EigenExecutionerBase::init()
 
   // check if _source_integral has been evaluated during initialSetup()
   if ((bx_execflag & EXEC_INITIAL) == EXEC_NONE)
-  {
-    _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
-    _problem.computeAuxiliaryKernels(EXEC_LINEAR);
-    _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
-  }
+    _problem.execute(EXEC_LINEAR);
   if (_source_integral==0.0) mooseError("|Bx| = 0!");
 
   // normalize solution to make |Bx|=_eigenvalue, _eigenvalue at this point has the initialized value
@@ -141,9 +145,7 @@ EigenExecutionerBase::makeBXConsistent(Real k)
   {
     // On the first time entering, the _source_integral has been updated properly in FEProblem::initialSetup()
     _eigen_sys.scaleSystemSolution(EigenSystem::EIGEN, k/_source_integral);
-    _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
-    _problem.computeAuxiliaryKernels(EXEC_LINEAR);
-    _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
+    _problem.execute(EXEC_LINEAR);
     std::stringstream ss;
     ss << std::fixed << std::setprecision(10) << _source_integral;
     _console << " |Bx_0| = " << ss.str() << std::endl;
@@ -213,9 +215,6 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
   }
 
   // some iteration variables
-  Real k_old = 0.0;
-  Real source_integral_old = getPostprocessorValueOld("bx_norm");
-  Real saved_source_integral_old = source_integral_old;
   Chebyshev_Parameters chebyshev_parameters;
 
   std::vector<Real> keff_history;
@@ -231,10 +230,19 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
     if (echo)
       _console << " Power iteration= "<< iter << std::endl;
 
-    // important: solutions of aux system is also copied
-    _problem.advanceState();
-    k_old = k;
-    source_integral_old = _source_integral;
+    // Important: we do not call _problem.advanceState() because we do not
+    // want to overwrite the old postprocessor values and old material
+    // properties in stateful materials.
+    _problem.getNonlinearSystem().copyOldSolutions();
+    _problem.getAuxiliarySystem().copyOldSolutions();
+    if ( _problem.getDisplacedProblem() != NULL )
+    {
+      _problem.getDisplacedProblem()->nlSys().copyOldSolutions();
+      _problem.getDisplacedProblem()->auxSys().copyOldSolutions();
+    }
+
+    Real k_old = k;
+    _source_integral_old = _source_integral;
 
     preIteration();
     _problem.solve();
@@ -244,7 +252,7 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
     if (iter==0) initial_res = _eigen_sys._initial_residual_before_preset_bcs;
 
     // update eigenvalue
-    k = k_old * _source_integral / source_integral_old;
+    k = k_old * _source_integral / _source_integral_old;
     _eigenvalue = k;
 
     if (echo)
@@ -326,7 +334,6 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
         break;
     }
   }
-  source_integral_old = saved_source_integral_old;
 
   // restore parameters changed by the executioner
   _problem.es().parameters.set<Real> ("linear solver tolerance") = tol1;
@@ -385,11 +392,7 @@ Real
 EigenExecutionerBase::normalizeSolution(bool force)
 {
   if (force)
-  {
-    _problem.computeUserObjects(EXEC_INITIAL);
-    _problem.computeAuxiliaryKernels(EXEC_INITIAL);
-    _problem.computeUserObjects(EXEC_INITIAL, UserObjectWarehouse::POST_AUX);
-  }
+    _problem.execute(EXEC_INITIAL);
 
   Real factor;
   if (isParamValid("normal_factor"))
@@ -406,10 +409,9 @@ EigenExecutionerBase::normalizeSolution(bool force)
     for (unsigned int i=0; i<Moose::exec_types.size(); i++)
     {
       // EXEC_CUSTOM is special, should be treated only by specifically designed executioners.
-      if (Moose::exec_types[i]==EXEC_CUSTOM) continue;
-      _problem.computeUserObjects(Moose::exec_types[i], UserObjectWarehouse::PRE_AUX);
-      _problem.computeAuxiliaryKernels(Moose::exec_types[i]);
-      _problem.computeUserObjects(Moose::exec_types[i], UserObjectWarehouse::POST_AUX);
+      if (Moose::exec_types[i]==EXEC_CUSTOM)
+        continue;
+      _problem.execute(Moose::exec_types[i]);
     }
   }
   return scaling;
@@ -434,6 +436,7 @@ EigenExecutionerBase::Chebyshev_Parameters::Chebyshev_Parameters()
   finit(6),
   lgac(0),
   icheb(0),
+  flux_error_norm_old(1),
   icho(0)
 {}
 
@@ -442,8 +445,9 @@ EigenExecutionerBase::Chebyshev_Parameters::reinit()
 {
   finit   = 6;
   lgac    = 0;
-  icho    = 0;
   icheb   = 0;
+  flux_error_norm_old = 1;
+  icho    = 0;
 }
 
 void
@@ -474,9 +478,7 @@ EigenExecutionerBase::chebyshev(Chebyshev_Parameters & chebyshev_parameters, uns
       coef[0] = alp;
       coef[1] = 1-alp;
       _eigen_sys.combineSystemSolution(EigenSystem::EIGEN, coef);
-      _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
-      _problem.computeAuxiliaryKernels(EXEC_LINEAR);
-      _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
+      _problem.execute(EXEC_LINEAR);
       _eigenvalue = _source_integral;
     }
   }
@@ -527,9 +529,7 @@ EigenExecutionerBase::chebyshev(Chebyshev_Parameters & chebyshev_parameters, uns
         coef[1] = 1-alp+beta;
         coef[2] = -beta;
         _eigen_sys.combineSystemSolution(EigenSystem::EIGEN, coef);
-        _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
-        _problem.computeAuxiliaryKernels(EXEC_LINEAR);
-        _problem.computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
+        _problem.execute(EXEC_LINEAR);
         _eigenvalue = _source_integral;
       }
 //    }
