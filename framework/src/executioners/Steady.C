@@ -12,10 +12,14 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "Steady.h"
 #include "FEProblem.h"
 #include "Factory.h"
 #include "MooseApp.h"
+#include "NonlinearSystem.h"
+
+// libMesh includes
 #include "libmesh/equation_systems.h"
 
 template<>
@@ -88,10 +92,14 @@ Steady::execute()
     preSolve();
     _problem.timestepSetup();
     _problem.execute(EXEC_TIMESTEP_BEGIN);
+
+    // Update warehouse active objects
+    _problem.updateActiveObjects();
+
     _problem.solve();
     postSolve();
 
-    if (!_problem.converged())
+    if (!lastSolveConverged())
     {
       _console << "Aborting as solve did not converge\n";
       break;
@@ -99,6 +107,7 @@ Steady::execute()
 
     _problem.onTimestepEnd();
     _problem.execute(EXEC_TIMESTEP_END);
+
     _problem.computeIndicatorsAndMarkers();
 
     _problem.outputStep(EXEC_TIMESTEP_END);

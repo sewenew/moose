@@ -11,9 +11,9 @@
 /*                                                              */
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
-#include "MultiApp.h"
 
-// Moose
+// MOOSE includes
+#include "MultiApp.h"
 #include "AppFactory.h"
 #include "SetupInterface.h"
 #include "Executioner.h"
@@ -23,16 +23,17 @@
 #include "AppFactory.h"
 #include "MooseUtils.h"
 #include "Console.h"
+#include "RestartableDataIO.h"
+#include "MooseMesh.h"
 
-// libMesh
+// libMesh includes
 #include "libmesh/mesh_tools.h"
+#include "libmesh/numeric_vector.h"
 
-#include <iostream>
+// C++ includes
 #include <fstream>
 #include <iomanip>
 #include <iterator>
-#include <fstream>
-#include <vector>
 #include <algorithm>
 
 // Call to "uname"
@@ -81,6 +82,7 @@ InputParameters validParams<MultiApp>()
 
   params.addParam<std::vector<Point> >("move_positions", "The positions corresponding to each move_app.");
 
+  params.declareControllable("enable");
   params.registerBase("MultiApp");
 
   return params;
@@ -113,7 +115,7 @@ MultiApp::MultiApp(const InputParameters & parameters):
     _backups(declareRestartableDataWithContext<SubAppBackups>("backups", this))
 {
   if (_move_apps.size() != _move_positions.size())
-    mooseError("The number of apps to move and the positions to move them to must be the same for MultiApp "<<_name);
+    mooseError("The number of apps to move and the positions to move them to must be the same for MultiApp " << _name);
 
   // Fill in the _positions vector
   fillPositions();
@@ -121,12 +123,6 @@ MultiApp::MultiApp(const InputParameters & parameters):
   _total_num_apps = _positions.size();
 
   mooseAssert(_input_files.size() == 1 || _positions.size() == _input_files.size(), "Number of positions and input files are not the same!");
-
-  // Fill in the _positions vector
-  fillPositions();
-
-  if (_move_apps.size() != _move_positions.size())
-    mooseError("The number of apps to move and the positions to move them to must be the same for MultiApp " << name());
 
   /// Set up our Comm and set the number of apps we're going to be working on
   buildComm();
@@ -500,6 +496,7 @@ MultiApp::createApp(unsigned int i, Real start_time)
   // Update the MultiApp level for the app that was just created
   app->setMultiAppLevel(_app.multiAppLevel() + 1);
   app->setupOptions();
+  preRunInputFile();
   app->runInputFile();
 }
 
@@ -599,4 +596,9 @@ MultiApp::globalAppToLocal(unsigned int global_app)
 
   _console << _first_local_app << " " << global_app << '\n';
   mooseError("Invalid global_app!");
+}
+
+void
+MultiApp::preRunInputFile()
+{
 }

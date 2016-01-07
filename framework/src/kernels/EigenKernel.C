@@ -17,6 +17,10 @@
 #include "MooseApp.h"
 #include "Executioner.h"
 #include "EigenExecutionerBase.h"
+#include "Assembly.h"
+
+// libMesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<EigenKernel>()
@@ -147,4 +151,3 @@ EigenKernel::isActive()
   else
     return flag;
 }
-

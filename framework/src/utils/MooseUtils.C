@@ -12,24 +12,26 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-// STL includes
-#include <iostream>
-#include <fstream>
-#include <istream>
-#include <iterator>
-
-// Standard Library
-#include <sys/stat.h>
-
 // MOOSE includes
 #include "MooseUtils.h"
 #include "MooseError.h"
 #include "MaterialProperty.h"
 
+// libMesh includes
+#include "libmesh/elem.h"
+
 // External includes
 #include "pcrecpp.h"
 #include "tinydir.h"
 
+// C++ includes
+#include <iostream>
+#include <fstream>
+#include <istream>
+#include <iterator>
+
+// System includes
+#include <sys/stat.h>
 
 namespace MooseUtils
 {
@@ -355,8 +357,8 @@ indentMessage(const std::string & prefix, std::string & message, const char* col
   // The colored prefix
   std::string indent = color + prefix + ": " + COLOR_DEFAULT;
 
-  // Indent all lines after the first
-  pcrecpp::RE re("\n(?!\\Z)");
+  // Indent all the lines until the final newline is encountered
+  pcrecpp::RE re("\n(?=.*\n)"); //(?=.*\n)
   re.GlobalReplace(std::string("\n") + indent, &message);
 
   // Prepend indent string at the front of the message

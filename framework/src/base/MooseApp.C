@@ -29,6 +29,11 @@
 #include "DependencyResolver.h"
 #include "MooseUtils.h"
 #include "MooseObjectAction.h"
+#include "InputParameterWarehouse.h"
+#include "SystemInfo.h"
+#include "RestartableDataIO.h"
+#include "MooseMesh.h"
+#include "FileOutput.h"
 
 // Regular expression includes
 #include "pcrecpp.h"
@@ -114,6 +119,7 @@ MooseApp::MooseApp(InputParameters parameters) :
     _start_time_set(false),
     _start_time(0.0),
     _global_time_offset(0.0),
+    _output_warehouse(*this),
     _input_parameter_warehouse(new InputParameterWarehouse()),
     _action_factory(*this),
     _action_warehouse(*this, _syntax, _action_factory),
@@ -133,7 +139,6 @@ MooseApp::MooseApp(InputParameters parameters) :
     _restartable_data(libMesh::n_threads()),
     _multiapp_level(0)
 {
-
   if (isParamValid("_argc") && isParamValid("_argv"))
   {
     int argc = getParam<int>("_argc");
@@ -165,10 +170,10 @@ void
 MooseApp::setupOptions()
 {
   // Print the header, this is as early as possible
-  std::string hdr = header();
+  std::string hdr(header() + "\n");
   if (multiAppLevel() > 0)
     MooseUtils::indentMessage(_name, hdr);
-  Moose::out << hdr << std::endl;
+  Moose::out << hdr << std::flush;
 
   if (getParam<bool>("error_unused"))
     setCheckUnusedFlag(true);
@@ -552,7 +557,7 @@ MooseApp::getCheckpointFiles()
       else
       {
         std::ostringstream oss;
-        oss << "_" << (*it)->getShortName() << "_cp";
+        oss << "_" << (*it)->name() << "_cp";
         checkpoint_dirs.push_back(FileOutput::getOutputFileBase(*this, oss.str()));
       }
     }
@@ -854,6 +859,12 @@ MooseApp::addMeshModifier(const std::string & modifier_name, const std::string &
   _mesh_modifiers.insert(std::make_pair(MooseUtils::shortName(name), mesh_modifier));
 }
 
+const MeshModifier &
+MooseApp::getMeshModifier(const std::string & name) const
+{
+  return *_mesh_modifiers.find(MooseUtils::shortName(name))->second.get();
+}
+
 void
 MooseApp::executeMeshModifiers()
 {
@@ -903,8 +914,11 @@ MooseApp::executeMeshModifiers()
     if (displaced_mesh)
       displaced_mesh->prepared(false);
   }
+}
 
-  // Clear the modifiers, they are not used again during the simulation
+void
+MooseApp::clearMeshModifiers()
+{
   _mesh_modifiers.clear();
 }
 

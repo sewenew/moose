@@ -4,9 +4,14 @@
 /*          All contents are licensed under LGPL V2.1           */
 /*             See LICENSE for full restrictions                */
 /****************************************************************/
+
 #include "DerivativeParsedMaterialHelper.h"
 #include "Conversion.h"
+
 #include <deque>
+
+// libmesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<DerivativeParsedMaterialHelper>()
@@ -27,12 +32,6 @@ DerivativeParsedMaterialHelper::DerivativeParsedMaterialHelper(const InputParame
     _dmatvar_index(0),
     _derivative_order(isParamValid("third_derivatives") ? (getParam<bool>("third_derivatives") ? 3 : 2) : getParam<unsigned int>("derivative_order"))
 {
-}
-
-DerivativeParsedMaterialHelper::~DerivativeParsedMaterialHelper()
-{
-  for (unsigned int i = 0; i < _derivatives.size(); ++i)
-    delete _derivatives[i].second;
 }
 
 void
@@ -117,7 +116,7 @@ DerivativeParsedMaterialHelper::assembleDerivatives()
       newitem._dargs.push_back(i);
 
       // build derivative
-      newitem._F = new ADFunction(*current._F);
+      newitem._F = ADFunctionPtr(new ADFunction(*current._F));
       if (newitem._F->AutoDiff(_variable_names[i]) != -1)
         mooseError("Failed to take order " << newitem._dargs.size() << " derivative in material " << _name);
 

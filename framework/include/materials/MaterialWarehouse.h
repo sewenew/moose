@@ -15,16 +15,10 @@
 #ifndef MATERIALWAREHOUSE_H
 #define MATERIALWAREHOUSE_H
 
-#include <vector>
-#include <map>
-#include <set>
-
 #include "Warehouse.h"
+#include "MooseTypes.h"
 
 class Material;
-
-// Forward Declaration
-template <class T> class DependencyResolver;
 
 /**
  * Stores materials.
@@ -64,7 +58,6 @@ public:
    * to compute properties during the system "solve".  The materials in these
    * vectors are asked to recompute their values.
    */
-  std::vector<Material *> & getMaterials();
   std::vector<Material *> & getMaterials(SubdomainID block_id);
   std::vector<Material *> & getFaceMaterials(SubdomainID block_id);
   std::vector<Material *> & getNeighborMaterials(SubdomainID block_id);

@@ -28,6 +28,8 @@
 #include "FileMesh.h"
 #include "GeneratedMesh.h"
 #include "TiledMesh.h"
+#include "ImageMesh.h"
+
 // MeshModifiers
 #include "MeshExtruder.h"
 #include "SideSetsFromPoints.h"
@@ -42,6 +44,8 @@
 #include "OrientedSubdomainBoundingBox.h"
 #include "RenameBlock.h"
 #include "AssignElementSubdomainID.h"
+#include "ImageSubdomain.h"
+#include "BlockDeleter.h"
 
 // problems
 #include "FEProblem.h"
@@ -141,6 +145,7 @@
 #include "SplineFunction.h"
 #include "PiecewiseMultilinear.h"
 #include "LinearCombinationFunction.h"
+#include "ImageFunction.h"
 
 // materials
 #include "GenericConstantMaterial.h"
@@ -199,7 +204,6 @@
 #include "ExecutionerAttributeReporter.h"
 #include "PercentChangePostprocessor.h"
 #include "ElementL2Difference.h"
-#include "RealControlParameterReporter.h"
 
 // vector PPS
 #include "ConstantVectorPostprocessor.h"
@@ -210,6 +214,7 @@
 #include "VectorOfPostprocessors.h"
 #include "LeastSquaresFit.h"
 #include "ElementsAlongLine.h"
+#include "IntersectionPointsAlongLine.h"
 #include "LineMaterialRealSampler.h"
 
 // user objects
@@ -284,6 +289,7 @@
 #include "DT2.h"
 #include "PostprocessorDT.h"
 #include "AB2PredictorCorrector.h"
+
 // time integrators
 #include "SteadyState.h"
 #include "ImplicitEuler.h"
@@ -293,10 +299,11 @@
 #include "ExplicitMidpoint.h"
 #include "LStableDirk2.h"
 #include "LStableDirk3.h"
+#include "AStableDirk4.h"
+#include "LStableDirk4.h"
 #include "ImplicitMidpoint.h"
 #include "Heun.h"
 #include "Ralston.h"
-//
 #include "SimplePredictor.h"
 #include "AdamsPredictor.h"
 
@@ -321,7 +328,6 @@
 #include "MultiAppPostprocessorTransfer.h"
 #include "MultiAppProjectionTransfer.h"
 #include "MultiAppPostprocessorToAuxScalarTransfer.h"
-
 
 // Actions
 #include "AddBCAction.h"
@@ -405,6 +411,7 @@
 
 // Controls
 #include "RealFunctionControl.h"
+#include "TimePeriod.h"
 
 // Partitioner
 #include "LibmeshPartitioner.h"
@@ -425,6 +432,7 @@ registerObjects(Factory & factory)
   registerMesh(FileMesh);
   registerMesh(GeneratedMesh);
   registerMesh(TiledMesh);
+  registerMesh(ImageMesh);
 
   // mesh modifiers
   registerMeshModifier(MeshExtruder);
@@ -440,6 +448,8 @@ registerObjects(Factory & factory)
   registerMeshModifier(OrientedSubdomainBoundingBox);
   registerMeshModifier(RenameBlock);
   registerMeshModifier(AssignElementSubdomainID);
+  registerMeshModifier(ImageSubdomain);
+  registerMeshModifier(BlockDeleter);
 
   // problems
   registerProblem(FEProblem);
@@ -538,6 +548,7 @@ registerObjects(Factory & factory)
   registerFunction(SplineFunction);
   registerFunction(PiecewiseMultilinear);
   registerFunction(LinearCombinationFunction);
+  registerFunction(ImageFunction);
 
   // materials
   registerMaterial(GenericConstantMaterial);
@@ -571,7 +582,6 @@ registerObjects(Factory & factory)
   registerPostprocessor(ScalarVariable);
   registerPostprocessor(NumVars);
   registerPostprocessor(NumResidualEvaluations);
-  registerDeprecatedObjectName(FunctionValuePostprocessor, "PlotFunction", "09/18/2015 12:00");
   registerPostprocessor(Receiver);
   registerPostprocessor(SideAverageValue);
   registerPostprocessor(SideFluxIntegral);
@@ -596,7 +606,6 @@ registerObjects(Factory & factory)
   registerPostprocessor(ExecutionerAttributeReporter);
   registerPostprocessor(PercentChangePostprocessor);
   registerPostprocessor(ElementL2Difference);
-  registerPostprocessor(RealControlParameterReporter);
 
   // vector PPS
   registerVectorPostprocessor(ConstantVectorPostprocessor);
@@ -607,6 +616,7 @@ registerObjects(Factory & factory)
   registerVectorPostprocessor(VectorOfPostprocessors);
   registerVectorPostprocessor(LeastSquaresFit);
   registerVectorPostprocessor(ElementsAlongLine);
+  registerVectorPostprocessor(IntersectionPointsAlongLine);
   registerVectorPostprocessor(LineMaterialRealSampler);
 
   // user objects
@@ -693,6 +703,8 @@ registerObjects(Factory & factory)
   registerTimeIntegrator(ExplicitMidpoint);
   registerTimeIntegrator(LStableDirk2);
   registerTimeIntegrator(LStableDirk3);
+  registerTimeIntegrator(AStableDirk4);
+  registerTimeIntegrator(LStableDirk4);
   registerTimeIntegrator(ImplicitMidpoint);
   registerTimeIntegrator(Heun);
   registerTimeIntegrator(Ralston);
@@ -748,6 +760,7 @@ registerObjects(Factory & factory)
 
   // Controls
   registerControl(RealFunctionControl);
+  registerControl(TimePeriod);
 
   // Partitioner
   registerPartitioner(LibmeshPartitioner);
@@ -904,8 +917,8 @@ addActionTypes(Syntax & syntax)
 "(init_mesh)"
 "(prepare_mesh)"
 "(add_mesh_modifier)"
-"(add_mortar_interface)"
 "(execute_mesh_modifiers)"
+"(add_mortar_interface)"
 "(uniform_refine_mesh)"
 "(setup_mesh_complete)"
 "(determine_system_type)"

@@ -13,6 +13,10 @@
 /****************************************************************/
 
 #include "FEProblem.h"
+#include "MaterialPropertyStorage.h"
+#include "VectorPostprocessorData.h"
+#include "MooseEnum.h"
+#include "Resurrector.h"
 #include "Factory.h"
 #include "MooseUtils.h"
 #include "DisplacedProblem.h"
@@ -41,7 +45,6 @@
 #include "MooseParsedFunction.h"
 #include "MeshChangedInterface.h"
 #include "ComputeJacobianBlocksThread.h"
-
 #include "ScalarInitialCondition.h"
 #include "ElementPostprocessor.h"
 #include "NodalPostprocessor.h"
@@ -55,24 +58,27 @@
 #include "GeneralVectorPostprocessor.h"
 #include "Indicator.h"
 #include "Marker.h"
-
 #include "MultiApp.h"
 #include "TransientMultiApp.h"
-
 #include "ElementUserObject.h"
 #include "NodalUserObject.h"
 #include "SideUserObject.h"
 #include "InternalSideUserObject.h"
 #include "GeneralUserObject.h"
-
 #include "InternalSideIndicator.h"
-
 #include "Transfer.h"
 #include "MultiAppTransfer.h"
 #include "MultiMooseEnum.h"
+#include "Predictor.h"
+#include "Assembly.h"
+#include "Control.h"
+#include "ScalarInitialCondition.h"
+#include "InternalSideIndicator.h"
 
-//libmesh Includes
+// libMesh includes
 #include "libmesh/exodusII_io.h"
+#include "libmesh/quadrature.h"
+#include "libmesh/coupling_matrix.h"
 
 Threads::spin_mutex get_function_mutex;
 
@@ -111,6 +117,7 @@ FEProblem::FEProblem(const InputParameters & parameters) :
     _aux(*this, "aux0"),
     _coupling(Moose::COUPLING_DIAG),
     _cm(NULL),
+    _scalar_ics(/*threaded=*/false),
     _material_props(declareRestartableDataWithContext<MaterialPropertyStorage>("material_props", &_mesh)),
     _bnd_material_props(declareRestartableDataWithContext<MaterialPropertyStorage>("bnd_material_props", &_mesh)),
     _pps_data(*this),
@@ -124,7 +131,6 @@ FEProblem::FEProblem(const InputParameters & parameters) :
     _input_file_saved(false),
     _has_dampers(false),
     _has_constraints(false),
-    _has_multiapps(false),
     _has_initialized_stateful(false),
     _resurrector(NULL),
     _const_jacobian(false),
@@ -140,7 +146,8 @@ FEProblem::FEProblem(const InputParameters & parameters) :
     _use_legacy_uo_aux_computation(_app.legacyUoAuxComputationDefault()),
     _use_legacy_uo_initialization(_app.legacyUoInitializationDefault()),
     _error_on_jacobian_nonzero_reallocation(getParam<bool>("error_on_jacobian_nonzero_reallocation")),
-    _fail_next_linear_convergence_check(false)
+    _fail_next_linear_convergence_check(false),
+    _currently_computing_jacobian(false)
 {
 
   _time = 0.0;
@@ -150,6 +157,12 @@ FEProblem::FEProblem(const InputParameters & parameters) :
   _dt_old = _dt;
 
   unsigned int n_threads = libMesh::n_threads();
+
+  _real_zero.resize(n_threads, 0.);
+  _zero.resize(n_threads);
+  _grad_zero.resize(n_threads);
+  _second_zero.resize(n_threads);
+  _second_phi_zero.resize(n_threads);
 
   _assembly.resize(n_threads);
   for (unsigned int i = 0; i < n_threads; ++i)
@@ -175,7 +188,6 @@ FEProblem::FEProblem(const InputParameters & parameters) :
   _subspace_dim["NearNullSpace"] = dimNearNullSpace;
 
   _functions.resize(n_threads);
-  _ics.resize(n_threads);
   _materials.resize(n_threads);
 
   _material_data.resize(n_threads);
@@ -192,9 +204,6 @@ FEProblem::FEProblem(const InputParameters & parameters) :
 
   for (unsigned int i=0; i<n_threads; i++)
     _vpps_data[i] = new VectorPostprocessorData(*this, i);
-
-  _indicators.resize(n_threads);
-  _markers.resize(n_threads);
 
   _active_elemental_moose_variables.resize(n_threads);
 
@@ -224,6 +233,11 @@ FEProblem::~FEProblem()
     delete _material_data[i];
     delete _bnd_material_data[i];
     delete _neighbor_material_data[i];
+
+    _zero[i].release();
+    _grad_zero[i].release();
+    _second_zero[i].release();
+    _second_phi_zero[i].release();
   }
 
   delete &_nl;
@@ -388,15 +402,18 @@ void FEProblem::initialSetup()
 
   if (!_app.isRecovering())
   {
-    for (unsigned int i = 0; i < n_threads; i++)
-      _ics[i].initialSetup();
+    for (THREAD_ID tid = 0; tid < n_threads; tid++)
+      _ics.initialSetup(tid);
+    _scalar_ics.sort();
     projectSolution();
   }
 
-  for (unsigned int i=0; i<n_threads; i++)
+  for (THREAD_ID tid = 0; tid < n_threads; tid++)
   {
-    _indicators[i].initialSetup();
-    _markers[i].initialSetup();
+    _internal_side_indicators.initialSetup(tid);
+    _indicators.initialSetup(tid);
+    _markers.sort(tid);
+    _markers.initialSetup(tid);
   }
 
 #ifdef LIBMESH_ENABLE_AMR
@@ -450,8 +467,6 @@ void FEProblem::initialSetup()
     _has_initialized_stateful = true;
 
   // Call initialSetup on the nonlinear system
-  _nl.initialSetupBCs();
-  _nl.initialSetupKernels();
   _nl.initialSetup();
 
   // Auxilary variable initialSetup calls
@@ -495,17 +510,28 @@ void FEProblem::initialSetup()
       _app.restoreCachedBackup();
     else
       _resurrector->restartRestartableData();
+
+    // We may have just clobbered initial conditions that were explicitly set
+    // In a _restart_ scenario it is completely valid to specify new initial conditions
+    // for some of the variables which should override what's coming from the restart file
+    if (!_app.isRecovering())
+    {
+      for (THREAD_ID tid = 0; tid < n_threads; tid++)
+        _ics.initialSetup(tid);
+      _scalar_ics.sort();
+      projectSolution();
+    }
   }
 
   // HUGE NOTE: MultiApp initialSetup() MUST... I repeat MUST be _after_ restartable data has been restored
 
   // Call initialSetup on the MultiApps
-  _multi_apps(EXEC_LINEAR)[0].initialSetup();
-  _multi_apps(EXEC_NONLINEAR)[0].initialSetup();
-  _multi_apps(EXEC_TIMESTEP_END)[0].initialSetup();
-  _multi_apps(EXEC_TIMESTEP_BEGIN)[0].initialSetup();
-  _multi_apps(EXEC_INITIAL)[0].initialSetup();
-  _multi_apps(EXEC_CUSTOM)[0].initialSetup();
+  if (_multi_apps.hasActiveObjects())
+  {
+    _console << COLOR_CYAN << "Initializing MultiApps" << COLOR_DEFAULT << std::endl;
+    _multi_apps.initialSetup();
+    _console << COLOR_CYAN << "Finished Initializing MultiApps" << COLOR_DEFAULT << std::endl;
+  }
 
   // Call initialSetup on the transfers
   _transfers(EXEC_LINEAR)[0].initialSetup();
@@ -536,6 +562,7 @@ void FEProblem::initialSetup()
     Moose::setup_perf_log.pop("Initial execTransfers()","Setup");
 
     Moose::setup_perf_log.push("Initial execMultiApps()","Setup");
+    //TODO: we did not check the convergence of the multiapps on initial
     execMultiApps(EXEC_INITIAL);
     Moose::setup_perf_log.pop("Initial execMultiApps()","Setup");
   }
@@ -543,27 +570,28 @@ void FEProblem::initialSetup()
   // Yak is currently relying on doing this after initial Transfers
   if (!_app.isRecovering())
   {
-    Moose::setup_perf_log.push("Initial executeUserObjects()","Setup");
+    Moose::setup_perf_log.push("Initial computeUserObjects()","Setup");
 
-    executeUserObjects(EXEC_INITIAL, UserObjectWarehouse::PRE_AUX);
+    //TODO: user object evaluation could fail.
+    computeUserObjects(EXEC_INITIAL, UserObjectWarehouse::PRE_AUX);
 
     _aux.compute(EXEC_INITIAL);
 
     if (_use_legacy_uo_initialization)
     {
       _aux.compute(EXEC_TIMESTEP_BEGIN);
-      executeUserObjects(EXEC_TIMESTEP_END, UserObjectWarehouse::ALL);
+      computeUserObjects(EXEC_TIMESTEP_END, UserObjectWarehouse::ALL);
     }
 
     // The only user objects that should be computed here are the initial UOs
-    executeUserObjects(EXEC_INITIAL, UserObjectWarehouse::POST_AUX);
+    computeUserObjects(EXEC_INITIAL, UserObjectWarehouse::POST_AUX);
 
     if (_use_legacy_uo_initialization)
     {
-      executeUserObjects(EXEC_TIMESTEP_BEGIN, UserObjectWarehouse::ALL);
-      executeUserObjects(EXEC_LINEAR, UserObjectWarehouse::ALL);
+      computeUserObjects(EXEC_TIMESTEP_BEGIN, UserObjectWarehouse::ALL);
+      computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::ALL);
     }
-    Moose::setup_perf_log.pop("Initial executeUserObjects()","Setup");
+    Moose::setup_perf_log.pop("Initial computeUserObjects()","Setup");
   }
 
 
@@ -582,6 +610,9 @@ void FEProblem::initialSetup()
                                      _material_props, _bnd_material_props, _materials, _assembly);
     Threads::parallel_reduce(elem_range, cmt);
   }
+
+  // Control Logic
+  executeControls(EXEC_INITIAL);
 
   // Scalar variables need to reinited for the initial conditions to be available for output
   for (unsigned int tid = 0; tid < n_threads; tid++)
@@ -617,14 +648,15 @@ void FEProblem::timestepSetup()
        ++it)
     it->second->updateSeeds(EXEC_TIMESTEP_BEGIN);
 
-  for (unsigned int i=0; i<n_threads; i++)
+  for (THREAD_ID tid = 0; tid < n_threads; tid++)
   {
-    _indicators[i].timestepSetup();
-    _markers[i].timestepSetup();
+    _internal_side_indicators.timestepSetup(tid);
+    _indicators.timestepSetup(tid);
+    _markers.timestepSetup(tid);
 
     // Timestep setup of all UserObjects
     for (unsigned int j = 0; j < Moose::exec_types.size(); j++)
-      _user_objects(Moose::exec_types[j])[i].timestepSetup();
+      _user_objects(Moose::exec_types[j])[tid].timestepSetup();
   }
 
    // Timestep setup of output objects
@@ -918,7 +950,7 @@ FEProblem::reinitDirac(const Elem * elem, THREAD_ID tid)
       for (unsigned int tid = 0; tid < libMesh::n_threads(); ++tid)
       {
         _zero[tid].resize(getMaxQps(), 0);
-        _grad_zero[tid].resize(getMaxQps(), 0);
+        _grad_zero[tid].resize(getMaxQps(), RealGradient(0.));
         _second_zero[tid].resize(getMaxQps(), RealTensor(0.));
         _second_phi_zero[tid].resize(getMaxQps(), std::vector<RealTensor>(getMaxShapeFunctions(), RealTensor(0.)));
       }
@@ -1151,6 +1183,7 @@ FEProblem::subdomainSetup(SubdomainID subdomain, THREAD_ID tid)
     // FIXME: cannot do this b/c variables are not computed => potential NaNs will pop-up
 //    reinitMaterials(subdomain, tid);
   }
+
 
   // Call the subdomain methods of the output system, these are not threaded so only call it once
   if (tid == 0)
@@ -1489,52 +1522,12 @@ FEProblem::addInitialCondition(const std::string & ic_name, const std::string & 
   // field IC
   if (hasVariable(var_name))
   {
-    MooseVariable & var = getVariable(0, var_name);
-    parameters.set<SystemBase *>("_sys") = &var.sys();
-
-    const std::vector<SubdomainName> & blocks = parameters.get<std::vector<SubdomainName> >("block");
-    const std::vector<BoundaryName> & boundaries = parameters.get<std::vector<BoundaryName> >("boundary");
-
-    if (blocks.size() > 0 && boundaries.size() > 0)
-      mooseError("Both 'block' and 'boundary' parameters were specified in initial condition '" << name << "'.  You can only you either of them.");
-
-    // boundary-restricted IC
-    else if (boundaries.size() > 0 && blocks.size() == 0)
+    for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
     {
-      if (var.isNodal())
-        for (unsigned int tid=0; tid < libMesh::n_threads(); tid++)
-          for (unsigned int i = 0; i < boundaries.size(); i++)
-          {
-            BoundaryID bnd_id = _mesh.getBoundaryID(boundaries[i]);
-            std::ostringstream oss;
-            oss << name << "_" << bnd_id;
-            _ics[tid].addBoundaryInitialCondition(var_name, bnd_id,
-                                                  MooseSharedNamespace::static_pointer_cast<InitialCondition>(_factory.create(ic_name, oss.str(), parameters, tid)));
-          }
-
-      else
-        mooseError("You are trying to set a boundary restricted variable on non-nodal variable.  That is not allowed.");
-    }
-
-    // block-restricted IC
-    else
-    {
-      // this means: either no block and no boundary parameters specified or just block specified
-      for (unsigned int tid=0; tid < libMesh::n_threads(); tid++)
-      {
-        if (blocks.size() > 0)
-          for (unsigned int i = 0; i < blocks.size(); i++)
-          {
-            SubdomainID blk_id = _mesh.getSubdomainID(blocks[i]);
-            std::ostringstream oss;
-            oss << name << "_" << blk_id;
-            _ics[tid].addInitialCondition(var_name, blk_id,
-                                          MooseSharedNamespace::static_pointer_cast<InitialCondition>(_factory.create(ic_name, oss.str(), parameters, tid)));
-          }
-        else
-          _ics[tid].addInitialCondition(var_name, Moose::ANY_BLOCK_ID,
-                                          MooseSharedNamespace::static_pointer_cast<InitialCondition>(_factory.create(ic_name, name, parameters, tid)));
-      }
+      MooseVariable & var = getVariable(tid, var_name);
+      parameters.set<SystemBase *>("_sys") = &var.sys();
+      MooseSharedPointer<InitialCondition> ic = MooseSharedNamespace::static_pointer_cast<InitialCondition>(_factory.create(ic_name, name, parameters, tid));
+      _ics.addObject(ic, tid);
     }
   }
 
@@ -1543,11 +1536,10 @@ FEProblem::addInitialCondition(const std::string & ic_name, const std::string & 
   {
     MooseVariableScalar & var = getScalarVariable(0, var_name);
     parameters.set<SystemBase *>("_sys") = &var.sys();
-
-    for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
-      _ics[tid].addScalarInitialCondition(var_name,
-                                          MooseSharedNamespace::static_pointer_cast<ScalarInitialCondition>(_factory.create(ic_name, name, parameters, tid)));
+    MooseSharedPointer<ScalarInitialCondition> ic = MooseSharedNamespace::static_pointer_cast<ScalarInitialCondition>(_factory.create(ic_name, name, parameters));
+    _scalar_ics.addObject(ic);
   }
+
   else
     mooseError("Variable '" << var_name << "' requested in initial condition '" << name << "' does not exist.");
 }
@@ -1576,14 +1568,12 @@ FEProblem::projectSolution()
   // Also, load values into the SCALAR dofs
   // Note: We assume that all SCALAR dofs are on the
   // processor with highest ID
-  if (processor_id() == (n_processors()-1))
+  if (processor_id() == (n_processors()-1) && _scalar_ics.hasActiveObjects())
   {
-    THREAD_ID tid = 0;
-
-    const std::vector<ScalarInitialCondition *> & ics = _ics[tid].activeScalar();
-    for (std::vector<ScalarInitialCondition *>::const_iterator it = ics.begin(); it != ics.end(); ++it)
+    const std::vector<MooseSharedPointer<ScalarInitialCondition> > & ics = _scalar_ics.getActiveObjects();
+    for (std::vector<MooseSharedPointer<ScalarInitialCondition> >::const_iterator it = ics.begin(); it != ics.end(); ++it)
     {
-      ScalarInitialCondition * ic = (*it);
+      MooseSharedPointer<ScalarInitialCondition> ic = (*it);
 
       MooseVariableScalar & var = ic->variable();
       var.reinit();
@@ -2165,68 +2155,68 @@ FEProblem::getVectorPostprocessorVectors(const std::string & vpp_name)
 void
 FEProblem::parentOutputPositionChanged()
 {
-  for (unsigned int i = 0; i < Moose::exec_types.size(); i++)
-    _multi_apps(Moose::exec_types[i])[0].parentOutputPositionChanged();
+  std::map<ExecFlagType, MooseObjectWarehouse<MultiApp> >::const_iterator it;
+  for (it = _multi_apps.begin(); it != _multi_apps.end(); ++it)
+  {
+    const std::vector<MooseSharedPointer<MultiApp> > & objects = it->second.getActiveObjects();
+    for (std::vector<MooseSharedPointer<MultiApp> >::const_iterator jt = objects.begin(); jt != objects.end(); ++jt)
+      (*jt)->parentOutputPositionChanged();
+  }
 }
 
 void
 FEProblem::computeIndicatorsAndMarkers()
 {
-  // Zero them out first
-  if (_indicators[0].all().size() || _markers[0].all().size())
+  // Initialize marker and indicator aux variable fields
+  if (_indicators.hasActiveObjects() || _internal_side_indicators.hasActiveObjects() || _markers.hasActiveObjects())
   {
     std::vector<std::string> fields;
 
-    // Add Indicator Fields
-    {
-      const std::vector<Indicator *> & all_indicators = _indicators[0].all();
+    // Indicator Fields
+    const std::vector<MooseSharedPointer<Indicator> > & indicators = _indicators.getActiveObjects();
+    for (std::vector<MooseSharedPointer<Indicator> >::const_iterator it = indicators.begin(); it != indicators.end(); ++it)
+      fields.push_back((*it)->name());
 
-      for (std::vector<Indicator *>::const_iterator i=all_indicators.begin();
-          i != all_indicators.end();
-          ++i)
-        fields.push_back((*i)->name());
-    }
+    // InternalSideIndicator Fields
+    const std::vector<MooseSharedPointer<InternalSideIndicator> > & internal_indicators = _internal_side_indicators.getActiveObjects();
+    for (std::vector<MooseSharedPointer<InternalSideIndicator> >::const_iterator it = internal_indicators.begin(); it != internal_indicators.end(); ++it)
+      fields.push_back((*it)->name());
 
-    // Add Marker Fields
-    {
-      const std::vector<Marker *> & all_markers = _markers[0].all();
-
-      for (std::vector<Marker *>::const_iterator i=all_markers.begin();
-          i != all_markers.end();
-          ++i)
-        fields.push_back((*i)->name());
-    }
+    // Marker Fields
+    const std::vector<MooseSharedPointer<Marker> > & markers = _markers.getActiveObjects();
+    for (std::vector<MooseSharedPointer<Marker> >::const_iterator it = markers.begin(); it != markers.end(); ++it)
+      fields.push_back((*it)->name());
 
     _aux.zeroVariables(fields);
   }
 
   // compute Indicators
-  if (_indicators[0].all().size())
+  if (_indicators.hasActiveObjects() || _internal_side_indicators.hasActiveObjects())
   {
-    ComputeIndicatorThread cit(*this, getAuxiliarySystem(), _indicators);
+    ComputeIndicatorThread cit(*this, getAuxiliarySystem());
     Threads::parallel_reduce(*_mesh.getActiveLocalElementRange(), cit);
     _aux.solution().close();
     _aux.update();
-  }
 
-  // finalize Indicators
-  if (_indicators[0].all().size())
-  {
-    ComputeIndicatorThread cit(*this, getAuxiliarySystem(), _indicators, true);
-    Threads::parallel_reduce(*_mesh.getActiveLocalElementRange(), cit);
+    ComputeIndicatorThread finalize_cit(*this, getAuxiliarySystem(), true);
+    Threads::parallel_reduce(*_mesh.getActiveLocalElementRange(), finalize_cit);
     _aux.solution().close();
     _aux.update();
   }
 
   // compute Markers
-  if (_markers[0].all().size())
+  if (_markers.hasActiveObjects())
   {
     _adaptivity.updateErrorVectors();
 
     for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
-      _markers[tid].markerSetup();
+    {
+      const std::vector<MooseSharedPointer<Marker> > & markers = _markers.getActiveObjects();
+      for (std::vector<MooseSharedPointer<Marker> >::const_iterator it = markers.begin(); it != markers.end(); ++it)
+        (*it)->markerSetup();
+    }
 
-    ComputeMarkerThread cmt(*this, getAuxiliarySystem(), _markers);
+    ComputeMarkerThread cmt(*this, getAuxiliarySystem());
     Threads::parallel_reduce(*_mesh.getActiveLocalElementRange(), cmt);
 
     _aux.solution().close();
@@ -2247,61 +2237,40 @@ FEProblem::execute(const ExecFlagType & exec_type)
   // Set the current flag
   _current_execute_on_flag = exec_type;
 
-  // Call setup methods FEProblem::initialSetup, jacobianSetup, etc...
-
   // Pre-aux UserObjects
-  Moose::perf_log.push("executeUserObjects()", "Setup");
-  executeUserObjects(exec_type, UserObjectWarehouse::PRE_AUX);
-  Moose::perf_log.pop("executeUserObjects()", "Setup");
+  Moose::perf_log.push("computeUserObjects()", "Setup");
+  computeUserObjects(exec_type, UserObjectWarehouse::PRE_AUX);
+  Moose::perf_log.pop("computeUserObjects()", "Setup");
 
   // AuxKernels
-  Moose::perf_log.push("executeAuxiliaryKernels()", "Setup");
-  executeAuxiliaryKernels(exec_type);
-  Moose::perf_log.pop("executeAuxiliaryKernels()", "Setup");
+  Moose::perf_log.push("computeAuxiliaryKernels()", "Setup");
+  computeAuxiliaryKernels(exec_type);
+  Moose::perf_log.pop("computeAuxiliaryKernels()", "Setup");
 
   // Post-aux UserObjects
-  Moose::perf_log.push("executeUserObjects()", "Setup");
-  executeUserObjects(exec_type, UserObjectWarehouse::POST_AUX);
-  Moose::perf_log.pop("executeUserObjects()", "Setup");
-
-  // Indicators and Markers
-
-  // MultiApps
-
-  // Transfers
+  Moose::perf_log.push("computeUserObjects()", "Setup");
+  computeUserObjects(exec_type, UserObjectWarehouse::POST_AUX);
+  Moose::perf_log.pop("computeUserObjects()", "Setup");
 
   // Controls
-
-  // Outputs
+  Moose::perf_log.push("computeControls()", "Setup");
+  executeControls(exec_type);
+  Moose::perf_log.pop("computeControls()", "Setup");
 
   // Return the current flag to None
   _current_execute_on_flag = EXEC_NONE;
 }
 
 void
-FEProblem::computeAuxiliaryKernels(ExecFlagType type)
-{
-  mooseDoOnce(mooseDeprecated("computeAuxiliaryKerels method will be removed in future versions of MOOSE, please update your code to use FEProblem::execute()"));
-  executeAuxiliaryKernels(type);
-}
-
-void
-FEProblem::computeUserObjects(ExecFlagType type, UserObjectWarehouse::GROUP group)
-{
-  mooseDoOnce(mooseDeprecated("computeUserObjects method will be removed in future versions of MOOSE, please update your code to use FEProblem::execute()"));
-  executeUserObjects(type, group);
-}
-
-void
-FEProblem::executeAuxiliaryKernels(const ExecFlagType & type)
+FEProblem::computeAuxiliaryKernels(const ExecFlagType & type)
 {
   _aux.compute(type);
 }
 
 void
-FEProblem::executeUserObjects(const ExecFlagType & type, const UserObjectWarehouse::GROUP & group)
+FEProblem::computeUserObjects(const ExecFlagType & type, const UserObjectWarehouse::GROUP & group)
 {
-  // Perform Residual/Jacobin setups
+  // Perform Residual/Jacobian setups
   switch (type)
   {
   case EXEC_LINEAR:
@@ -2424,37 +2393,6 @@ FEProblem::executeUserObjects(const ExecFlagType & type, const UserObjectWarehou
       ComputeUserObjectsThread cppt(*this, getNonlinearSystem(), *getNonlinearSystem().currentSolution(), pps, group);
       Threads::parallel_reduce(*_mesh.getActiveLocalElementRange(), cppt);
 
-      for (std::set<SubdomainID>::const_iterator block_ids_it = pps[0].blockIds().begin();
-           block_ids_it != pps[0].blockIds().end();
-           ++block_ids_it)
-      {
-        SubdomainID block_id = *block_ids_it;
-
-        const std::vector<ElementUserObject *> & element_user_objects = pps[0].elementUserObjects(block_id, group);
-        // Store element user_objects values
-        for (unsigned int i = 0; i < element_user_objects.size(); ++i)
-        {
-          ElementUserObject *ps = element_user_objects[i];
-          std::string name = ps->name();
-
-          // join across the threads (gather the value in thread #0)
-          if (already_gathered.find(ps) == already_gathered.end())
-          {
-            for (THREAD_ID tid = 1; tid < libMesh::n_threads(); ++tid)
-              ps->threadJoin(*pps[tid].elementUserObjects(block_id, group)[i]);
-
-            ps->finalize();
-
-            Postprocessor * pp = getPostprocessorPointer<ElementUserObject, ElementPostprocessor>(ps);
-
-            if (pp)
-              _pps_data.storeValue(name, pp->getValue());
-
-            already_gathered.insert(ps);
-          }
-        }
-      }
-
       // Store side user_objects values
       already_gathered.clear();
       for (std::set<BoundaryID>::const_iterator boundary_ids_it = pps[0].boundaryIds().begin();
@@ -2534,6 +2472,39 @@ FEProblem::executeUserObjects(const ExecFlagType & type, const UserObjectWarehou
         already_gathered.insert(ps);
       }
       */
+
+      // Store element user_objects values
+      already_gathered.clear();
+      for (std::set<SubdomainID>::const_iterator block_ids_it = pps[0].blockIds().begin();
+           block_ids_it != pps[0].blockIds().end();
+           ++block_ids_it)
+      {
+        SubdomainID block_id = *block_ids_it;
+
+        const std::vector<ElementUserObject *> & element_user_objects = pps[0].elementUserObjects(block_id, group);
+        // Store element user_objects values
+        for (unsigned int i = 0; i < element_user_objects.size(); ++i)
+        {
+          ElementUserObject *ps = element_user_objects[i];
+          std::string name = ps->name();
+
+          // join across the threads (gather the value in thread #0)
+          if (already_gathered.find(ps) == already_gathered.end())
+          {
+            for (THREAD_ID tid = 1; tid < libMesh::n_threads(); ++tid)
+              ps->threadJoin(*pps[tid].elementUserObjects(block_id, group)[i]);
+
+            ps->finalize();
+
+            Postprocessor * pp = getPostprocessorPointer<ElementUserObject, ElementPostprocessor>(ps);
+
+            if (pp)
+              _pps_data.storeValue(name, pp->getValue());
+
+            already_gathered.insert(ps);
+          }
+        }
+      }
     }
 
     // Don't waste time looping over nodes if there aren't any nodal user_objects to calculate
@@ -2628,6 +2599,33 @@ FEProblem::executeUserObjects(const ExecFlagType & type, const UserObjectWarehou
 }
 
 void
+FEProblem::executeControls(const ExecFlagType & exec_type)
+{
+  _control_warehouse.setup(exec_type);
+  const std::vector<MooseSharedPointer<Control> > & objects = _control_warehouse[exec_type].getActiveObjects();
+  for (std::vector<MooseSharedPointer<Control> >::const_iterator it = objects.begin(); it != objects.end(); ++it)
+    (*it)->execute();
+}
+
+void
+FEProblem::updateActiveObjects()
+{
+
+  for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
+  {
+    _nl.updateActive(tid);
+    _aux.updateActive(tid);
+    _indicators.updateActive(tid);
+    _internal_side_indicators.updateActive(tid);
+    _markers.updateActive(tid);
+  }
+
+  _control_warehouse.updateActive();
+  _multi_apps.updateActive();
+  _transient_multi_apps.updateActive();
+}
+
+void
 FEProblem::reinitBecauseOfGhostingOrNewGeomObjects()
 {
   // Need to see if _any_ processor has ghosted elems or geometry objects.
@@ -2681,15 +2679,17 @@ FEProblem::addIndicator(std::string indicator_name, const std::string & name, In
 
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    parameters.set<MaterialData *>("_material_data") = _material_data[tid];
-
     parameters.set<MaterialData *>("_material_data") = _bnd_material_data[tid];
     parameters.set<MaterialData *>("_neighbor_material_data") = _neighbor_material_data[tid];
 
     MooseSharedPointer<Indicator> indicator = MooseSharedNamespace::static_pointer_cast<Indicator>(_factory.create(indicator_name, name, parameters, tid));
 
-    std::vector<SubdomainID> block_ids;
-    _indicators[tid].addIndicator(indicator, block_ids);
+    MooseSharedPointer<InternalSideIndicator> isi = MooseSharedNamespace::dynamic_pointer_cast<InternalSideIndicator>(indicator);
+    if (isi)
+      _internal_side_indicators.addObject(isi, tid);
+    else
+      _indicators.addObject(indicator, tid);
+
   }
 }
 
@@ -2712,17 +2712,13 @@ FEProblem::addMarker(std::string marker_name, const std::string & name, InputPar
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
     MooseSharedPointer<Marker> marker = MooseSharedNamespace::static_pointer_cast<Marker>(_factory.create(marker_name, name, parameters, tid));
-
-    std::vector<SubdomainID> block_ids;
-    _markers[tid].addMarker(marker, block_ids);
+    _markers.addObject(marker, tid);
   }
 }
 
 void
 FEProblem::addMultiApp(const std::string & multi_app_name, const std::string & name, InputParameters parameters)
 {
-  _has_multiapps = true;
-
   parameters.set<FEProblem *>("_fe_problem") = this;
   parameters.set<MPI_Comm>("_mpi_comm") = _communicator.get();
   parameters.set<MooseSharedPointer<CommandLine> >("_command_line") = _app.commandLine();
@@ -2739,45 +2735,35 @@ FEProblem::addMultiApp(const std::string & multi_app_name, const std::string & n
     parameters.set<SystemBase *>("_sys") = &_aux;
   }
 
-  MooseSharedPointer<MooseObject> mo = _factory.create(multi_app_name, name, parameters);
-
-  MooseSharedPointer<MultiApp> multi_app = MooseSharedNamespace::dynamic_pointer_cast<MultiApp>(mo);
-  if (multi_app.get() == NULL)
+  MooseSharedPointer<MultiApp> multi_app = MooseSharedNamespace::dynamic_pointer_cast<MultiApp>(_factory.create(multi_app_name, name, parameters));
+  if (!multi_app)
     mooseError("Unknown MultiApp type: " << multi_app_name);
 
-  const std::vector<ExecFlagType> & exec_flags = multi_app->execFlags();
-  for (unsigned int i=0; i<exec_flags.size(); ++i)
-    _multi_apps(exec_flags[i])[0].addMultiApp(multi_app);
+  _multi_apps.addObject(multi_app);
 
-  // TODO: Is this really the right spot to init a multiapp?
-//  multi_app->init();
+  // Store TranseintMultiApp objects in another containter, this is needed for calling computeDT
+  MooseSharedPointer<TransientMultiApp> trans_multi_app = MooseSharedNamespace::dynamic_pointer_cast<TransientMultiApp>(multi_app);
+  if (trans_multi_app)
+    _transient_multi_apps.addObject(trans_multi_app);
 }
 
 bool
 FEProblem::hasMultiApp(const std::string & multi_app_name)
 {
-  for (unsigned int i = 0; i < Moose::exec_types.size(); i++)
-    if (_multi_apps(Moose::exec_types[i])[0].hasMultiApp(multi_app_name))
-      return true;
-
-  return false;
+  return _multi_apps.hasActiveObject(multi_app_name);
 }
 
 
-MultiApp *
+MooseSharedPointer<MultiApp>
 FEProblem::getMultiApp(const std::string & multi_app_name)
 {
-  for (unsigned int i = 0; i < Moose::exec_types.size(); i++)
-    if (_multi_apps(Moose::exec_types[i])[0].hasMultiApp(multi_app_name))
-      return _multi_apps(Moose::exec_types[i])[0].getMultiApp(multi_app_name);
-
-  mooseError("MultiApp "<<multi_app_name<<" not found!");
+  return _multi_apps.getActiveObject(multi_app_name);
 }
 
 bool
 FEProblem::execMultiApps(ExecFlagType type, bool auto_advance)
 {
-  std::vector<MultiApp *> multi_apps = _multi_apps(type)[0].all();
+  std::vector<MooseSharedPointer<MultiApp> > multi_apps = _multi_apps[type].getActiveObjects();
 
   // Do anything that needs to be done to Apps before transfers
   for (unsigned int i=0; i<multi_apps.size(); i++)
@@ -2787,24 +2773,37 @@ FEProblem::execMultiApps(ExecFlagType type, bool auto_advance)
   {
     std::vector<Transfer *> transfers = _to_multi_app_transfers(type)[0].all();
     if (transfers.size())
+    {
+      _console << COLOR_CYAN << "Starting Transfers on " <<  Moose::stringify(type) << " To MultiApps" << COLOR_DEFAULT << std::endl;
       for (unsigned int i=0; i<transfers.size(); i++)
       {
         Moose::perf_log.push(transfers[i]->name(), "Transfers");
         transfers[i]->execute();
         Moose::perf_log.pop(transfers[i]->name(), "Transfers");
       }
+
+      _console << "Waiting For Transfers To Finish" << '\n';
+      MooseUtils::parallelBarrierNotify(_communicator);
+
+      _console << COLOR_CYAN << "Transfers on " <<  Moose::stringify(type) << " Are Finished" << COLOR_DEFAULT << std::endl;
+    }
+    else
+    {
+      if (multi_apps.size())
+        _console << COLOR_CYAN << "No Transfers on " <<  Moose::stringify(type) << " To MultiApps" << COLOR_DEFAULT << std::endl;
+    }
   }
 
   if (multi_apps.size())
   {
-    _console << "Executing MultiApps" << std::endl;
+    _console << COLOR_CYAN << "Executing MultiApps on " <<  Moose::stringify(type) << COLOR_DEFAULT << std::endl;
 
     bool success = true;
 
     for (unsigned int i=0; success && i<multi_apps.size(); i++)
       success = multi_apps[i]->solveStep(_dt, _time, auto_advance);
 
-    _console << "Waiting For Other Processors To Finish" << std::endl;
+    _console << "Waiting For Other Processors To Finish" << '\n';
     MooseUtils::parallelBarrierNotify(_communicator);
 
     _communicator.max(success);
@@ -2812,7 +2811,7 @@ FEProblem::execMultiApps(ExecFlagType type, bool auto_advance)
     if (!success)
       return false;
 
-    _console << "Finished Executing MultiApps" << std::endl;
+    _console << COLOR_CYAN << "Finished Executing MultiApps on " <<  Moose::stringify(type) << COLOR_DEFAULT << std::endl;
   }
 
   // Execute Transfers _from_ MultiApps
@@ -2820,7 +2819,7 @@ FEProblem::execMultiApps(ExecFlagType type, bool auto_advance)
     std::vector<Transfer *> transfers = _from_multi_app_transfers(type)[0].all();
     if (transfers.size())
     {
-      _console << "Starting Transfers From MultiApps" << std::endl;
+      _console << COLOR_CYAN << "Starting Transfers on " <<  Moose::stringify(type) << " From MultiApps" << COLOR_DEFAULT << std::endl;
       for (unsigned int i=0; i<transfers.size(); i++)
       {
         Moose::perf_log.push(transfers[i]->name(), "Transfers");
@@ -2828,11 +2827,13 @@ FEProblem::execMultiApps(ExecFlagType type, bool auto_advance)
         Moose::perf_log.pop(transfers[i]->name(), "Transfers");
       }
 
-      _console << "Waiting For Transfers To Finish" << std::endl;
+      _console << "Waiting For Transfers To Finish" << '\n';
       MooseUtils::parallelBarrierNotify(_communicator);
 
-      _console << "Transfers Are Finished" << std::endl;
+      _console << COLOR_CYAN << "Transfers " << Moose::stringify(type) << " Are Finished" << COLOR_DEFAULT << std::endl;
     }
+    else if (multi_apps.size())
+      _console << COLOR_CYAN << "No Transfers on " <<  Moose::stringify(type) << " From MultiApps" << COLOR_DEFAULT << std::endl;
   }
 
   // If we made it here then everything passed
@@ -2842,7 +2843,7 @@ FEProblem::execMultiApps(ExecFlagType type, bool auto_advance)
 void
 FEProblem::advanceMultiApps(ExecFlagType type)
 {
-  std::vector<MultiApp *> multi_apps = _multi_apps(type)[0].all();
+  const std::vector<MooseSharedPointer<MultiApp> > multi_apps = _multi_apps[type].getActiveObjects();
 
   if (multi_apps.size())
   {
@@ -2861,7 +2862,7 @@ FEProblem::advanceMultiApps(ExecFlagType type)
 void
 FEProblem::backupMultiApps(ExecFlagType type)
 {
-  std::vector<MultiApp *> multi_apps = _multi_apps(type)[0].all();
+  const std::vector<MooseSharedPointer<MultiApp> > multi_apps = _multi_apps[type].getActiveObjects();
 
   if (multi_apps.size())
   {
@@ -2880,11 +2881,14 @@ FEProblem::backupMultiApps(ExecFlagType type)
 void
 FEProblem::restoreMultiApps(ExecFlagType type, bool force)
 {
-  std::vector<MultiApp *> multi_apps = _multi_apps(type)[0].all();
+  const std::vector<MooseSharedPointer<MultiApp> > multi_apps = _multi_apps[type].getActiveObjects();
 
   if (multi_apps.size())
   {
-    _console << "Restoring MultiApps" << std::endl;
+    if (force)
+      _console << "\nRestoring Multiapps because of solve failure!" << std::endl;
+    else
+      _console << "\nRestoring MultiApps" << std::endl;
 
     for (unsigned int i=0; i<multi_apps.size(); i++)
       if (force || multi_apps[i]->needsRestoration())
@@ -2900,7 +2904,7 @@ FEProblem::restoreMultiApps(ExecFlagType type, bool force)
 Real
 FEProblem::computeMultiAppsDT(ExecFlagType type)
 {
-  std::vector<TransientMultiApp *> multi_apps = _multi_apps(type)[0].transient();
+  const std::vector<MooseSharedPointer<TransientMultiApp> > & multi_apps = _transient_multi_apps[type].getActiveObjects();
 
   Real smallest_dt = std::numeric_limits<Real>::max();
 
@@ -3081,7 +3085,7 @@ FEProblem::createQRules(QuadratureType type, Order order, Order volume_order, Or
   for (unsigned int tid = 0; tid < libMesh::n_threads(); ++tid)
   {
     _zero[tid].resize(getMaxQps(), 0);
-    _grad_zero[tid].resize(getMaxQps(), 0);
+    _grad_zero[tid].resize(getMaxQps(), RealGradient(0.));
     _second_zero[tid].resize(getMaxQps(), RealTensor(0.));
     _second_phi_zero[tid].resize(getMaxQps(), std::vector<RealTensor>(getMaxShapeFunctions(), RealTensor(0.)));
   }
@@ -3099,6 +3103,18 @@ FEProblem::setCouplingMatrix(CouplingMatrix * cm)
   _coupling = Moose::COUPLING_CUSTOM;
   delete _cm;
   _cm = cm;
+}
+
+bool
+FEProblem::areCoupled(unsigned int ivar, unsigned int jvar)
+{
+  return (*_cm)(ivar, jvar);
+}
+
+std::vector<std::pair<MooseVariable *, MooseVariable *> > &
+FEProblem::couplingEntries(THREAD_ID tid)
+{
+  return _assembly[tid]->couplingEntries();
 }
 
 void
@@ -3262,6 +3278,30 @@ FEProblem::converged()
     return _nl.converged();
   else
     return true;
+}
+
+unsigned int
+FEProblem::nNonlinearIterations()
+{
+  return _nl.nNonlinearIterations();
+}
+
+unsigned int
+FEProblem::nLinearIterations()
+{
+  return _nl.nLinearIterations();
+}
+
+Real
+FEProblem::finalNonlinearResidual()
+{
+  return _nl.finalNonlinearResidual();
+}
+
+bool
+FEProblem::computingInitialResidual()
+{
+  return _nl.computingInitialResidual();
 }
 
 void
@@ -3433,7 +3473,7 @@ FEProblem::computeResidualType(const NumericVector<Number>& soln, NumericVector<
 
   execMultiApps(EXEC_LINEAR);
 
-  executeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
+  computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::PRE_AUX);
 
   if (_displaced_problem != NULL)
     _displaced_problem->updateMesh(soln, *_aux.currentSolution());
@@ -3455,7 +3495,9 @@ FEProblem::computeResidualType(const NumericVector<Number>& soln, NumericVector<
 
   _aux.compute(EXEC_LINEAR);
 
-  executeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
+  computeUserObjects(EXEC_LINEAR, UserObjectWarehouse::POST_AUX);
+
+  executeControls(EXEC_LINEAR);
 
   _app.getOutputWarehouse().residualSetup();
 
@@ -3480,10 +3522,12 @@ FEProblem::computeJacobian(NonlinearImplicitSystem & sys, const NumericVector<Nu
          ++it)
       it->second->updateSeeds(EXEC_NONLINEAR);
 
+    _currently_computing_jacobian = true;
+
     execTransfers(EXEC_NONLINEAR);
     execMultiApps(EXEC_NONLINEAR);
 
-    executeUserObjects(EXEC_NONLINEAR, UserObjectWarehouse::PRE_AUX);
+    computeUserObjects(EXEC_NONLINEAR, UserObjectWarehouse::PRE_AUX);
 
     if (_displaced_problem != NULL)
       _displaced_problem->updateMesh(soln, *_aux.currentSolution());
@@ -3502,12 +3546,15 @@ FEProblem::computeJacobian(NonlinearImplicitSystem & sys, const NumericVector<Nu
 
     _aux.compute(EXEC_NONLINEAR);
 
-    executeUserObjects(EXEC_NONLINEAR, UserObjectWarehouse::POST_AUX);
+    computeUserObjects(EXEC_NONLINEAR, UserObjectWarehouse::POST_AUX);
+
+    executeControls(EXEC_NONLINEAR);
 
     _app.getOutputWarehouse().jacobianSetup();
 
     _nl.computeJacobian(jacobian);
 
+    _currently_computing_jacobian = false;
     _has_jacobian = true;
   }
 

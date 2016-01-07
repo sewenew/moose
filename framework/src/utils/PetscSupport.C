@@ -16,7 +16,7 @@
 
 #ifdef LIBMESH_HAVE_PETSC
 
-// Moose includes
+// MOOSE includes
 #include "MooseApp.h"
 #include "FEProblem.h"
 #include "DisplacedProblem.h"
@@ -31,8 +31,9 @@
 #include "MultiMooseEnum.h"
 #include "Conversion.h"
 #include "Executioner.h"
+#include "MooseMesh.h"
 
-//libMesh Includes
+// libMesh includes
 #include "libmesh/libmesh_common.h"
 #include "libmesh/equation_systems.h"
 #include "libmesh/nonlinear_implicit_system.h"
@@ -44,7 +45,7 @@
 #include "libmesh/petsc_preconditioner.h"
 #include "libmesh/getpot.h"
 
-//PETSc includes
+// PETSc includes
 #include <petsc.h>
 #include <petscsnes.h>
 #include <petscksp.h>
@@ -624,7 +625,7 @@ MultiMooseEnum
 getCommonPetscKeys()
 {
   return MultiMooseEnum(
-    "-ksp_atol -ksp_gmres_restart -ksp_grmres_restart -ksp_max_it -ksp_pc_side -ksp_rtol "
+    "-ksp_atol -ksp_gmres_restart -ksp_max_it -ksp_pc_side -ksp_rtol "
     "-ksp_type -mat_fd_coloring_err -mat_fd_type -mat_mffd_type -pc_asm_overlap -pc_factor_levels "
     "-pc_factor_mat_ordering_type -pc_hypre_boomeramg_grid_sweeps_all -pc_hypre_boomeramg_max_iter "
     "-pc_hypre_boomeramg_strong_threshold -pc_hypre_type -pc_type -snes_atol -snes_linesearch_type "

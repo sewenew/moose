@@ -12,11 +12,15 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-#include "DiracKernel.h"
-
 // Moose includes
+#include "DiracKernel.h"
+#include "Assembly.h"
 #include "SystemBase.h"
 #include "Problem.h"
+#include "MooseMesh.h"
+
+// libMesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<DiracKernel>()
@@ -33,6 +37,7 @@ InputParameters validParams<DiracKernel>()
 
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
 
+  params.declareControllable("enable");
   params.registerBase("DiracKernel");
 
   return params;

@@ -111,13 +111,6 @@ MaterialWarehouse::hasBoundaryMaterials(BoundaryID boundary_id) const
 }
 
 std::vector<Material *> &
-MaterialWarehouse::getMaterials()
-{
-  mooseDeprecated("MaterialWarehouse::getMaterials() is deprecated - use MaterialWarehouse::all() instead");
-  return _all_objects;
-}
-
-std::vector<Material *> &
 MaterialWarehouse::getMaterials(SubdomainID block_id)
 {
   std::map<SubdomainID, std::vector<Material *> >::iterator mat_iter = _active_materials.find(block_id);
@@ -293,20 +286,25 @@ MaterialWarehouse::checkDependMaterials(const std::map<SubdomainID, std::vector<
 void
 MaterialWarehouse::sortMaterials(std::vector<Material *> & materials_vector)
 {
+  // mark zero properties as requested if they are overwritten by a supplied property
+  for (std::vector<Material *>::iterator mat_iter = materials_vector.begin(); mat_iter != materials_vector.end(); ++mat_iter)
+  {
+    // iterate over all properties supplied by *mat_iter
+    const std::set<std::string> & supplied_props = (*mat_iter)->getSuppliedItems();
+    for (std::set<std::string>::const_iterator supplied_prop_iter = supplied_props.begin(); supplied_prop_iter != supplied_props.end(); ++supplied_prop_iter)
+      // for all materials try to move this supplied property from zero to requested
+      for (std::vector<Material *>::iterator mat_iter2 = materials_vector.begin(); mat_iter2 != materials_vector.end(); ++mat_iter2)
+        (*mat_iter2)->setZeroPropAsRequested(*supplied_prop_iter);
+  }
+
   try
   {
     // Sort based on dependencies
-    DependencyResolverInterface::sort(materials_vector.begin(), materials_vector.end());
+    DependencyResolverInterface::sort<Material *>(materials_vector);
   }
-  catch(CyclicDependencyException<DependencyResolverInterface *> & e)
+  catch(CyclicDependencyException<Material *> & e)
   {
-    std::ostringstream oss;
-
-    oss << "Cyclic dependency detected in material property couplings:\n";
-    const std::multimap<DependencyResolverInterface *, DependencyResolverInterface *> & depends = e.getCyclicDependencies();
-    for (std::multimap<DependencyResolverInterface *, DependencyResolverInterface *>::const_iterator it = depends.begin(); it != depends.end(); ++it)
-      oss << (static_cast<Material *>(it->first))->name() << " -> " << (static_cast<Material *>(it->second))->name() << "\n";
-    mooseError(oss.str());
+    DependencyResolverInterface::cyclicDependencyError<Material *>(e, "Cyclic dependency detected in material property couplings");
   }
 }
 

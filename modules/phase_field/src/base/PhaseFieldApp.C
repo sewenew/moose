@@ -7,6 +7,7 @@
 #include "PhaseFieldApp.h"
 #include "Moose.h"
 #include "AppFactory.h"
+#include "MooseSyntax.h"
 
 /*
  * Kernels
@@ -69,6 +70,7 @@
 #include "PolycrystalRandomIC.h"
 #include "PolycrystalReducedIC.h"
 #include "RampIC.h"
+#include "ReconPhaseVarIC.h"
 #include "ReconVarIC.h"
 #include "RndBoundingBoxIC.h"
 #include "RndSmoothCircleIC.h"
@@ -142,7 +144,6 @@
 /*
  * Functions
  */
-#include "ImageFunction.h"
 
 /*
  * User Objects
@@ -166,7 +167,6 @@
  * Meshes
  */
 #include "EBSDMesh.h"
-#include "ImageMesh.h"
 
 /*
  * Actions
@@ -277,7 +277,6 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(SwitchingFunctionConstraintLagrange);
   registerKernel(SwitchingFunctionPenalty);
   registerDeprecatedObjectName(CahnHilliard, "CHParsed", "11/01/2015 00:00");
-  registerDeprecatedObjectName(CoupledTimeDerivative, "CoupledImplicitEuler", "09/01/2015 00:00");
 
   registerInitialCondition(ClosePackIC);
   registerInitialCondition(CrossIC);
@@ -288,6 +287,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerInitialCondition(PolycrystalRandomIC);
   registerInitialCondition(PolycrystalReducedIC);
   registerInitialCondition(RampIC);
+  registerInitialCondition(ReconPhaseVarIC);
   registerInitialCondition(ReconVarIC);
   registerInitialCondition(RndBoundingBoxIC);
   registerInitialCondition(RndSmoothCircleIC);
@@ -328,7 +328,6 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerMaterial(StrainGradDispDerivatives);
   registerMaterial(SwitchingFunctionMaterial);
   registerMaterial(CrossTermBarrierFunctionMaterial);
-  registerDeprecatedObjectName(PFMobility, "PFMobility", "09/26/2015 00:00");
 
   registerPostprocessor(FeatureFloodCount);
   registerPostprocessor(GrainTracker);
@@ -361,13 +360,10 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerUserObject(EBSDReader);
   registerUserObject(SolutionRasterizer);
 
-  registerFunction(ImageFunction);
-
   registerVectorPostprocessor(GrainCentersPostprocessor);
   registerVectorPostprocessor(GrainForcesPostprocessor);
 
   registerMesh(EBSDMesh);
-  registerMesh(ImageMesh);
 }
 
 // External entry point for dynamic syntax association

@@ -23,8 +23,8 @@
 #include "MooseTypes.h"
 #include "InitialCondition.h"
 #include "ScalarInitialCondition.h"
-// libMesh
-#include "libmesh/quadrature_gauss.h"
+#include "Assembly.h"
+#include "MooseMesh.h"
 
 /// Free function used for a libMesh callback
 void extraSendList(std::vector<dof_id_type> & send_list, void * context)
@@ -84,7 +84,6 @@ SystemBase::SystemBase(SubProblem & subproblem, const std::string & name) :
     _factory(_app.getFactory()),
     _mesh(subproblem.mesh()),
     _name(name),
-    _currently_computing_jacobian(false),
     _vars(libMesh::n_threads()),
     _var_map()
 {

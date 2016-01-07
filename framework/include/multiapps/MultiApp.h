@@ -14,22 +14,23 @@
 #ifndef MULTIAPP_H
 #define MULTIAPP_H
 
-#include "MooseApp.h"
-#include "MooseEnum.h"
+#include "MooseObject.h"
 #include "SetupInterface.h"
 #include "Restartable.h"
-#include "RestartableDataIO.h"
-
-// libMesh includes
-#include "libmesh/mesh_tools.h"
-#include "libmesh/numeric_vector.h"
 
 class MultiApp;
 class UserObject;
 class FEProblem;
 class Executioner;
-class OutputWarehouse;
-namespace libMesh{ namespace MeshTools { class BoundingBox; } }
+class MooseApp;
+class Backup;
+
+// libMesh forward declarations
+namespace libMesh
+{
+namespace MeshTools { class BoundingBox; }
+template <typename T> class NumericVector;
+}
 
 template<>
 InputParameters validParams<MultiApp>();
@@ -268,6 +269,9 @@ protected:
    * @return The local app number.
    */
   unsigned int globalAppToLocal(unsigned int global_app);
+
+  /// call back executed right before app->runInputFile()
+  virtual void preRunInputFile();
 
   /// The FEProblem this MultiApp is part of
   FEProblem & _fe_problem;

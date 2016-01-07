@@ -1,3 +1,9 @@
+#
+# In this test we set the initial condition of two variables
+# based on solely the phase information in a given EBSD data file,
+# ignoring the feature IDs entirely
+#
+
 [Problem]
   type = FEProblem
   solve = false
@@ -24,20 +30,16 @@
 
 [ICs]
   [./phase1_recon]
-    type = ReconVarIC
+    type = ReconPhaseVarIC
     ebsd_reader = ebsd
-    consider_phase = true
     phase = 1
     variable = c1
-    all_to_one = true
   [../]
   [./phase2_recon]
-    type = ReconVarIC
+    type = ReconPhaseVarIC
     ebsd_reader = ebsd
-    consider_phase = true
     phase = 2
     variable = c2
-    all_to_one = true
   [../]
 []
 

@@ -19,10 +19,12 @@
 #include "SubProblem.h"
 #include "AuxiliarySystem.h"
 #include "MooseTypes.h"
+#include "Assembly.h"
 
 //libmesh includes
 #include "libmesh/numeric_vector.h"
 #include "libmesh/dof_map.h"
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<AuxKernel>()
@@ -44,6 +46,7 @@ InputParameters validParams<AuxKernel>()
   // This flag is set to true if the AuxKernel is being used on a boundary
   params.addPrivateParam<bool>("_on_boundary", false);
 
+  params.declareControllable("enable"); // allows Control to enable/disable this type of object
   params.registerBase("AuxKernel");
 
   return params;

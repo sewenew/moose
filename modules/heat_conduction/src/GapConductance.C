@@ -4,12 +4,14 @@
 /*          All contents are licensed under LGPL V2.1           */
 /*             See LICENSE for full restrictions                */
 /****************************************************************/
+
+// MOOSE includes
 #include "GapConductance.h"
-
-// Moose Includes
 #include "PenetrationLocator.h"
+#include "Function.h"
+#include "MooseMesh.h"
 
-// libMesh Includes
+// libMesh includes
 #include "libmesh/string_to_enum.h"
 
 template<>

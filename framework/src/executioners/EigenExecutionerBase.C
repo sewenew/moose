@@ -17,6 +17,7 @@
 
 #include "MooseApp.h"
 #include "DisplacedProblem.h"
+#include "FEProblem.h"
 
 template<>
 InputParameters validParams<EigenExecutionerBase>()
@@ -112,7 +113,9 @@ EigenExecutionerBase::init()
   // check if _source_integral has been evaluated during initialSetup()
   if ((bx_execflag & EXEC_INITIAL) == EXEC_NONE)
     _problem.execute(EXEC_LINEAR);
-  if (_source_integral==0.0) mooseError("|Bx| = 0!");
+
+  if (_source_integral==0.0)
+    mooseError("|Bx| = 0!");
 
   // normalize solution to make |Bx|=_eigenvalue, _eigenvalue at this point has the initialized value
   makeBXConsistent(_eigenvalue);
@@ -148,7 +151,7 @@ EigenExecutionerBase::makeBXConsistent(Real k)
     _problem.execute(EXEC_LINEAR);
     std::stringstream ss;
     ss << std::fixed << std::setprecision(10) << _source_integral;
-    _console << " |Bx_0| = " << ss.str() << std::endl;
+    _console << "\n|Bx| = " << ss.str() << std::endl;
   }
 }
 
@@ -202,15 +205,18 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
   // save solver control parameters to be modified by the power iteration
   Real tol1 = _problem.es().parameters.get<Real> ("linear solver tolerance");
   unsigned int num1 = _problem.es().parameters.get<unsigned int>("nonlinear solver maximum iterations");
+  Real tol2 = _problem.es().parameters.get<Real> ("nonlinear solver relative residual tolerance");
 
   // every power iteration is a linear solve, so set nonlinear iteration number to one
   _problem.es().parameters.set<Real> ("linear solver tolerance") = pfactor;
+  // disable nonlinear convergence check
   _problem.es().parameters.set<unsigned int>("nonlinear solver maximum iterations") = 1;
+  _problem.es().parameters.set<Real> ("nonlinear solver relative residual tolerance") = 1-1e-8;
 
   if (echo)
   {
-    _console << std::endl;
-    _console << " Power iterations starts" << std::endl;
+    _console << '\n';
+    _console << " Power iterations starts\n";
     _console << " ________________________________________________________________________________ " << std::endl;
   }
 
@@ -264,7 +270,7 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
       std::stringstream ss;
       if (solution_diff)
       {
-        ss << std::endl;
+        ss << '\n';
         ss << " +================+=====================+=====================+\n";
         ss << " | iteration      | eigenvalue          | solution_difference |\n";
         ss << " +================+=====================+=====================+\n";
@@ -283,7 +289,7 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
       }
       else
       {
-        ss << std::endl;
+        ss << '\n';
         ss << " +================+=====================+\n";
         ss << " | iteration      | eigenvalue          |\n";
         ss << " +================+=====================+\n";
@@ -300,7 +306,7 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
         ss << " +================+=====================+\n" << std::flush;
         ss << std::endl;
       }
-      _console << ss.str() << std::endl;
+      _console << ss.str();
     }
 
     // increment iteration number here
@@ -338,6 +344,7 @@ EigenExecutionerBase::inversePowerIteration(unsigned int min_iter,
   // restore parameters changed by the executioner
   _problem.es().parameters.set<Real> ("linear solver tolerance") = tol1;
   _problem.es().parameters.set<unsigned int>("nonlinear solver maximum iterations") = num1;
+  _problem.es().parameters.set<Real> ("nonlinear solver relative residual tolerance") = tol2;
 
   //FIXME: currently power iteration use old and older solutions, so restore them
   _eigen_sys.restoreOldSolutions();
@@ -368,7 +375,7 @@ EigenExecutionerBase::postExecute()
   Real s = 1.0;
   if (_norm_execflag & EXEC_CUSTOM)
   {
-    _console << " Cannot let the normalization postprocessor on custom." << std::endl;
+    _console << " Cannot let the normalization postprocessor on custom.\n";
     _console << " Normalization is abandoned!" << std::endl;
   }
   else
@@ -411,6 +418,7 @@ EigenExecutionerBase::normalizeSolution(bool force)
       // EXEC_CUSTOM is special, should be treated only by specifically designed executioners.
       if (Moose::exec_types[i]==EXEC_CUSTOM)
         continue;
+
       _problem.execute(Moose::exec_types[i]);
     }
   }
@@ -421,12 +429,12 @@ void
 EigenExecutionerBase::printEigenvalue()
 {
   std::ostringstream ss;
-  ss << std::endl;
-  ss << "******************************************************* " << std::endl;
-  ss << " Eigenvalue = " << std::fixed << std::setprecision(10) << _eigenvalue << std::endl;
-  ss << "******************************************************* " << std::endl;
+  ss << '\n';
+  ss << "*******************************************************\n";
+  ss << " Eigenvalue = " << std::fixed << std::setprecision(10) << _eigenvalue << '\n';
+  ss << "*******************************************************";
 
-  _console << ss.str();
+  _console << ss.str() << std::endl;
 }
 
 EigenExecutionerBase::Chebyshev_Parameters::Chebyshev_Parameters()

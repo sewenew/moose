@@ -18,26 +18,31 @@
 #include <vector>
 
 #include "VariableWarehouse.h"
-#include "InitialConditionWarehouse.h"
-#include "Assembly.h"
 #include "ParallelUniqueId.h"
 #include "SubProblem.h"
 #include "MooseVariableScalar.h"
+#include "MooseVariable.h"
+#include "DataIO.h"
 
 // libMesh
-#include "libmesh/equation_systems.h"
-#include "libmesh/dof_map.h"
 #include "libmesh/exodusII_io.h"
-#include "libmesh/nonlinear_implicit_system.h"
-#include "libmesh/quadrature.h"
-#include "libmesh/point.h"
 #include "libmesh/parallel_object.h"
+#include "libmesh/dof_map.h"
+#include "libmesh/equation_systems.h"
+#include "libmesh/numeric_vector.h"
 
+// Forward declarations
 class Factory;
 class MooseApp;
 class MooseVariable;
 class MooseMesh;
 class SystemBase;
+
+// libMesh forward declarations
+namespace libMesh
+{
+class System;
+}
 
 /**
  * ///< Type of coordinate system
@@ -156,11 +161,6 @@ public:
   virtual void augmentSparsity(SparsityPattern::Graph & sparsity,
                                std::vector<dof_id_type> & n_nz,
                                std::vector<dof_id_type> & n_oz) = 0;
-
-  /**
-   * Returns true if we are currently computing Jacobian
-   */
-  virtual bool currentlyComputingJacobian() { return _currently_computing_jacobian; }
 
   /**
    * Adds a variable to the system
@@ -383,9 +383,6 @@ protected:
   MooseMesh & _mesh;
   /// The name of this system
   std::string _name;
-
-  /// Whether or not the system is currently computing the Jacobian matrix
-  bool _currently_computing_jacobian;
 
   /// Variable warehouses (one for each thread)
   std::vector<VariableWarehouse> _vars;

@@ -4,13 +4,16 @@
 /*          All contents are licensed under LGPL V2.1           */
 /*             See LICENSE for full restrictions                */
 /****************************************************************/
-#include "GapHeatTransfer.h"
 
+// MOOSE includes
+#include "GapHeatTransfer.h"
 #include "GapConductance.h"
 #include "PenetrationLocator.h"
 #include "SystemBase.h"
+#include "Assembly.h"
+#include "MooseMesh.h"
 
-// libmesh
+// libMesh includes
 #include "libmesh/string_to_enum.h"
 
 Threads::spin_mutex slave_flux_mutex;

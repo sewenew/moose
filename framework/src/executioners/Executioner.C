@@ -12,12 +12,12 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-#include "Executioner.h"
-
 // Moose includes
+#include "Executioner.h"
 #include "MooseMesh.h"
 #include "FEProblem.h"
 #include "MooseApp.h"
+#include "NonlinearSystem.h"
 
 // C++ includes
 #include <vector>
@@ -157,6 +157,11 @@ Executioner::getTimeStepperName()
   return std::string();
 }
 
+bool
+Executioner::lastSolveConverged()
+{
+  return _fe_problem.converged();
+}
 
 void
 Executioner::addAttributeReporter(const std::string & name, Real & attribute, const std::string execute_on)

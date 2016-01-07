@@ -17,6 +17,7 @@
 #include "SubProblem.h"
 #include "SystemBase.h"
 #include "MooseVariable.h"
+#include "Assembly.h"
 
 template<>
 InputParameters validParams<NodalKernel>()
@@ -24,6 +25,7 @@ InputParameters validParams<NodalKernel>()
   InputParameters params = validParams<MooseObject>();
   params += validParams<TransientInterface>();
   params += validParams<BlockRestrictable>();
+  params += validParams<BoundaryRestrictable>();
   params += validParams<RandomInterface>();
 
   params.addRequiredParam<NonlinearVariableName>("variable", "The name of the variable that this boundary condition applies to");
@@ -44,6 +46,7 @@ InputParameters validParams<NodalKernel>()
 NodalKernel::NodalKernel(const InputParameters & parameters) :
     MooseObject(parameters),
     BlockRestrictable(parameters),
+    BoundaryRestrictable(parameters),
     SetupInterface(parameters),
     FunctionInterface(parameters),
     UserObjectInterface(parameters),

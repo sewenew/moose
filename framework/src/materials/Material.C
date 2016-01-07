@@ -15,9 +15,10 @@
 #include "Material.h"
 #include "SubProblem.h"
 #include "MaterialData.h"
+#include "Assembly.h"
 
-// system includes
-#include <iostream>
+// libMesh includes
+#include "libmesh/quadrature.h"
 
 template<>
 InputParameters validParams<Material>()
@@ -126,6 +127,19 @@ QpData *
 Material::createData()
 {
   return NULL;
+}
+
+void
+Material::setZeroPropAsRequested(const std::string & prop_name)
+{
+  // look if property name is in _zero_props
+  std::set<std::string>::iterator it = _zero_props.find(prop_name);
+  if (it != _zero_props.end())
+  {
+    // move the property from _zero_props to _requested_props
+    _requested_props.insert(*it);
+    _zero_props.erase(it);
+  }
 }
 
 void

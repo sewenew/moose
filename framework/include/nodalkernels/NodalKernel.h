@@ -17,16 +17,15 @@
 
 // MOOSE
 #include "MooseObject.h"
+#include "BlockRestrictable.h"
 #include "SetupInterface.h"
-#include "MooseVariable.h"
-#include "ParallelUniqueId.h"
-#include "MooseArray.h"
 #include "FunctionInterface.h"
 #include "UserObjectInterface.h"
 #include "TransientInterface.h"
 #include "PostprocessorInterface.h"
 #include "GeometricSearchInterface.h"
 #include "BlockRestrictable.h"
+#include "BoundaryRestrictable.h"
 #include "Assembly.h"
 #include "Restartable.h"
 #include "ZeroInterface.h"
@@ -34,19 +33,13 @@
 #include "RandomInterface.h"
 #include "CoupleableMooseVariableDependencyIntermediateInterface.h"
 
-// libMesh
-#include "libmesh/elem.h"
-#include "libmesh/vector_value.h"
-#include "libmesh/tensor_value.h"
-#include "libmesh/numeric_vector.h"
-
 // Forward declerations
 class MooseVariable;
 class MooseMesh;
-class Problem;
 class SubProblem;
 class SystemBase;
 class NodalKernel;
+class Assembly;
 
 template<>
 InputParameters validParams<NodalKernel>();
@@ -58,6 +51,7 @@ InputParameters validParams<NodalKernel>();
 class NodalKernel :
   public MooseObject,
   public BlockRestrictable,
+  public BoundaryRestrictable,
   public SetupInterface,
   public FunctionInterface,
   public UserObjectInterface,

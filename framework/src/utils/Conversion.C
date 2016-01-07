@@ -12,16 +12,16 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
+// MOOSE includes
 #include "Conversion.h"
 #include "MooseError.h"
+#include "MultiMooseEnum.h"
 
-#include <map>
-#include <algorithm>
-
+// libMesh includes
 #include "libmesh/string_to_enum.h"
 
-namespace Moose {
-
+namespace Moose
+{
   std::map<std::string, ExecFlagType> execstore_type_to_enum;
   std::map<std::string, QuadratureType> quadrature_type_to_enum;
   std::map<std::string, CoordinateSystemType> coordinate_system_type_to_enum;
@@ -203,6 +203,26 @@ namespace Moose {
     case ST_PJFNK:  return "Preconditioned JFNK";
     case ST_FD:     return "FD";
     case ST_LINEAR: return "Linear";
+    }
+    return "";
+  }
+
+  template<>
+  std::string stringify(const ExecFlagType & t)
+  {
+    switch (t)
+    {
+    case EXEC_INITIAL:        return "INITIAL";
+    case EXEC_LINEAR:         return "LINEAR";
+    case EXEC_NONLINEAR:      return "NONLINEAR";
+    case EXEC_TIMESTEP_END:   return "TIMESTEP_END";
+    case EXEC_TIMESTEP_BEGIN: return "TIMESTEP_BEGIN";
+    case EXEC_CUSTOM:         return "CUSTOM";
+    case EXEC_FINAL:          return "FINAL";
+    case EXEC_FORCED:         return "FORCED";
+    case EXEC_FAILED:         return "FAILED";
+    case EXEC_SUBDOMAIN:      return "SUBDOMAIN";
+    case EXEC_NONE:           return "NONE";
     }
     return "";
   }
