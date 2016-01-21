@@ -76,8 +76,21 @@ class RunApp(Tester):
     else:
       default_ncpus = options.parallel
 
-    if options.error and not specs["allow_warnings"]:
+    if options.parallel_mesh and '--parallel-mesh' not in specs['cli_args']:
+      # The user has passed the parallel-mesh option to the test harness
+      # and it is NOT supplied already in the cli-args option
+      specs['cli_args'].append('--parallel-mesh')
+
+    if options.error and '--error' not in specs['cli_args'] and not specs["allow_warnings"]:
+      # The user has passed the error option to the test harness
+      # and it is NOT supplied already in the cli-args option\
       specs['cli_args'].append('--error')
+
+    if options.error_unused and '--error-unused' not in specs['cli_args'] and '--warn-unused' not in specs['cli_args']:
+      # The user has passed the error-unused option to the test harness
+      # and it is NOT supplied already in the cli-args option
+      # also, neither is the conflicting option "warn-unused"
+      specs['cli_args'].append('--error-unused')
 
     timing_string = ' '
     if options.timing:
@@ -148,9 +161,9 @@ class RunApp(Tester):
     # Lower the ceiling
     ncpus = min(ncpus, int(self.specs['max_parallel']))
 
-    #Set number of threads to be used lower bound
+    # Set number of threads to be used lower bound
     nthreads = max(options.nthreads, int(self.specs['min_threads']))
-    #Set number of threads to be used upper bound
+    # Set number of threads to be used upper bound
     nthreads = min(nthreads, int(self.specs['max_threads']))
 
     extra_args = ''
@@ -186,6 +199,14 @@ class RunApp(Tester):
 
     # Convert TEST_NAME to input tests file name (normally just 'tests')
     self.specs['no_copy'] = options.input_file_name
+
+    # Are we using the PBS Emulator? Make this param valid if so.
+    # Add the substitution string here so it is not visable to the user
+    self.specs.addStringSubParam('pbs_stdout', 'PBS_STDOUT', "Save stdout to this location")
+    self.specs.addStringSubParam('pbs_stderr', 'PBS_STDERR', "Save stderr to this location")
+    if options.PBSEmulator:
+      self.specs['pbs_stdout'] = 'pbs_stdout = PBS_EMULATOR'
+      self.specs['pbs_stderr'] = 'pbs_stderr = PBS_EMULATOR'
 
     # Do all of the replacements for the valid parameters
     for spec in self.specs.valid_keys():

@@ -1,7 +1,7 @@
 from FactorySystem import InputParameters
 from Job import Job
 
-import os, sys, subprocess, shutil
+import os, sys, subprocess, shutil, re
 
 class PBSJob(Job):
   def validParams():
@@ -15,11 +15,12 @@ class PBSJob(Job):
     params.addParam('place', 'scatter:excl', "The PBS job placement scheme to use.")
     params.addParam('walltime', '4:00:00', "The requested walltime for this job.")
     params.addParam('no_copy', "A list of files specifically not to copy")
+    params.addParam('no_copy_pattern', "A pattern of files not to copy")
     params.addParam('copy_files', "A list of files specifically to copy")
 
     params.addStringSubParam('pbs_o_workdir', 'PBS_O_WORKDIR', "Move to this directory")
-    params.addStringSubParam('pbs_stdout', 'PBS_STDOUT', "Save stdout to this location")
-    params.addStringSubParam('pbs_stderr', 'PBS_STDERR', "Save stderr to this location")
+    params.addStringSubParam('pbs_stdout', '#PBS -o PBS_STDOUT', "Save stdout to this location")
+    params.addStringSubParam('pbs_stderr', '#PBS -e PBS_STDERR', "Save stderr to this location")
 
     params.addStringSubParam('combine_streams', '#PBS -j oe', "Combine stdout and stderror into one file (needed for NO EXPECTED ERR)")
     params.addStringSubParam('threads', '--n-threads=THREADS', "The number of threads to run per MPI process.")
@@ -47,10 +48,20 @@ class PBSJob(Job):
     # Save current location as PBS_O_WORKDIR
     params['pbs_o_workdir'] = os.getcwd()
 
-    # Copy files (unless they are listed in "no_copy"
+    # Create regexp object of no_copy_pattern
+    if params.isValid('no_copy_pattern'):
+      # Match no_copy_pattern value
+      pattern = re.compile(params['no_copy_pattern'])
+    else:
+      # Match nothing if not set. Better way?
+      pattern = re.compile(r'')
+
+    # Copy files (unless they are listed in "no_copy")
     for file in os.listdir('../'):
-      if os.path.isfile('../' + file) and file != job_file and (not params.isValid('no_copy') or file not in params['no_copy']):
-         shutil.copy('../' + file, '.')
+      if os.path.isfile('../' + file) and file != job_file and \
+         (not params.isValid('no_copy') or file not in params['no_copy']) and \
+         (not params.isValid('no_copy_pattern') or pattern.match(file) is None):
+        shutil.copy('../' + file, '.')
 
     # Copy directories
     if params.isValid('copy_files'):
@@ -71,10 +82,6 @@ class PBSJob(Job):
     if params.isValid('mpi_procs') and params.isValid('total_mpi_procs'):
       print "ERROR: 'mpi_procs' and 'total_mpi_procs' are exclusive.  Only specify one!"
       sys.exit(1)
-
-    # Set stdout/err writes to PBS_O_WORKDIR
-    params['pbs_stdout'] = os.path.join(params['pbs_o_workdir'], params['job_name'])
-    params['pbs_stderr'] = os.path.join(params['pbs_o_workdir'], params['job_name'])
 
     # Do a few PBS job size calculations
     if params.isValid('mpi_procs'):

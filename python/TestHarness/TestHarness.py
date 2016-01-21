@@ -88,6 +88,9 @@ class TestHarness:
       self.checks['petsc_debug'] = set(['ALL'])
       self.checks['curl'] = set(['ALL'])
       self.checks['tbb'] = set(['ALL'])
+      self.checks['superlu'] = set(['ALL'])
+      self.checks['cxx11'] = set(['ALL'])
+      self.checks['asio'] =  set(['ALL'])
     else:
       self.checks['compiler'] = getCompilers(self.libmesh_dir)
       self.checks['petsc_version'] = getPetscVersion(self.libmesh_dir)
@@ -101,6 +104,9 @@ class TestHarness:
       self.checks['petsc_debug'] = getLibMeshConfigOption(self.libmesh_dir, 'petsc_debug')
       self.checks['curl'] =  getLibMeshConfigOption(self.libmesh_dir, 'curl')
       self.checks['tbb'] =  getLibMeshConfigOption(self.libmesh_dir, 'tbb')
+      self.checks['superlu'] =  getLibMeshConfigOption(self.libmesh_dir, 'superlu')
+      self.checks['cxx11'] =  getLibMeshConfigOption(self.libmesh_dir, 'cxx11')
+      self.checks['asio'] =  getIfAsioExists(self.moose_dir)
 
     # Override the MESH_MODE option if using '--parallel-mesh' option
     if self.options.parallel_mesh == True or \
@@ -129,6 +135,10 @@ class TestHarness:
 
     try:
       # PBS STUFF
+      if self.options.pbs:
+        # Check to see if we are using the PBS Emulator.
+        # Its expensive, so it must remain outside of the os.walk for loop.
+        self.options.PBSEmulator = self.checkPBSEmulator()
       if self.options.pbs and os.path.exists(self.options.pbs):
         self.options.processingPBS = True
         self.processPBSResults()
@@ -397,6 +407,21 @@ class TestHarness:
       return True
 
 # PBS Defs
+
+  def checkPBSEmulator(self):
+    try:
+      qstat_process = subprocess.Popen(['qstat', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      qstat_output = qstat_process.communicate()
+    except OSError:
+      # qstat binary is not available
+      print 'qstat not available. Perhaps you need to load the PBS module?'
+      sys.exit(1)
+    if len(qstat_output[1]):
+      # The PBS Emulator has no --version argument, and thus returns output to stderr
+      return True
+    else:
+      return False
+
   def processPBSResults(self):
     # If batch file exists, check the contents for pending tests.
     if os.path.exists(self.options.pbs):
@@ -563,7 +588,7 @@ class TestHarness:
       else:
         color = 'GREEN'
       test_name = colorText(specs['test_name']  + ": ", color, colored=self.options.colored, code=self.options.code)
-      output = ("\n" + test_name).join(lines)
+      output = test_name + ("\n" + test_name).join(lines)
       print output
 
       # Print result line again at the bottom of the output for failed tests
@@ -700,9 +725,15 @@ class TestHarness:
     parser.add_argument('--pbs', nargs='?', metavar='batch_file', dest='pbs', const='generate', help='Enable launching tests via PBS. If no batch file is specified one will be created for you')
     parser.add_argument('--pbs-cleanup', nargs=1, metavar='batch_file', help='Clean up the directories/files created by PBS. You must supply the same batch_file used to launch PBS.')
     parser.add_argument('--re', action='store', type=str, dest='reg_exp', help='Run tests that match --re=regular_expression')
-    parser.add_argument('--parallel-mesh', action='store_true', dest='parallel_mesh', help="Pass --parallel-mesh to executable")
-    parser.add_argument('--error', action='store_true', help='Run the tests with warnings as errors')
+
+    # Options that pass straight through to the executable
+    parser.add_argument('--parallel-mesh', action='store_true', dest='parallel_mesh', help='Pass "--parallel-mesh" to executable')
+    parser.add_argument('--error', action='store_true', help='Run the tests with warnings as errors (Pass "--error" to executable)')
+    parser.add_argument('--error-unused', action='store_true', help='Run the tests with errors on unused parameters (Pass "--error-unused" to executable)')
+
+    # Option to use for passing unwrapped options to the executable
     parser.add_argument('--cli-args', nargs='?', type=str, dest='cli_args', help='Append the following list of arguments to the command line (Encapsulate the command in quotes)')
+
     parser.add_argument('--dry-run', action='store_true', dest='dry_run', help="Pass --dry-run to print commands to run, but don't actually run them")
 
     outputgroup = parser.add_argument_group('Output Options', 'These options control the output of the test harness. The sep-files options write output to files named test_name.TEST_RESULT.txt. All file output will overwrite old files')

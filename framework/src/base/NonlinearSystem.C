@@ -156,6 +156,7 @@ NonlinearSystem::NonlinearSystem(FEProblem & fe_problem, const std::string & nam
     _scalar_kernels(/*threaded=*/false),
     _nodal_bcs(/*threaded=*/false),
     _preset_nodal_bcs(/*threaded=*/false),
+    _splits(/*threaded=*/false),
     _increment_vec(NULL),
     _pc_side(Moose::PCS_RIGHT),
     _use_finite_differenced_preconditioner(false),
@@ -337,7 +338,6 @@ NonlinearSystem::initialSetup()
   _scalar_kernels.initialSetup();
   _constraints.initialSetup();
   _nodal_bcs.initialSetup();
-  _preset_nodal_bcs.initialSetup();
 }
 
 void
@@ -355,7 +355,6 @@ NonlinearSystem::timestepSetup()
   _scalar_kernels.initialSetup();
   _constraints.timestepSetup();
   _nodal_bcs.timestepSetup();
-  _preset_nodal_bcs.timestepSetup();
 }
 
 
@@ -481,7 +480,7 @@ void
 NonlinearSystem::setupDecomposition()
 {
   if (!_have_decomposition) return;
-  Split* top_split = getSplit(_decomposition_split);
+  MooseSharedPointer<Split> top_split = getSplit(_decomposition_split);
   top_split->setup();
 }
 
@@ -536,13 +535,8 @@ NonlinearSystem::addKernel(const std::string & kernel_name, const std::string & 
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    // Set the parameters for thread ID and material data
-    parameters.set<MaterialData *>("_material_data") = _fe_problem._material_data[tid];
-
-    // Create the kernel object via the factory
+    // Create the kernel object via the factory and add to warehouse
     MooseSharedPointer<KernelBase> kernel = MooseSharedNamespace::static_pointer_cast<KernelBase>(_factory.create(kernel_name, name, parameters, tid));
-
-    // Add the kernel to the warehouse
     _kernels.addObject(kernel, tid);
 
     // Store time/non-time kernels separately
@@ -551,7 +545,6 @@ NonlinearSystem::addKernel(const std::string & kernel_name, const std::string & 
       _time_kernels.addObject(kernel, tid);
     else
       _non_time_kernels.addObject(kernel, tid);
-
   }
 
   if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
@@ -565,20 +558,8 @@ NonlinearSystem::addNodalKernel(const std::string & kernel_name, const std::stri
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    // Create the kernel object via the factory
+    // Create the kernel object via the factory and add to the warehouse
     MooseSharedPointer<NodalKernel> kernel = MooseSharedNamespace::static_pointer_cast<NodalKernel>(_factory.create(kernel_name, name, parameters, tid));
-
-    if (kernel->boundaryRestricted())
-      std::set<BoundaryID> boundary_ids = kernel->boundaryIDs();
-    else
-    {
-      // Set the parameters for thread ID and material data
-      parameters.set<MaterialData *>("_material_data") = _fe_problem._material_data[tid];
-
-      // Extract the SubdomainIDs from the object (via BlockRestrictable class)
-      std::set<SubdomainID> blk_ids = kernel->blockIDs();
-    }
-    // Add the kernel to the warehouse
     _nodal_kernels[tid].addNodalKernel(kernel);
   }
 
@@ -599,52 +580,66 @@ NonlinearSystem::addScalarKernel(const  std::string & kernel_name, const std::st
 void
 NonlinearSystem::addBoundaryCondition(const std::string & bc_name, const std::string & name, InputParameters parameters)
 {
+  // ThreadID
+  THREAD_ID tid = 0;
 
-  for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
+  // Create the object
+  MooseSharedPointer<BoundaryCondition> bc = MooseSharedNamespace::static_pointer_cast<BoundaryCondition>(_factory.create(bc_name, name, parameters, tid));
+
+  // Active BoundaryIDs for the object
+  const std::set<BoundaryID> & boundary_ids = bc->boundaryIDs();
+  _vars[tid].addBoundaryVar(boundary_ids, &bc->variable());
+
+  // Cast to the various types of BCs
+  MooseSharedPointer<NodalBC> nbc = MooseSharedNamespace::dynamic_pointer_cast<NodalBC>(bc);
+  MooseSharedPointer<IntegratedBC> ibc = MooseSharedNamespace::dynamic_pointer_cast<IntegratedBC>(bc);
+
+  // NodalBC
+  if (nbc)
   {
-    // Create the objecte for the current thread
-    parameters.set<MaterialData *>("_material_data") = _fe_problem._bnd_material_data[tid];
-    MooseSharedPointer<BoundaryCondition> bc = MooseSharedNamespace::static_pointer_cast<BoundaryCondition>(_factory.create(bc_name, name, parameters, tid));
+    _nodal_bcs.addObject(nbc);
+    _vars[tid].addBoundaryVars(boundary_ids, nbc->getCoupledVars());
 
-    // Active BoundaryIDs for the object
-    const std::set<BoundaryID> & boundary_ids = bc->boundaryIDs();
-    _vars[tid].addBoundaryVar(boundary_ids, &bc->variable());
+    if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
+      _has_nodalbc_save_in = true;
+    if (parameters.get<std::vector<AuxVariableName> >("diag_save_in").size() > 0)
+      _has_nodalbc_diag_save_in = true;
 
     // PresetNodalBC
     MooseSharedPointer<PresetNodalBC> pnbc = MooseSharedNamespace::dynamic_pointer_cast<PresetNodalBC>(bc);
     if (pnbc)
-      if (tid == 0)
-        _preset_nodal_bcs.addObject(pnbc);
+      _preset_nodal_bcs.addObject(pnbc);
+  }
 
-    // IntegragedBC and NodalBC
-    MooseSharedPointer<IntegratedBC> ibc = MooseSharedNamespace::dynamic_pointer_cast<IntegratedBC>(bc);
-    MooseSharedPointer<NodalBC> nbc = MooseSharedNamespace::dynamic_pointer_cast<NodalBC>(bc);
-    if (nbc)
+  // IntegratedBC
+  else if (ibc)
+  {
+    _integrated_bcs.addObject(ibc, tid);
+    _vars[tid].addBoundaryVars(boundary_ids, ibc->getCoupledVars());
+
+    if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
+      _has_save_in = true;
+    if (parameters.get<std::vector<AuxVariableName> >("diag_save_in").size() > 0)
+      _has_diag_save_in = true;
+
+    for (tid = 1; tid < libMesh::n_threads(); tid++)
     {
-      _vars[tid].addBoundaryVars(boundary_ids, nbc->getCoupledVars());
-      if (tid == 0)
-      {
-        _nodal_bcs.addObject(nbc);
-        if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
-          _has_nodalbc_save_in = true;
-        if (parameters.get<std::vector<AuxVariableName> >("diag_save_in").size() > 0)
-          _has_nodalbc_diag_save_in = true;
-      }
-    }
-    else if (ibc)
-    {
+      // Create the object
+      bc = MooseSharedNamespace::static_pointer_cast<BoundaryCondition>(_factory.create(bc_name, name, parameters, tid));
+
+      // Active BoundaryIDs for the object
+      const std::set<BoundaryID> & boundary_ids = bc->boundaryIDs();
+      _vars[tid].addBoundaryVar(boundary_ids, &bc->variable());
+
+      ibc = MooseSharedNamespace::static_pointer_cast<IntegratedBC>(bc);
+
       _integrated_bcs.addObject(ibc, tid);
       _vars[tid].addBoundaryVars(boundary_ids, ibc->getCoupledVars());
-
-      if (parameters.get<std::vector<AuxVariableName> >("save_in").size() > 0)
-        _has_save_in = true;
-      if (parameters.get<std::vector<AuxVariableName> >("diag_save_in").size() > 0)
-        _has_diag_save_in = true;
     }
-    else
-      mooseError("Unknown type of BoundaryCondition object");
-
   }
+
+  else
+    mooseError("Unknown BoundaryCondition type for object named " << bc->name());
 }
 
 void
@@ -662,10 +657,7 @@ NonlinearSystem::addDiracKernel(const  std::string & kernel_name, const std::str
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    parameters.set<MaterialData *>("_material_data") = _fe_problem._material_data[tid];
-
     MooseSharedPointer<DiracKernel> kernel = MooseSharedNamespace::static_pointer_cast<DiracKernel>(_factory.create(kernel_name, name, parameters, tid));
-
     _dirac_kernels.addObject(kernel, tid);
   }
 }
@@ -675,9 +667,6 @@ NonlinearSystem::addDGKernel(std::string dg_kernel_name, const std::string & nam
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
   {
-    parameters.set<MaterialData *>("_material_data") = _fe_problem._bnd_material_data[tid];
-    parameters.set<MaterialData *>("_neighbor_material_data") = _fe_problem._neighbor_material_data[tid];
-
     MooseSharedPointer<DGKernel> dg_kernel = MooseSharedNamespace::static_pointer_cast<DGKernel>(_factory.create(dg_kernel_name, name, parameters, tid));
 
     _dg_kernels.addObject(dg_kernel, tid);
@@ -691,8 +680,6 @@ NonlinearSystem::addDamper(const std::string & damper_name, const std::string & 
 {
   for (THREAD_ID tid=0; tid < libMesh::n_threads(); ++tid)
   {
-    parameters.set<MaterialData *>("_material_data") = _fe_problem._material_data[tid];
-
     MooseSharedPointer<Damper> damper = MooseSharedNamespace::static_pointer_cast<Damper>(_factory.create(damper_name, name, parameters, tid));
     _dampers.addObject(damper, tid);
   }
@@ -702,15 +689,13 @@ void
 NonlinearSystem::addSplit(const  std::string & split_name, const std::string & name, InputParameters parameters)
 {
   MooseSharedPointer<Split> split = MooseSharedNamespace::static_pointer_cast<Split>(_factory.create(split_name, name, parameters));
-  _splits.addSplit(name, split);
+  _splits.addObject(split);
 }
 
-Split*
+MooseSharedPointer<Split>
 NonlinearSystem::getSplit(const std::string & name)
 {
-
-  Split *split = _splits.getSplit(name);
-  return split;
+  return _splits.getActiveObject(name);
 }
 
 NumericVector<Number> &
@@ -836,15 +821,10 @@ void NonlinearSystem::setPredictor(MooseSharedPointer<Predictor> predictor)
 }
 
 void
-NonlinearSystem::subdomainSetup(unsigned int /*subdomain*/, THREAD_ID tid)
+NonlinearSystem::subdomainSetup(SubdomainID subdomain, THREAD_ID tid)
 {
-  //Global Kernels
-  _kernels.subdomainSetup(tid);
-
-//  for (std::vector<KernelBase *>::const_iterator kernel_it = _kernels.active().begin(); kernel_it != _kernels.active().end(); kernel_it++)
-//    (*kernel_it)->subdomainSetup();
-
-  _dampers.subdomainSetup(tid);
+  _kernels.subdomainSetup(subdomain, tid);
+  _dampers.subdomainSetup(subdomain, tid);
 }
 
 NumericVector<Number> &
@@ -1199,9 +1179,6 @@ NonlinearSystem::constraintResiduals(NumericVector<Number> & residual, bool disp
 void
 NonlinearSystem::computeResidualInternal(Moose::KernelType type)
 {
-   // residualSetup() /////
-  _preset_nodal_bcs.residualSetup();
-
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
     _kernels.residualSetup(tid);
@@ -1837,7 +1814,6 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
   _scalar_kernels.jacobianSetup();
   _constraints.jacobianSetup();
   _nodal_bcs.jacobianSetup();
-  _preset_nodal_bcs.jacobianSetup();
 
   // reinit scalar variables
   for (unsigned int tid = 0; tid < libMesh::n_threads(); tid++)
@@ -1978,10 +1954,13 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
 
           const std::vector<MooseVariable *> & coupled_moose_vars = bc->getCoupledMooseVars();
 
-          // Create the set of "involved" MOOSE vars, which includes all coupled vars and the BC's own variable
+          // Create the set of "involved" MOOSE nonlinear vars, which includes all coupled vars and the BC's own variable
           std::set<unsigned int> & var_set = bc_involved_vars[bc->name()];
           for (unsigned int var = 0; var < coupled_moose_vars.size(); ++var)
-            var_set.insert(coupled_moose_vars[var]->number());
+          {
+            if (coupled_moose_vars[var]->kind() == Moose::VAR_NONLINEAR)
+              var_set.insert(coupled_moose_vars[var]->number());
+          }
 
           var_set.insert(bc->variable().number());
         }

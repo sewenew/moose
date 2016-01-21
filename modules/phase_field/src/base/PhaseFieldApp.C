@@ -17,9 +17,9 @@
 #include "ACGrGrPoly.h"
 #include "ACInterface.h"
 #include "ACMultiInterface.h"
-#include "ACParsed.h"
 #include "ACInterfaceKobayashi1.h"
 #include "ACInterfaceKobayashi2.h"
+#include "AllenCahn.h"
 #include "CahnHilliard.h"
 #include "CahnHilliardAniso.h"
 #include "CHBulkPFCTrad.h"
@@ -31,7 +31,8 @@
 #include "CHSplitVar.h"
 #include "CoefCoupledTimeDerivative.h"
 #include "ConservedLangevinNoise.h"
-#include "CoupledTimeDerivative.h"
+#include "CoupledAllenCahn.h"
+#include "CoupledReaction.h"
 #include "GradientComponent.h"
 #include "HHPFCRFF.h"
 #include "KKSACBulkC.h"
@@ -115,6 +116,7 @@
 #include "PFMobility.h"
 #include "PFParamsPolyFreeEnergy.h"
 #include "PolynomialFreeEnergy.h"
+#include "RegularSolutionFreeEnergy.h"
 #include "StrainGradDispDerivatives.h"
 #include "SwitchingFunctionMaterial.h"
 #include "CrossTermBarrierFunctionMaterial.h"
@@ -237,9 +239,9 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(ACGrGrPoly);
   registerKernel(ACInterface);
   registerKernel(ACMultiInterface);
-  registerKernel(ACParsed);
   registerKernel(ACInterfaceKobayashi1);
   registerKernel(ACInterfaceKobayashi2);
+  registerKernel(AllenCahn);
   registerKernel(CahnHilliard);
   registerKernel(CahnHilliardAniso);
   registerKernel(CHBulkPFCTrad);
@@ -251,6 +253,8 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(CHSplitVar);
   registerKernel(CoefCoupledTimeDerivative);
   registerKernel(ConservedLangevinNoise);
+  registerKernel(CoupledAllenCahn);
+  registerKernel(CoupledReaction);
   registerKernel(GradientComponent);
   registerKernel(HHPFCRFF);
   registerKernel(KKSACBulkC);
@@ -276,6 +280,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(SwitchingFunctionConstraintEta);
   registerKernel(SwitchingFunctionConstraintLagrange);
   registerKernel(SwitchingFunctionPenalty);
+  registerDeprecatedObjectName(AllenCahn, "ACParsed", "15/04/2016 00:00");
   registerDeprecatedObjectName(CahnHilliard, "CHParsed", "11/01/2015 00:00");
 
   registerInitialCondition(ClosePackIC);
@@ -325,6 +330,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerMaterial(PFFracBulkRateMaterial);
   registerMaterial(PFParamsPolyFreeEnergy);
   registerMaterial(PolynomialFreeEnergy);
+  registerMaterial(RegularSolutionFreeEnergy);
   registerMaterial(StrainGradDispDerivatives);
   registerMaterial(SwitchingFunctionMaterial);
   registerMaterial(CrossTermBarrierFunctionMaterial);

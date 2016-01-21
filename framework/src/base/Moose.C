@@ -199,6 +199,7 @@
 #include "NodalExtremeValue.h"
 #include "ElementExtremeValue.h"
 #include "DifferencePostprocessor.h"
+#include "ScalePostprocessor.h"
 #include "NumPicardIterations.h"
 #include "FunctionSideIntegral.h"
 #include "ExecutionerAttributeReporter.h"
@@ -407,7 +408,10 @@
 #include "VariableResidualNormsDebugOutput.h"
 #include "TopResidualDebugOutput.h"
 #include "DOFMapOutput.h"
+#include "ControlOutput.h"
+#ifdef LIBMESH_HAVE_CXX11
 #include "ICEUpdater.h"
+#endif
 
 // Controls
 #include "RealFunctionControl.h"
@@ -600,6 +604,7 @@ registerObjects(Factory & factory)
   registerPostprocessor(NodalExtremeValue);
   registerPostprocessor(ElementExtremeValue);
   registerPostprocessor(DifferencePostprocessor);
+  registerPostprocessor(ScalePostprocessor);
   registerPostprocessor(FunctionValuePostprocessor);
   registerPostprocessor(NumPicardIterations);
   registerPostprocessor(FunctionSideIntegral);
@@ -752,9 +757,10 @@ registerObjects(Factory & factory)
   registerOutput(VariableResidualNormsDebugOutput);
   registerOutput(TopResidualDebugOutput);
   registerNamedOutput(DOFMapOutput, "DOFMap");
+  registerOutput(ControlOutput);
 
   // Currently the ICE Updater requires TBB
-  #ifdef LIBMESH_HAVE_TBB_API
+  #ifdef LIBMESH_HAVE_CXX11
   registerOutput(ICEUpdater);
   #endif
 
