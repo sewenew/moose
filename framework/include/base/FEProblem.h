@@ -19,9 +19,8 @@
 #include "SubProblem.h"
 #include "AuxiliarySystem.h"
 #include "GeometricSearchData.h"
-#include "PostprocessorWarehouse.h"
 #include "PostprocessorData.h"
-#include "VectorPostprocessorWarehouse.h"
+#include "VectorPostprocessorData.h"
 #include "Adaptivity.h"
 #include "UserObjectWarehouse.h"
 #include "InitialConditionWarehouse.h"
@@ -405,7 +404,7 @@ public:
 #endif //LIBMESH_HAVE_PETSC
 
   // Function /////
-  virtual void addFunction(std::string type, const std::string & name, InputParameters parameters, bool auto_parsed = false);
+  virtual void addFunction(std::string type, const std::string & name, InputParameters parameters);
   virtual bool hasFunction(const std::string & name, THREAD_ID tid = 0);
   virtual Function & getFunction(const std::string & name, THREAD_ID tid = 0);
 
@@ -481,12 +480,12 @@ public:
    * @return Const reference to the user object
    */
   template <class T>
-  const T & getUserObject(const std::string & name)
+  const T & getUserObject(const std::string & name, unsigned int tid = 0)
   {
     for (unsigned int i = 0; i < Moose::exec_types.size(); ++i)
-      if (_user_objects(Moose::exec_types[i])[0].hasUserObject(name))
+      if (_user_objects(Moose::exec_types[i])[tid].hasUserObject(name))
       {
-        UserObject * user_object = _user_objects(Moose::exec_types[i])[0].getUserObjectByName(name);
+        UserObject * user_object = _user_objects(Moose::exec_types[i])[tid].getUserObjectByName(name);
         return dynamic_cast<const T &>(*user_object);
       }
 
@@ -533,11 +532,6 @@ public:
   PostprocessorValue & getPostprocessorValueOlder(const std::string & name);
 
   /**
-   * Get a reference to the PostprocessorWarehouse ExecStore object
-   */
-  ExecStore<PostprocessorWarehouse> & getPostprocessorWarehouse();
-
-  /**
    * Get a reference to the UserObjectWarehouse ExecStore object
    */
   ExecStore<UserObjectWarehouse> & getUserObjectWarehouse();
@@ -572,16 +566,18 @@ public:
   VectorPostprocessorValue & getVectorPostprocessorValueOld(const std::string & name, const std::string & vector_name);
 
   /**
+   * Declare a new VectorPostprocessor vector
+   * @param name The name of the post-processor
+   * @param vector_name The name of the post-processor
+   * @return The reference to the vector declared
+   */
+  VectorPostprocessorValue & declareVectorPostprocessorVector(const VectorPostprocessorName & name, const std::string & vector_name);
+
+  /**
    * Get the vectors for a specific VectorPostprocessor.
    * @param vpp_name The name of the VectorPostprocessor
    */
   const std::map<std::string, VectorPostprocessorValue*> & getVectorPostprocessorVectors(const std::string & vpp_name);
-
-  /**
-   * Get a reference to the VectorPostprocessorWarehouse ExecStore object
-   */
-  ExecStore<VectorPostprocessorWarehouse> & getVectorPostprocessorWarehouse();
-
 
   // Dampers /////
   void addDamper(std::string damper_name, const std::string & name, InputParameters parameters);
@@ -971,6 +967,15 @@ public:
   void updateActiveObjects();
 
 protected:
+
+  ///@{
+  /**
+   *
+   */
+  VectorPostprocessorData & getVectorPostprocessorData();
+  ///@}
+
+
   MooseMesh & _mesh;
   EquationSystems _eq;
   bool _initialized;
@@ -1038,11 +1043,9 @@ protected:
 
   // postprocessors
   PostprocessorData _pps_data;
-  ExecStore<PostprocessorWarehouse> _pps;
 
   // VectorPostprocessors
-  std::vector<VectorPostprocessorData *> _vpps_data;
-  ExecStore<VectorPostprocessorWarehouse> _vpps;
+  VectorPostprocessorData _vpps_data;
 
   // user objects
   ExecStore<UserObjectWarehouse> _user_objects;

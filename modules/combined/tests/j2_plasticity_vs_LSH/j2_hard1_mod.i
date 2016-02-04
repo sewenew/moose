@@ -3,6 +3,8 @@
 # active time increases at a much higher rate than SM. Testing at 4x4x4
 # (64 elements).
 #
+# plot vm_stress vs intnl to see constant hardening
+#
 # Original test located at:
 # tensor_mechanics/tests/j2_plasticity/hard1.i
 
@@ -43,47 +45,25 @@
 []
 
 [AuxVariables]
-  [./stress_xx]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
-  [./stress_yy]
-    order = CONSTANT
-    family = MONOMIAL
-  [../]
   [./stress_zz]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./strain_xx]
+  [./intnl]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./strain_yy]
+  [./vm_stress]
     order = CONSTANT
     family = MONOMIAL
   [../]
-  [./strain_zz]
+  [./eq_pl_strain]
     order = CONSTANT
     family = MONOMIAL
   [../]
 []
 
 [AuxKernels]
-  [./stress_xx]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_xx
-    index_i = 0
-    index_j = 0
-  [../]
-  [./stress_yy]
-    type = RankTwoAux
-    rank_two_tensor = stress
-    variable = stress_yy
-    index_i = 1
-    index_j = 1
-  [../]
   [./stress_zz]
     type = RankTwoAux
     rank_two_tensor = stress
@@ -91,26 +71,23 @@
     index_i = 2
     index_j = 2
   [../]
-  [./strain_xx]
-    type = RankTwoAux
-    rank_two_tensor = total_strain
-    variable = strain_xx
-    index_i = 0
-    index_j = 0
+  [./intnl]
+    type = MaterialStdVectorAux
+    index = 0
+    property = plastic_internal_parameter
+    variable = intnl
   [../]
-  [./strain_yy]
-    type = RankTwoAux
-    rank_two_tensor = total_strain
-    variable = strain_yy
-    index_i = 1
-    index_j = 1
+  [./eq_pl_strain]
+    type = RankTwoScalarAux
+    rank_two_tensor = plastic_strain
+    scalar_type = EquivalentPlasticStrain
+    variable = eq_pl_strain
   [../]
-  [./strain_zz]
-    type = RankTwoAux
-    rank_two_tensor = total_strain
-    variable = strain_zz
-    index_i = 2
-    index_j = 2
+  [./vm_stress]
+    type = RankTwoScalarAux
+    rank_two_tensor = stress
+    scalar_type = VonMisesStress
+    variable = vm_stress
   [../]
 []
 
@@ -173,6 +150,7 @@
     block = 0
     ep_plastic_tolerance = 1E-9
     plastic_models = j2
+    tangent_operator = elastic
   [../]
 []
 
@@ -191,43 +169,36 @@
 
   l_max_its = 100
   nl_max_its = 100
-  nl_rel_tol = 1e-12
+  nl_rel_tol = 1e-6
   nl_abs_tol = 1e-10
-  l_tol = 1e-9
+  l_tol = 1e-4
   start_time = 0.0
-  end_time = 0.1
+  end_time = 0.5
   dt = 0.01
 []
 
 [Postprocessors]
-  [./stress_xx]
-    type = ElementAverageValue
-    variable = stress_xx
-  [../]
-  [./stress_yy]
-    type = ElementAverageValue
-    variable = stress_yy
-  [../]
   [./stress_zz]
     type = ElementAverageValue
     variable = stress_zz
   [../]
-  [./strain_xx]
+  [./intnl]
     type = ElementAverageValue
-    variable = strain_xx
+    variable = intnl
   [../]
-  [./strain_yy]
-    type = ElementAverageValue
-    variable = strain_yy
+  [./eq_pl_strain]
+    type = PointValue
+    point = '0 0 0'
+    variable = eq_pl_strain
   [../]
-  [./strain_zz]
-    type = ElementAverageValue
-    variable = strain_zz
+  [./vm_stress]
+    type = PointValue
+    point = '0 0 0'
+    variable = vm_stress
   [../]
 []
 
 [Outputs]
-  exodus = true
   csv = true
   print_linear_residuals = false
   print_perf_log = true
