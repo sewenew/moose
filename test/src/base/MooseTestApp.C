@@ -21,6 +21,8 @@
 
 #include "MooseTestApp.h"
 
+#include "ConservativeAdvection.h"
+#include "CoeffParamDiffusion.h"
 #include "CoupledConvection.h"
 #include "ForcingFn.h"
 #include "MatDiffusion.h"
@@ -91,6 +93,9 @@
 #include "OldMaterialAux.h"
 #include "DotCouplingAux.h"
 
+#include "RobinBC.h"
+#include "InflowBC.h"
+#include "OutflowBC.h"
 #include "MTBC.h"
 #include "PolyCoupledDirichletBC.h"
 #include "MMSCoupledDirichletBC.h"
@@ -104,6 +109,7 @@
 #include "MatTestNeumannBC.h"
 #include "MatDivergenceBC.h"
 #include "CoupledDirichletBC.h"
+#include "TestLapBC.h"
 
 // ICs
 #include "TEIC.h"
@@ -134,9 +140,12 @@
 #include "RandomMaterial.h"
 
 #include "DGMatDiffusion.h"
+#include "DGAdvection.h"
 #include "DGMDDBC.h"
 #include "DGFunctionConvectionDirichletBC.h"
 #include "CoupledKernelGradBC.h"
+
+#include "InterfaceDiffusion.h"
 
 #include "ExplicitODE.h"
 #include "ImplicitODEx.h"
@@ -264,6 +273,8 @@ void
 MooseTestApp::registerObjects(Factory & factory)
 {
   // Kernels
+  registerKernel(ConservativeAdvection);
+  registerKernel(CoeffParamDiffusion);
   registerKernel(CoupledConvection);
   registerKernel(ForcingFn);
   registerKernel(MatDiffusion);
@@ -338,8 +349,15 @@ MooseTestApp::registerObjects(Factory & factory)
 
   // DG kernels
   registerDGKernel(DGMatDiffusion);
+  registerDGKernel(DGAdvection);
+
+  // Interface kernels
+  registerDGKernel(InterfaceDiffusion);
 
   // Boundary Conditions
+  registerBoundaryCondition(RobinBC);
+  registerBoundaryCondition(InflowBC);
+  registerBoundaryCondition(OutflowBC);
   registerBoundaryCondition(MTBC);
   registerBoundaryCondition(PolyCoupledDirichletBC);
   registerBoundaryCondition(MMSCoupledDirichletBC);
@@ -359,6 +377,7 @@ MooseTestApp::registerObjects(Factory & factory)
   registerBoundaryCondition(DivergenceBC);
   registerBoundaryCondition(MatDivergenceBC);
   registerBoundaryCondition(CoupledDirichletBC);
+  registerBoundaryCondition(TestLapBC);
 
   // Initial conditions
   registerInitialCondition(TEIC);

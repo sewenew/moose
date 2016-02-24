@@ -12,7 +12,8 @@ InputParameters validParams<TensorMechanicsPlasticJ2>()
   InputParameters params = validParams<TensorMechanicsPlasticModel>();
   params.addRequiredParam<UserObjectName>("yield_strength", "A TensorMechanicsHardening UserObject that defines hardening of the yield strength");
   params.addRangeCheckedParam<unsigned>("max_iterations", 10, "max_iterations>0", "Maximum iterations for custom J2 return map");
-  params.addParam<bool>("use_custom_returnMap", true, "The custom return-map algorithm should only be used for isotropic elasticity");
+  params.addParam<bool>("use_custom_returnMap", true, "Whether to use the custom returnMap algorithm.  Set to true if you are using isotropic elasticity.");
+  params.addParam<bool>("use_custom_cto", true, "Whether to use the custom consistent tangent operator computations.  Set to true if you are using isotropic elasticity.");
   params.addClassDescription("J2 plasticity, associative, with hardening");
 
   return params;
@@ -21,20 +22,20 @@ InputParameters validParams<TensorMechanicsPlasticJ2>()
 TensorMechanicsPlasticJ2::TensorMechanicsPlasticJ2(const InputParameters & parameters) :
     TensorMechanicsPlasticModel(parameters),
     _strength(getUserObject<TensorMechanicsHardeningModel>("yield_strength")),
+    _max_iters(getParam<unsigned>("max_iterations")),
     _use_custom_returnMap(getParam<bool>("use_custom_returnMap")),
-    _max_iters(getParam<unsigned>("max_iterations"))
+    _use_custom_cto(getParam<bool>("use_custom_cto"))
 {
 }
 
-
 Real
-TensorMechanicsPlasticJ2::yieldFunction(const RankTwoTensor & stress, const Real & intnl) const
+TensorMechanicsPlasticJ2::yieldFunction(const RankTwoTensor & stress, Real intnl) const
 {
   return std::pow(3*stress.secondInvariant(), 0.5) - yieldStrength(intnl);
 }
 
 RankTwoTensor
-TensorMechanicsPlasticJ2::dyieldFunction_dstress(const RankTwoTensor & stress, const Real & /*intnl*/) const
+TensorMechanicsPlasticJ2::dyieldFunction_dstress(const RankTwoTensor & stress, Real /*intnl*/) const
 {
   Real sII = stress.secondInvariant();
   if (sII == 0.0)
@@ -43,21 +44,20 @@ TensorMechanicsPlasticJ2::dyieldFunction_dstress(const RankTwoTensor & stress, c
     return 0.5*std::pow(3/sII, 0.5)*stress.dsecondInvariant();
 }
 
-
 Real
-TensorMechanicsPlasticJ2::dyieldFunction_dintnl(const RankTwoTensor & /*stress*/, const Real & intnl) const
+TensorMechanicsPlasticJ2::dyieldFunction_dintnl(const RankTwoTensor & /*stress*/, Real intnl) const
 {
   return -dyieldStrength(intnl);
 }
 
 RankTwoTensor
-TensorMechanicsPlasticJ2::flowPotential(const RankTwoTensor & stress, const Real & intnl) const
+TensorMechanicsPlasticJ2::flowPotential(const RankTwoTensor & stress, Real intnl) const
 {
   return dyieldFunction_dstress(stress, intnl);
 }
 
 RankFourTensor
-TensorMechanicsPlasticJ2::dflowPotential_dstress(const RankTwoTensor & stress, const Real & /*intnl*/) const
+TensorMechanicsPlasticJ2::dflowPotential_dstress(const RankTwoTensor & stress, Real /*intnl*/) const
 {
   Real sII = stress.secondInvariant();
   if (sII == 0)
@@ -66,28 +66,28 @@ TensorMechanicsPlasticJ2::dflowPotential_dstress(const RankTwoTensor & stress, c
   RankFourTensor dfp = 0.5*std::pow(3/sII, 0.5)*stress.d2secondInvariant();
   Real pre = -0.25*std::pow(3, 0.5)*std::pow(sII, -1.5);
   RankTwoTensor dII = stress.dsecondInvariant();
-  for (unsigned i = 0 ; i < 3 ; ++i)
-    for (unsigned j = 0 ; j < 3 ; ++j)
-      for (unsigned k = 0 ; k < 3 ; ++k)
-        for (unsigned l = 0 ; l < 3 ; ++l)
+  for (unsigned i = 0; i < 3; ++i)
+    for (unsigned j = 0; j < 3; ++j)
+      for (unsigned k = 0; k < 3; ++k)
+        for (unsigned l = 0; l < 3; ++l)
           dfp(i, j, k, l) += pre*dII(i, j)*dII(k, l);
   return dfp;
 }
 
 RankTwoTensor
-TensorMechanicsPlasticJ2::dflowPotential_dintnl(const RankTwoTensor & /*stress*/, const Real & /*intnl*/) const
+TensorMechanicsPlasticJ2::dflowPotential_dintnl(const RankTwoTensor & /*stress*/, Real /*intnl*/) const
 {
   return RankTwoTensor();
 }
 
 Real
-TensorMechanicsPlasticJ2::yieldStrength(const Real & intnl) const
+TensorMechanicsPlasticJ2::yieldStrength(Real intnl) const
 {
   return _strength.value(intnl);
 }
 
 Real
-TensorMechanicsPlasticJ2::dyieldStrength(const Real & intnl) const
+TensorMechanicsPlasticJ2::dyieldStrength(Real intnl) const
 {
   return _strength.derivative(intnl);
 }
@@ -99,14 +99,13 @@ TensorMechanicsPlasticJ2::modelName() const
 }
 
 bool
-TensorMechanicsPlasticJ2::returnMap(const RankTwoTensor & trial_stress, const Real & intnl_old, const RankFourTensor & E_ijkl,
+TensorMechanicsPlasticJ2::returnMap(const RankTwoTensor & trial_stress, Real intnl_old, const RankFourTensor & E_ijkl,
                                     Real ep_plastic_tolerance, RankTwoTensor & returned_stress, Real & returned_intnl,
                                     std::vector<Real> & dpm, RankTwoTensor & delta_dp, std::vector<Real> & yf,
                                     bool & trial_stress_inadmissible) const
 {
   if (!(_use_custom_returnMap))
     return TensorMechanicsPlasticModel::returnMap(trial_stress, intnl_old, E_ijkl, ep_plastic_tolerance, returned_stress, returned_intnl, dpm, delta_dp, yf, trial_stress_inadmissible);
-
 
   yf.resize(1);
 
@@ -123,7 +122,6 @@ TensorMechanicsPlasticJ2::returnMap(const RankTwoTensor & trial_stress, const Re
 
   trial_stress_inadmissible = true;
   Real mu = E_ijkl(0,1,0,1);
-
 
   // Perform a Newton-Raphson to find dpm when
   // residual = 3*mu*dpm - trial_equivalent_stress + yieldStrength(intnl_old + dpm) = 0
@@ -153,9 +151,12 @@ TensorMechanicsPlasticJ2::returnMap(const RankTwoTensor & trial_stress, const Re
 }
 
 RankFourTensor
-TensorMechanicsPlasticJ2::consistentTangentOperator(const RankTwoTensor & stress, const Real & intnl,
+TensorMechanicsPlasticJ2::consistentTangentOperator(const RankTwoTensor & trial_stress, const RankTwoTensor & stress, Real intnl,
                                                     const RankFourTensor & E_ijkl, const std::vector<Real> & cumulative_pm) const
 {
+  if (!_use_custom_cto)
+    return TensorMechanicsPlasticModel::consistentTangentOperator(trial_stress, stress, intnl, E_ijkl, cumulative_pm);
+
   Real mu = E_ijkl(0,1,0,1);
 
   Real h = 3*mu + dyieldStrength(intnl);
@@ -166,3 +167,16 @@ TensorMechanicsPlasticJ2::consistentTangentOperator(const RankTwoTensor & stress
 
   return E_ijkl - 3*mu*mu/sII/h*sij.outerProduct(sij) - 4*mu*mu*zeta*dflowPotential_dstress(stress, intnl);
 }
+
+bool
+TensorMechanicsPlasticJ2::useCustomReturnMap() const
+{
+  return _use_custom_returnMap;
+}
+
+bool
+TensorMechanicsPlasticJ2::useCustomCTO() const
+{
+  return _use_custom_cto;
+}
+

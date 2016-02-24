@@ -114,8 +114,9 @@
 // dirac kernels
 #include "ConstantPointSource.h"
 
-// DG kernels
+// DG
 #include "DGDiffusion.h"
+#include "DGFunctionDiffusionDirichletBC.h"
 
 // ics
 #include "ConstantIC.h"
@@ -124,6 +125,7 @@
 #include "RandomIC.h"
 #include "ScalarConstantIC.h"
 #include "ScalarComponentIC.h"
+#include "FunctionScalarIC.h"
 
 // executioners
 #include "Steady.h"
@@ -248,10 +250,6 @@
 #include "ConstantDamper.h"
 #include "MaxIncrement.h"
 
-// DG
-#include "DGDiffusion.h"
-#include "DGFunctionDiffusionDirichletBC.h"
-
 // Constraints
 #include "TiedValueConstraint.h"
 #include "CoupledTiedValueConstraint.h"
@@ -285,6 +283,7 @@
 // time steppers
 #include "ConstantDT.h"
 #include "FunctionDT.h"
+#include "TimeSequenceStepper.h"
 #include "IterationAdaptiveDT.h"
 #include "SolutionTimeAdaptiveDT.h"
 #include "DT2.h"
@@ -338,6 +337,7 @@
 #include "AddKernelAction.h"
 #include "AddScalarKernelAction.h"
 #include "AddDGKernelAction.h"
+#include "AddInterfaceKernelAction.h"
 #include "AddPeriodicBCAction.h"
 #include "AddVariableAction.h"
 #include "AddAuxVariableAction.h"
@@ -531,6 +531,7 @@ registerObjects(Factory & factory)
   registerInitialCondition(RandomIC);
   registerInitialCondition(ScalarConstantIC);
   registerInitialCondition(ScalarComponentIC);
+  registerInitialCondition(FunctionScalarIC);
 
   // executioners
   registerExecutioner(Steady);
@@ -694,6 +695,7 @@ registerObjects(Factory & factory)
   // time steppers
   registerTimeStepper(ConstantDT);
   registerTimeStepper(FunctionDT);
+  registerTimeStepper(TimeSequenceStepper);
   registerTimeStepper(IterationAdaptiveDT);
   registerTimeStepper(SolutionTimeAdaptiveDT);
   registerTimeStepper(DT2);
@@ -822,6 +824,7 @@ addActionTypes(Syntax & syntax)
   registerMooseObjectTask("add_aux_scalar_kernel",        AuxScalarKernel,        false);
   registerMooseObjectTask("add_dirac_kernel",             DiracKernel,            false);
   registerMooseObjectTask("add_dg_kernel",                DGKernel,               false);
+  registerMooseObjectTask("add_interface_kernel",         InterfaceKernel,        false);
   registerMooseObjectTask("add_constraint",               Constraint,             false);
 
   registerMooseObjectTask("add_ic",                       InitialCondition,       false);
@@ -961,7 +964,7 @@ addActionTypes(Syntax & syntax)
 "(add_output)"
 "(add_postprocessor)"
 "(add_vector_postprocessor)"
-"(add_aux_kernel, add_bc, add_damper, add_dirac_kernel, add_kernel, add_nodal_kernel, add_dg_kernel, add_scalar_kernel, add_aux_scalar_kernel, add_indicator, add_marker)"
+"(add_aux_kernel, add_bc, add_damper, add_dirac_kernel, add_kernel, add_nodal_kernel, add_dg_kernel, add_interface_kernel, add_scalar_kernel, add_aux_scalar_kernel, add_indicator, add_marker)"
 "(add_control)"
 "(check_output)"
 "(check_integrity)"
@@ -1049,6 +1052,7 @@ registerActions(Syntax & syntax, ActionFactory & action_factory)
   registerAction(AddScalarKernelAction, "add_scalar_kernel");
   registerAction(AddScalarKernelAction, "add_aux_scalar_kernel");
   registerAction(AddDGKernelAction, "add_dg_kernel");
+  registerAction(AddInterfaceKernelAction, "add_interface_kernel");
   registerAction(AddBCAction, "add_bc");
   registerAction(EmptyAction, "no_action");  // placeholder
   registerAction(AddPeriodicBCAction, "add_periodic_bc");
@@ -1125,7 +1129,6 @@ enableFPE(bool on)
   if (_trap_fpe)
     libMesh::enableFPE(on);
 }
-
 
 PerfLog setup_perf_log("Setup");
 

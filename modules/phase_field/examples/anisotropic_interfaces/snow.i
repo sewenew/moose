@@ -12,7 +12,6 @@
   [./w]
   [../]
   [./T]
-    initial_condition = 0.0
   [../]
 []
 
@@ -86,17 +85,12 @@
     variable = m
     args = T
     constant_names = pi
-    constant_expressions = 3.14159265359
+    constant_expressions = 4*atan(1)
     function = '0.9*atan(10*(1-T))/pi'
     execute_on = timestep_end
   [../]
 []
 
-#[BCs]
-#  [./Periodic]
-#  [../]
-#[]
-#
 [Materials]
   [./free_energy]
     type = DerivativeParsedMaterial
@@ -104,7 +98,7 @@
     f_name = fbulk
     args = 'w m'
     function = '1/4*w^4 - (1/2 - m/3)*w^3 + (1/4-m/2)*w^2'
-    outputs = exodus
+    outputs = out
   [../]
   [./material]
     type = InterfaceOrientationMaterial
@@ -138,12 +132,9 @@
 []
 
 [Outputs]
-   interval = 10
-   exodus = true
-   [./console]
-     type = Console
-     interval = 1
-     execute_on = 'FAILED INITIAL NONLINEAR TIMESTEP_BEGIN TIMESTEP_END'
-   [../]
-   print_perf_log = true
+  [./out]
+    type = Exodus
+    interval = 10
+  [../]
+  print_perf_log = true
 []

@@ -28,7 +28,7 @@ TensorMechanicsHardeningGaussian::TensorMechanicsHardeningGaussian(const InputPa
 }
 
 Real
-TensorMechanicsHardeningGaussian::value(const Real & intnl) const
+TensorMechanicsHardeningGaussian::value(Real intnl) const
 {
   Real x = intnl - _intnl_0;
   if (x <= 0)
@@ -38,7 +38,7 @@ TensorMechanicsHardeningGaussian::value(const Real & intnl) const
 }
 
 Real
-TensorMechanicsHardeningGaussian::derivative(const Real & intnl) const
+TensorMechanicsHardeningGaussian::derivative(Real intnl) const
 {
   Real x = intnl - _intnl_0;
   if (x <= 0)
@@ -47,3 +47,8 @@ TensorMechanicsHardeningGaussian::derivative(const Real & intnl) const
     return -_rate*x*(_val_0 - _val_res)*std::exp(-0.5*_rate*x*x);
 }
 
+std::string
+TensorMechanicsHardeningGaussian::modelName() const
+{
+  return "Gaussian";
+}

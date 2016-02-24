@@ -32,7 +32,6 @@
 #include "CoefCoupledTimeDerivative.h"
 #include "ConservedLangevinNoise.h"
 #include "CoupledAllenCahn.h"
-#include "CoupledReaction.h"
 #include "GradientComponent.h"
 #include "HHPFCRFF.h"
 #include "KKSACBulkC.h"
@@ -45,6 +44,7 @@
 #include "MaskedBodyForce.h"
 #include "MatAnisoDiffusion.h"
 #include "MatDiffusion.h"
+#include "MatReaction.h"
 #include "MultiGrainRigidBodyMotion.h"
 #include "PFFracBulkRate.h"
 #include "PFFracCoupledInterface.h"
@@ -135,6 +135,7 @@
  */
 #include "BndsCalcAux.h"
 #include "CrossTermGradientFreeEnergy.h"
+#include "Euler2RGBAux.h"
 #include "FeatureFloodCountAux.h"
 #include "KKSGlobalFreeEnergy.h"
 #include "PFCEnergyDensity.h"
@@ -254,7 +255,6 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(CoefCoupledTimeDerivative);
   registerKernel(ConservedLangevinNoise);
   registerKernel(CoupledAllenCahn);
-  registerKernel(CoupledReaction);
   registerKernel(GradientComponent);
   registerKernel(HHPFCRFF);
   registerKernel(KKSACBulkC);
@@ -267,6 +267,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
   registerKernel(MaskedBodyForce);
   registerKernel(MatAnisoDiffusion);
   registerKernel(MatDiffusion);
+  registerKernel(MatReaction);
   registerKernel(MultiGrainRigidBodyMotion);
   registerKernel(PFFracBulkRate);
   registerKernel(PFFracCoupledInterface);
@@ -343,6 +344,7 @@ PhaseFieldApp::registerObjects(Factory & factory)
 
   registerAux(BndsCalcAux);
   registerAux(CrossTermGradientFreeEnergy);
+  registerAux(Euler2RGBAux);
   registerAux(FeatureFloodCountAux);
   registerAux(KKSGlobalFreeEnergy);
   registerAux(PFCEnergyDensity);

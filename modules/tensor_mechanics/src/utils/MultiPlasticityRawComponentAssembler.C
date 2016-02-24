@@ -24,17 +24,17 @@ MultiPlasticityRawComponentAssembler::MultiPlasticityRawComponentAssembler(const
 {
   _f.resize(_num_models);
   UserObjectInterface uoi(parameters); // this comes via TensorMechanicsPlasticModel.  i haven't derived this class from UserObjectInterface because i'm worried about diamond inheritance when using this in FiniteStrainMultiPlasticity
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
     _f[model] = &uoi.getUserObjectByName<TensorMechanicsPlasticModel>(parameters.get<std::vector<UserObjectName> >("plastic_models")[model]);
 
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
     _num_surfaces += _f[model]->numberSurfaces();
 
   _model_given_surface.resize(_num_surfaces);
   _model_surface_given_surface.resize(_num_surfaces);
   unsigned int surface = 0;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
-    for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+  for (unsigned model = 0; model < _num_models; ++model)
+    for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
     {
       _model_given_surface[surface] = model;
       _model_surface_given_surface[surface] = model_surface;
@@ -43,10 +43,10 @@ MultiPlasticityRawComponentAssembler::MultiPlasticityRawComponentAssembler(const
 
   _surfaces_given_model.resize(_num_models);
   surface = 0;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     _surfaces_given_model[model].resize(_f[model]->numberSurfaces());
-    for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+    for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
       _surfaces_given_model[model][model_surface] = surface++;
   }
 
@@ -78,13 +78,13 @@ MultiPlasticityRawComponentAssembler::yieldFunction(const RankTwoTensor & stress
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<Real> model_f;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->yieldFunctionV(stress, intnl[model], model_f);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         f.push_back(model_f[*active_surface]);
     }
   }
@@ -100,13 +100,13 @@ MultiPlasticityRawComponentAssembler::dyieldFunction_dstress(const RankTwoTensor
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<RankTwoTensor> model_df_dstress;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->dyieldFunction_dstressV(stress, intnl[model], model_df_dstress);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         df_dstress.push_back(model_df_dstress[*active_surface]);
     }
   }
@@ -122,13 +122,13 @@ MultiPlasticityRawComponentAssembler::dyieldFunction_dintnl(const RankTwoTensor 
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<Real> model_df_dintnl;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->dyieldFunction_dintnlV(stress, intnl[model], model_df_dintnl);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         df_dintnl.push_back(model_df_dintnl[*active_surface]);
     }
   }
@@ -144,13 +144,13 @@ MultiPlasticityRawComponentAssembler::flowPotential(const RankTwoTensor & stress
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<RankTwoTensor> model_r;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->flowPotentialV(stress, intnl[model], model_r);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         r.push_back(model_r[*active_surface]);
     }
   }
@@ -166,13 +166,13 @@ MultiPlasticityRawComponentAssembler::dflowPotential_dstress(const RankTwoTensor
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<RankFourTensor> model_dr_dstress;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->dflowPotential_dstressV(stress, intnl[model], model_dr_dstress);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         dr_dstress.push_back(model_dr_dstress[*active_surface]);
     }
   }
@@ -188,13 +188,13 @@ MultiPlasticityRawComponentAssembler::dflowPotential_dintnl(const RankTwoTensor 
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<RankTwoTensor> model_dr_dintnl;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->dflowPotential_dintnlV(stress, intnl[model], model_dr_dintnl);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         dr_dintnl.push_back(model_dr_dintnl[*active_surface]);
     }
   }
@@ -210,13 +210,13 @@ MultiPlasticityRawComponentAssembler::hardPotential(const RankTwoTensor & stress
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<Real> model_h;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->hardPotentialV(stress, intnl[model], model_h);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         h.push_back(model_h[*active_surface]);
     }
   }
@@ -232,13 +232,13 @@ MultiPlasticityRawComponentAssembler::dhardPotential_dstress(const RankTwoTensor
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<RankTwoTensor> model_dh_dstress;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->dhardPotential_dstressV(stress, intnl[model], model_dh_dstress);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         dh_dstress.push_back(model_dh_dstress[*active_surface]);
     }
   }
@@ -254,13 +254,13 @@ MultiPlasticityRawComponentAssembler::dhardPotential_dintnl(const RankTwoTensor 
   std::vector<unsigned int> active_surfaces_of_model;
   std::vector<unsigned int>::iterator active_surface;
   std::vector<Real> model_dh_dintnl;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     activeModelSurfaces(model, active, active_surfaces_of_model);
     if (active_surfaces_of_model.size() > 0)
     {
       _f[model]->dhardPotential_dintnlV(stress, intnl[model], model_dh_dintnl);
-      for (active_surface = active_surfaces_of_model.begin() ; active_surface != active_surfaces_of_model.end() ; ++ active_surface)
+      for (active_surface = active_surfaces_of_model.begin(); active_surface != active_surfaces_of_model.end(); ++ active_surface)
         dh_dintnl.push_back(model_dh_dintnl[*active_surface]);
     }
   }
@@ -281,15 +281,15 @@ MultiPlasticityRawComponentAssembler::buildActiveConstraints(const std::vector<R
   {
     act.resize(0);
     unsigned ind = 0;
-    for (unsigned model = 0 ; model < _num_models ; ++model)
+    for (unsigned model = 0; model < _num_models; ++model)
     {
       std::vector<Real> model_f(0);
-      for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+      for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
         model_f.push_back(f[ind++]);
       std::vector<bool> model_act;
       RankTwoTensor returned_stress;
       _f[model]->activeConstraints(model_f, stress, intnl[model], Eijkl, model_act, returned_stress);
-      for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+      for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
         act.push_back(model_act[model_surface]);
     }
   }
@@ -522,7 +522,7 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
   // If one finds (trial_stress, intnl) inadmissible and
   // successfully returns, break from the loop to evaluate
   // all the others at that returned stress
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     if (using_custom_return_map)
     {
@@ -531,7 +531,7 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
       if (!trial_stress_inadmissible)
       {
         // in the elastic zone: record the yield-function values (returned_stress, intnl, model_pm and model_delta_dp are undefined)
-        for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+        for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
           yf.push_back(model_f[model_surface]);
       }
       else if (trial_stress_inadmissible && !model_returned)
@@ -541,7 +541,7 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
         // should have correctly returned model_f(trial_stress, intnl_old)
         // so record them
         // (returned_stress, intnl, model_pm and model_delta_dp are undefined)
-        for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+        for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
           yf.push_back(model_f[model_surface]);
         // now there's almost zero point in using the custom
         // returnMap functions
@@ -575,7 +575,7 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
       // was inadmissible.  So now calculate the yield functions
       // at the trial stress
       _f[model]->yieldFunctionV(trial_stress, intnl_old[model], model_f);
-      for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+      for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
         yf.push_back(model_f[model_surface]);
     }
   }
@@ -587,7 +587,7 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
     // or wasn't implemented (successful_return=false).
     // In either case, have to set the following:
     stress = trial_stress;
-    for (unsigned model = 0 ; model < _num_models ; ++model)
+    for (unsigned model = 0; model < _num_models; ++model)
       intnl[model] = intnl_old[model];
     return successful_return;
   }
@@ -599,17 +599,17 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
   // not be admissible at (trial_stress, intnl), so must check that
   std::vector<Real> yf_at_returned_stress(0);
   bool all_admissible = true;
-  for (unsigned model = 0 ; model < _num_models ; ++model)
+  for (unsigned model = 0; model < _num_models; ++model)
   {
     if (model == the_single_plastic_model)
     {
       // no need to spend time calculating the yield function: we know its admissible
-      for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+      for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
         yf_at_returned_stress.push_back(model_f[model_surface]);
       continue;
     }
     _f[model]->yieldFunctionV(stress, intnl_old[model], model_f);
-    for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+    for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
     {
       if (model_f[model_surface] > _f[model]->_f_tol)
         // bummer, this model is not admissible at the returned_stress
@@ -627,13 +627,13 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
     // the_single_plastic_model, but it wasn't admissible according
     // to other plastic models.  We need to set:
     stress = trial_stress;
-    for (unsigned model = 0 ; model < _num_models ; ++model)
+    for (unsigned model = 0; model < _num_models; ++model)
       intnl[model] = intnl_old[model];
     // and calculate the remainder of the yield functions at trial_stress
-    for (unsigned model = the_single_plastic_model ; model < _num_models ; ++model)
+    for (unsigned model = the_single_plastic_model; model < _num_models; ++model)
     {
       _f[model]->yieldFunctionV(trial_stress, intnl[model], model_f);
-      for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+      for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
         yf.push_back(model_f[model_surface]);
     }
     num_successful_plastic_returns = 0;
@@ -644,10 +644,10 @@ MultiPlasticityRawComponentAssembler::returnMapAll(const RankTwoTensor & trial_s
   // (stress, intnl) configuration, and that is admissible according
   // to all plastic models
   yf.resize(0);
-  for (unsigned surface = 0 ; surface < yf_at_returned_stress.size() ; ++surface)
+  for (unsigned surface = 0; surface < yf_at_returned_stress.size(); ++surface)
     yf.push_back(yf_at_returned_stress[surface]);
   delta_dp = model_delta_dp;
-  for (unsigned model_surface = 0 ; model_surface < _f[the_single_plastic_model]->numberSurfaces() ; ++model_surface)
+  for (unsigned model_surface = 0; model_surface < _f[the_single_plastic_model]->numberSurfaces(); ++model_surface)
   {
     cumulative_pm[_surfaces_given_model[the_single_plastic_model][model_surface]] += model_pm[model_surface];
     pm[_surfaces_given_model[the_single_plastic_model][model_surface]] = model_pm[model_surface];
@@ -666,7 +666,7 @@ MultiPlasticityRawComponentAssembler::modelNumber(unsigned int surface)
 bool
 MultiPlasticityRawComponentAssembler::anyActiveSurfaces(int model, const std::vector<bool> & active)
 {
-  for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+  for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
     if (active[_surfaces_given_model[model][model_surface]])
       return true;
   return false;
@@ -676,7 +676,7 @@ void
 MultiPlasticityRawComponentAssembler::activeSurfaces(int model, const std::vector<bool> & active, std::vector<unsigned int> & active_surfaces)
 {
   active_surfaces.resize(0);
-  for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+  for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
     if (active[_surfaces_given_model[model][model_surface]])
       active_surfaces.push_back(_surfaces_given_model[model][model_surface]);
 }
@@ -685,7 +685,7 @@ void
 MultiPlasticityRawComponentAssembler::activeModelSurfaces(int model, const std::vector<bool> & active, std::vector<unsigned int> & active_surfaces_of_model)
 {
   active_surfaces_of_model.resize(0);
-  for (unsigned model_surface = 0 ; model_surface < _f[model]->numberSurfaces() ; ++model_surface)
+  for (unsigned model_surface = 0; model_surface < _f[model]->numberSurfaces(); ++model_surface)
     if (active[_surfaces_given_model[model][model_surface]])
       active_surfaces_of_model.push_back(model_surface);
 }

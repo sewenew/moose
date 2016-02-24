@@ -31,49 +31,49 @@ TensorMechanicsPlasticWeakPlaneTensileN::TensorMechanicsPlasticWeakPlaneTensileN
      _input_n /= _input_n.size();
   _rot = RotationMatrix::rotVecToZ(_input_n);
 
-  for (unsigned i = 0 ; i < 3 ; ++i)
-    for (unsigned j = 0 ; j < 3 ; ++j)
+  for (unsigned i = 0; i < 3; ++i)
+    for (unsigned j = 0; j < 3; ++j)
       _df_dsig(i, j) = _rot(2, i)*_rot(2, j);
 }
 
 
 Real
-TensorMechanicsPlasticWeakPlaneTensileN::yieldFunction(const RankTwoTensor & stress, const Real & intnl) const
+TensorMechanicsPlasticWeakPlaneTensileN::yieldFunction(const RankTwoTensor & stress, Real intnl) const
 {
   Real s22 = 0;
-  for (unsigned i = 0 ; i < 3 ; ++i)
-    for (unsigned j = 0 ; j < 3 ; ++j)
+  for (unsigned i = 0; i < 3; ++i)
+    for (unsigned j = 0; j < 3; ++j)
       s22 += _rot(2, i)*_rot(2, j)*stress(i, j);
   return s22 - tensile_strength(intnl);
 }
 
 RankTwoTensor
-TensorMechanicsPlasticWeakPlaneTensileN::dyieldFunction_dstress(const RankTwoTensor & /*stress*/, const Real & /*intnl*/) const
+TensorMechanicsPlasticWeakPlaneTensileN::dyieldFunction_dstress(const RankTwoTensor & /*stress*/, Real /*intnl*/) const
 {
   return _df_dsig;
 }
 
 
 Real
-TensorMechanicsPlasticWeakPlaneTensileN::dyieldFunction_dintnl(const RankTwoTensor & /*stress*/, const Real & intnl) const
+TensorMechanicsPlasticWeakPlaneTensileN::dyieldFunction_dintnl(const RankTwoTensor & /*stress*/, Real intnl) const
 {
   return -dtensile_strength(intnl);
 }
 
 RankTwoTensor
-TensorMechanicsPlasticWeakPlaneTensileN::flowPotential(const RankTwoTensor & /*stress*/, const Real & /*intnl*/) const
+TensorMechanicsPlasticWeakPlaneTensileN::flowPotential(const RankTwoTensor & /*stress*/, Real /*intnl*/) const
 {
   return _df_dsig;
 }
 
 RankFourTensor
-TensorMechanicsPlasticWeakPlaneTensileN::dflowPotential_dstress(const RankTwoTensor & /*stress*/, const Real & /*intnl*/) const
+TensorMechanicsPlasticWeakPlaneTensileN::dflowPotential_dstress(const RankTwoTensor & /*stress*/, Real /*intnl*/) const
 {
   return RankFourTensor();
 }
 
 RankTwoTensor
-TensorMechanicsPlasticWeakPlaneTensileN::dflowPotential_dintnl(const RankTwoTensor & /*stress*/, const Real & /*intnl*/) const
+TensorMechanicsPlasticWeakPlaneTensileN::dflowPotential_dintnl(const RankTwoTensor & /*stress*/, Real /*intnl*/) const
 {
   return RankTwoTensor();
 }

@@ -29,17 +29,14 @@
 #include "libmesh/libmesh_common.h"
 #include "libmesh/quadrature.h"
 
-const BoundaryID DGKernel::InternalBndId = 12345;
-
 template<>
 InputParameters validParams<DGKernel>()
 {
   InputParameters params = validParams<MooseObject>();
   params += validParams<TwoMaterialPropertyInterface>();
-
+  params += validParams<BlockRestrictable>();
+  params += validParams<BoundaryRestrictable>();
   params.addRequiredParam<NonlinearVariableName>("variable", "The name of the variable that this boundary condition applies to");
-  params.addPrivateParam<BoundaryID>("_boundary_id", DGKernel::InternalBndId);
-
   params.addParam<bool>("use_displaced_mesh", false, "Whether or not this object should use the displaced mesh for computation. Note that in the case this is true but no displacements are provided in the Mesh block the undisplaced mesh will still be used.");
   params.addParamNamesToGroup("use_displaced_mesh", "Advanced");
 
@@ -52,6 +49,8 @@ InputParameters validParams<DGKernel>()
 
 DGKernel::DGKernel(const InputParameters & parameters) :
     MooseObject(parameters),
+    BlockRestrictable(parameters),
+    BoundaryRestrictable(parameters),
     SetupInterface(parameters),
     TransientInterface(parameters, "dgkernels"),
     FunctionInterface(parameters),
@@ -82,8 +81,6 @@ DGKernel::DGKernel(const InputParameters & parameters) :
     _qrule(_assembly.qRuleFace()),
     _JxW(_assembly.JxWFace()),
     _coord(_assembly.coordTransformation()),
-
-    _boundary_id(parameters.get<BoundaryID>("_boundary_id")),
 
     _u(_var.sln()),
     _grad_u(_var.gradSln()),
@@ -133,15 +130,11 @@ DGKernel::computeElemNeighResidual(Moose::DGResidualType type)
 void
 DGKernel::computeResidual()
 {
-//  Moose::perf_log.push("computeResidual()","DGKernel");
-
   // Compute the residual for this element
   computeElemNeighResidual(Moose::Element);
 
   // Compute the residual for the neighbor
   computeElemNeighResidual(Moose::Neighbor);
-
-//  Moose::perf_log.pop("computeResidual()","DGKernel");
 }
 
 void
@@ -166,8 +159,6 @@ DGKernel::computeElemNeighJacobian(Moose::DGJacobianType type)
 void
 DGKernel::computeJacobian()
 {
-//  Moose::perf_log.push("computeJacobian()","DGKernel");
-
   // Compute element-element Jacobian
   computeElemNeighJacobian(Moose::ElementElement);
 
@@ -179,8 +170,6 @@ DGKernel::computeJacobian()
 
   // Compute neighbor-neighbor Jacobian
   computeElemNeighJacobian(Moose::NeighborNeighbor);
-
-//  Moose::perf_log.pop("computeJacobian()","DGKernel");
 }
 
 void

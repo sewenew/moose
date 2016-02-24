@@ -24,14 +24,20 @@ TensorMechanicsHardeningConstant::TensorMechanicsHardeningConstant(const InputPa
 }
 
 Real
-TensorMechanicsHardeningConstant::value(const Real & /*intnl*/) const
+TensorMechanicsHardeningConstant::value(Real /*intnl*/) const
 {
   return _val;
 }
 
 Real
-TensorMechanicsHardeningConstant::derivative(const Real & /*intnl*/) const
+TensorMechanicsHardeningConstant::derivative(Real /*intnl*/) const
 {
   return 0.0;
+}
+
+std::string
+TensorMechanicsHardeningConstant::modelName() const
+{
+  return "Constant";
 }
 

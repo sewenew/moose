@@ -18,6 +18,7 @@
 #include "StressDivergenceTensors.h"
 #include "CosseratStressDivergenceTensors.h"
 #include "StressDivergenceRZTensors.h"
+#include "StressDivergenceRSphericalTensors.h"
 #include "MomentBalancing.h"
 #include "PoroMechanicsCoupling.h"
 #include "InertialForce.h"
@@ -31,6 +32,7 @@
 #include "FiniteStrainMohrCoulomb.h"
 #include "FiniteStrainCrystalPlasticity.h"
 #include "FiniteStrainCPSlipRateRes.h"
+#include "FiniteStrainUObasedCP.h"
 #include "ComputeMultiPlasticityStress.h"
 #include "CosseratLinearElasticMaterial.h"
 #include "ElementPropertyReadFileTest.h"
@@ -39,14 +41,17 @@
 #include "SimpleEigenStrainMaterial.h"
 #include "CompositeElasticityTensor.h"
 #include "ComputeElasticityTensor.h"
+#include "ComputeElasticityTensorCP.h"
 #include "ComputeIsotropicElasticityTensor.h"
 #include "ComputeSmallStrain.h"
 #include "ComputePlaneSmallStrain.h"
 #include "ComputePlaneFiniteStrain.h"
 #include "ComputeAxisymmetricRZSmallStrain.h"
+#include "ComputeRSphericalSmallStrain.h"
 #include "ComputeIncrementalSmallStrain.h"
 #include "ComputeFiniteStrain.h"
 #include "ComputeAxisymmetricRZFiniteStrain.h"
+#include "ComputeRSphericalFiniteStrain.h"
 #include "ComputeLinearElasticStress.h"
 #include "ComputeFiniteStrainElasticStress.h"
 #include "ComputeEigenstrain.h"
@@ -90,6 +95,11 @@
 
 #include "Pressure.h"
 
+#include "CrystalPlasticitySlipRateGSS.h"
+#include "CrystalPlasticitySlipResistanceGSS.h"
+#include "CrystalPlasticityStateVariableGSS.h"
+#include "CrystalPlasticityStateVarRateComponentGSS.h"
+
 template<>
 InputParameters validParams<TensorMechanicsApp>()
 {
@@ -129,6 +139,7 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerKernel(StressDivergenceTensors);
   registerKernel(CosseratStressDivergenceTensors);
   registerKernel(StressDivergenceRZTensors);
+  registerKernel(StressDivergenceRSphericalTensors);
   registerKernel(MomentBalancing);
   registerKernel(StressDivergencePFFracTensors);
   registerKernel(PoroMechanicsCoupling);
@@ -143,6 +154,7 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerMaterial(FiniteStrainRatePlasticMaterial);
   registerMaterial(FiniteStrainCrystalPlasticity);
   registerMaterial(FiniteStrainCPSlipRateRes);
+  registerMaterial(FiniteStrainUObasedCP);
   registerMaterial(ComputeMultiPlasticityStress);
   registerMaterial(CosseratLinearElasticMaterial);
   registerMaterial(ElementPropertyReadFileTest);
@@ -151,14 +163,17 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerMaterial(SimpleEigenStrainMaterial);
   registerMaterial(CompositeElasticityTensor);
   registerMaterial(ComputeElasticityTensor);
+  registerMaterial(ComputeElasticityTensorCP);
   registerMaterial(ComputeIsotropicElasticityTensor);
   registerMaterial(ComputeSmallStrain);
   registerMaterial(ComputePlaneSmallStrain);
   registerMaterial(ComputePlaneFiniteStrain);
   registerMaterial(ComputeAxisymmetricRZSmallStrain);
+  registerMaterial(ComputeRSphericalSmallStrain);
   registerMaterial(ComputeIncrementalSmallStrain);
   registerMaterial(ComputeFiniteStrain);
   registerMaterial(ComputeAxisymmetricRZFiniteStrain);
+  registerMaterial(ComputeRSphericalFiniteStrain);
   registerMaterial(ComputeLinearElasticStress);
   registerMaterial(ComputeFiniteStrainElasticStress);
   registerMaterial(ComputeEigenstrain);
@@ -189,6 +204,10 @@ TensorMechanicsApp::registerObjects(Factory & factory)
   registerUserObject(HEVPEqvPlasticStrain);
   registerUserObject(HEVPEqvPlasticStrainRate);
   registerUserObject(HEVPFlowRatePowerLawJ2);
+  registerUserObject(CrystalPlasticitySlipRateGSS);
+  registerUserObject(CrystalPlasticitySlipResistanceGSS);
+  registerUserObject(CrystalPlasticityStateVariableGSS);
+  registerUserObject(CrystalPlasticityStateVarRateComponentGSS);
 
   registerAux(CylindricalRankTwoAux);
   registerAux(RankTwoAux);

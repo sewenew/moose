@@ -263,8 +263,10 @@
 
 [UserObjects]
   [./hard]
-    type = TensorMechanicsHardeningConstant
-    value = 1E6
+    type = TensorMechanicsHardeningCubic
+    value_0 = 1E6
+    value_residual = 0
+    internal_limit = 1
   [../]
   [./tensile]
     type = TensorMechanicsPlasticTensileMulti

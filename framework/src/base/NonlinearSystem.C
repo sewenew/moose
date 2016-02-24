@@ -38,6 +38,7 @@
 #include "NodalBC.h"
 #include "IntegratedBC.h"
 #include "DGKernel.h"
+#include "InterfaceKernel.h"
 #include "Damper.h"
 #include "DisplacedProblem.h"
 #include "NearestNodeLocator.h"
@@ -209,23 +210,19 @@ NonlinearSystem::~NonlinearSystem()
 void
 NonlinearSystem::init()
 {
+  Moose::setup_perf_log.push("NonlinerSystem::init()", "Setup");
+
   setupDampers();
 
   _current_solution = _sys.current_local_solution.get();
 
   if (_need_serialized_solution)
-  {
-    Moose::setup_perf_log.push("Init serialized_solution","Setup");
     _serialized_solution.init(_sys.n_dofs(), false, SERIAL);
-    Moose::setup_perf_log.pop("Init serialized_solution","Setup");
-  }
 
   if (_need_residual_copy)
-  {
-    Moose::setup_perf_log.push("Init residual_copy","Setup");
     _residual_copy.init(_sys.n_dofs(), false, SERIAL);
-    Moose::setup_perf_log.pop("Init residual_copy","Setup");
-  }
+
+  Moose::setup_perf_log.pop("NonlinerSystem::init()", "Setup");
 }
 
 void
@@ -331,7 +328,7 @@ NonlinearSystem::initialSetup()
     _dirac_kernels.initialSetup(tid);
     if (_doing_dg)
       _dg_kernels.initialSetup(tid);
-
+    _interface_kernels.initialSetup(tid);
     _dampers.initialSetup(tid);
     _integrated_bcs.initialSetup(tid);
   }
@@ -349,6 +346,7 @@ NonlinearSystem::timestepSetup()
     _dirac_kernels.timestepSetup(tid);
     if (_doing_dg)
       _dg_kernels.timestepSetup(tid);
+    _interface_kernels.timestepSetup(tid);
     _dampers.timestepSetup(tid);
     _integrated_bcs.timestepSetup(tid);
   }
@@ -668,8 +666,24 @@ NonlinearSystem::addDGKernel(std::string dg_kernel_name, const std::string & nam
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
   {
     MooseSharedPointer<DGKernel> dg_kernel = MooseSharedNamespace::static_pointer_cast<DGKernel>(_factory.create(dg_kernel_name, name, parameters, tid));
-
     _dg_kernels.addObject(dg_kernel, tid);
+  }
+
+  _doing_dg = true;
+}
+
+void
+NonlinearSystem::addInterfaceKernel(std::string interface_kernel_name, const std::string & name, InputParameters parameters)
+{
+  for (THREAD_ID tid = 0; tid < libMesh::n_threads(); ++tid)
+  {
+    MooseSharedPointer<InterfaceKernel> interface_kernel = MooseSharedNamespace::static_pointer_cast<InterfaceKernel>(_factory.create(interface_kernel_name, name, parameters, tid));
+
+    const std::set<BoundaryID> & boundary_ids = interface_kernel->boundaryIDs();
+    _vars[tid].addBoundaryVar(boundary_ids, &interface_kernel->variable());
+
+    _interface_kernels.addObject(interface_kernel, tid);
+    _vars[tid].addBoundaryVars(boundary_ids, interface_kernel->getCoupledVars());
   }
 
   _doing_dg = true;
@@ -714,7 +728,7 @@ NonlinearSystem::addVector(const std::string & vector_name, const bool project, 
 void
 NonlinearSystem::computeResidual(NumericVector<Number> & residual, Moose::KernelType type)
 {
-  Moose::perf_log.push("compute_residual()","Solve");
+  Moose::perf_log.push("compute_residual()", "Execution");
 
   _n_residual_evaluations++;
 
@@ -763,7 +777,7 @@ NonlinearSystem::computeResidual(NumericVector<Number> & residual, Moose::Kernel
 
   Moose::enableFPE(false);
 
-  Moose::perf_log.pop("compute_residual()","Solve");
+  Moose::perf_log.pop("compute_residual()", "Execution");
 }
 
 
@@ -1186,6 +1200,7 @@ NonlinearSystem::computeResidualInternal(Moose::KernelType type)
     _dirac_kernels.residualSetup(tid);
     if (_doing_dg)
       _dg_kernels.residualSetup(tid);
+    _interface_kernels.residualSetup(tid);
     _dampers.residualSetup(tid);
     _integrated_bcs.residualSetup(tid);
   }
@@ -1202,9 +1217,7 @@ NonlinearSystem::computeResidualInternal(Moose::KernelType type)
     ConstElemRange & elem_range = *_mesh.getActiveLocalElementRange();
     ComputeResidualThread cr(_fe_problem, *this, type);
 
-    Moose::perf_log.push("ComputeResidualThread", "Solve");
     Threads::parallel_reduce(elem_range, cr);
-    Moose::perf_log.pop("ComputeResidualThread", "Solve");
 
     unsigned int n_threads = libMesh::n_threads();
     for (unsigned int i=0; i<n_threads; i++) // Add any cached residuals that might be hanging around
@@ -1268,17 +1281,13 @@ NonlinearSystem::computeResidualInternal(Moose::KernelType type)
 
   if (_need_residual_copy)
   {
-    Moose::perf_log.push("residual.close1()","Solve");
     residualVector(Moose::KT_NONTIME).close();
-    Moose::perf_log.pop("residual.close1()","Solve");
     residualVector(Moose::KT_NONTIME).localize(_residual_copy);
   }
 
   if (_need_residual_ghosted)
   {
-    Moose::perf_log.push("residual.close2()","Solve");
     residualVector(Moose::KT_NONTIME).close();
-    Moose::perf_log.pop("residual.close2()","Solve");
     _residual_ghosted = residualVector(Moose::KT_NONTIME);
     _residual_ghosted.close();
   }
@@ -1346,11 +1355,9 @@ NonlinearSystem::computeNodalBCs(NumericVector<Number> & residual)
   }
   PARALLEL_CATCH;
 
-  Moose::perf_log.push("residual.close4()","Solve");
   residual.close();
   residualVector(Moose::KT_TIME).close();
   residualVector(Moose::KT_NONTIME).close();
-  Moose::perf_log.pop("residual.close4()","Solve");
 }
 
 void
@@ -1808,6 +1815,7 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
     _dirac_kernels.jacobianSetup(tid);
     if (_doing_dg)
       _dg_kernels.jacobianSetup(tid);
+    _interface_kernels.jacobianSetup(tid);
     _dampers.jacobianSetup(tid);
     _integrated_bcs.jacobianSetup(tid);
   }
@@ -2033,7 +2041,7 @@ NonlinearSystem::computeJacobianInternal(SparseMatrix<Number> &  jacobian)
 void
 NonlinearSystem::computeJacobian(SparseMatrix<Number> & jacobian)
 {
-  Moose::perf_log.push("compute_jacobian()","Solve");
+  Moose::perf_log.push("compute_jacobian()", "Execution");
 
   Moose::enableFPE();
 
@@ -2050,13 +2058,13 @@ NonlinearSystem::computeJacobian(SparseMatrix<Number> & jacobian)
 
   Moose::enableFPE(false);
 
-  Moose::perf_log.pop("compute_jacobian()","Solve");
+  Moose::perf_log.pop("compute_jacobian()", "Execution");
 }
 
 void
 NonlinearSystem::computeJacobianBlocks(std::vector<JacobianBlock *> & blocks)
 {
-  Moose::perf_log.push("compute_jacobian_block()","Solve");
+  Moose::perf_log.push("compute_jacobian_block()", "Execution");
 
   Moose::enableFPE();
 
@@ -2160,7 +2168,7 @@ NonlinearSystem::computeJacobianBlocks(std::vector<JacobianBlock *> & blocks)
 
   Moose::enableFPE(false);
 
-  Moose::perf_log.pop("compute_jacobian_block()","Solve");
+  Moose::perf_log.pop("compute_jacobian_block()", "Execution");
 }
 
 void
@@ -2169,6 +2177,7 @@ NonlinearSystem::updateActive(THREAD_ID tid)
   _dampers.updateActive(tid);
   _integrated_bcs.updateActive(tid);
   _dg_kernels.updateActive(tid);
+  _interface_kernels.updateActive(tid);
   _dirac_kernels.updateActive(tid);
   _kernels.updateActive(tid);
   if (tid == 0)
@@ -2183,7 +2192,7 @@ NonlinearSystem::updateActive(THREAD_ID tid)
 Real
 NonlinearSystem::computeDamping(const NumericVector<Number>& update)
 {
-  Moose::perf_log.push("compute_dampers()", "Solve");
+  Moose::perf_log.push("compute_dampers()", "Execution");
 
   // Default to no damping
   Real damping = 1.0;
@@ -2198,7 +2207,7 @@ NonlinearSystem::computeDamping(const NumericVector<Number>& update)
 
   _communicator.min(damping);
 
-  Moose::perf_log.pop("compute_dampers()", "Solve");
+  Moose::perf_log.pop("compute_dampers()", "Execution");
 
   return damping;
 }
@@ -2206,7 +2215,7 @@ NonlinearSystem::computeDamping(const NumericVector<Number>& update)
 void
 NonlinearSystem::computeDiracContributions(SparseMatrix<Number> * jacobian)
 {
-  Moose::perf_log.push("computeDiracContributions()","Solve");
+  Moose::perf_log.push("computeDiracContributions()", "Execution");
 
   _fe_problem.clearDiracInfo();
 
@@ -2239,14 +2248,10 @@ NonlinearSystem::computeDiracContributions(SparseMatrix<Number> * jacobian)
     cd(range);
   }
 
-  Moose::perf_log.pop("computeDiracContributions()","Solve");
-
   if (jacobian == NULL)
-  {
-    Moose::perf_log.push("residual.close3()","Solve");
     residualVector(Moose::KT_NONTIME).close();
-    Moose::perf_log.pop("residual.close3()","Solve");
-  }
+
+  Moose::perf_log.pop("computeDiracContributions()", "Execution");
 }
 
 NumericVector<Number> &
