@@ -73,6 +73,12 @@
   [../]
 []
 
+[AuxVariables]
+  [./RFUF_Residual]
+  [../]
+  [./RFUF_Jacobian]
+  [../]
+[]
 
 [Kernels]
   active = 'richardsf'
@@ -84,6 +90,8 @@
     type = RichardsFullyUpwindFlux
     richardsVarNames_UO = PPNames
     variable = pressure
+    save_in = RFUF_Residual
+    diag_save_in = RFUF_Jacobian
   [../]
 []
 
@@ -117,5 +125,8 @@
 [Outputs]
   execute_on = 'timestep_end'
   file_base = gh_fu_01
-  exodus = true
+  [./Exodus]
+    hide = 'RFUF_Residual RFUF_Jacobian'
+    type = Exodus
+  [../]
 []

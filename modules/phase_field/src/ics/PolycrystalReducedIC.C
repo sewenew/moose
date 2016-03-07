@@ -27,6 +27,7 @@ InputParameters validParams<PolycrystalReducedIC>()
 PolycrystalReducedIC::PolycrystalReducedIC(const InputParameters & parameters) :
     InitialCondition(parameters),
     _mesh(_fe_problem.mesh()),
+    _dim(_mesh.dimension()),
     _nl(_fe_problem.getNonlinearSystem()),
     _op_num(getParam<unsigned int>("op_num")),
     _grain_num(getParam<unsigned int>("grain_num")),
@@ -112,7 +113,7 @@ PolycrystalReducedIC::initialSetup()
   }
   else
     //Assign grains to specific order parameters in a way that maximizes the distance
-    _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints,_op_num, _mesh, _var);
+    _assigned_op = PolycrystalICTools::assignPointsToVariables(_centerpoints, _op_num, _mesh, _var);
 }
 
 Real
@@ -120,7 +121,7 @@ PolycrystalReducedIC::value(const Point & p)
 {
   Real val = 0.0;
 
-  unsigned int min_index = PolycrystalICTools::assignPointToGrain(p, _centerpoints, _mesh, _var, _range.size());
+  unsigned int min_index = PolycrystalICTools::assignPointToGrain(p, _centerpoints, _mesh, _var, _range.norm());
 
   //If the current order parameter index (_op_index) is equal to the min_index, set the value to 1.0
   if (_assigned_op[min_index] == _op_index) //Make sure that the _op_index goes from 0 to _op_num-1
@@ -134,4 +135,3 @@ PolycrystalReducedIC::value(const Point & p)
 
   return val;
 }
-

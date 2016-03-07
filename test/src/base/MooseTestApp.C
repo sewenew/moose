@@ -173,6 +173,7 @@
 #include "BoundaryUserObject.h"
 #include "TestBoundaryRestrictableAssert.h"
 #include "GetMaterialPropertyBoundaryBlockNamesTest.h"
+#include "SetupInterfaceCount.h"
 
 // Postprocessors
 #include "TestCopyInitialSolution.h"
@@ -224,6 +225,7 @@
 #include "ApplyCoupledVariablesTestAction.h"
 #include "AddLotsOfDiffusion.h"
 #include "PrintMaterials.h"
+#include "BadAddKernelAction.h"
 
 // From MOOSE
 #include "AddVariableAction.h"
@@ -352,7 +354,7 @@ MooseTestApp::registerObjects(Factory & factory)
   registerDGKernel(DGAdvection);
 
   // Interface kernels
-  registerDGKernel(InterfaceDiffusion);
+  registerInterfaceKernel(InterfaceDiffusion);
 
   // Boundary Conditions
   registerBoundaryCondition(RobinBC);
@@ -454,6 +456,11 @@ MooseTestApp::registerObjects(Factory & factory)
   registerUserObject(BoundaryUserObject);
   registerUserObject(TestBoundaryRestrictableAssert);
   registerUserObject(GetMaterialPropertyBoundaryBlockNamesTest);
+  registerUserObject(GeneralSetupInterfaceCount);
+  registerUserObject(ElementSetupInterfaceCount);
+  registerUserObject(SideSetupInterfaceCount);
+  registerUserObject(InternalSideSetupInterfaceCount);
+  registerUserObject(NodalSetupInterfaceCount);
 
   registerPostprocessor(InsideValuePPS);
   registerPostprocessor(TestCopyInitialSolution);
@@ -491,6 +498,7 @@ MooseTestApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
   // and add more
   registerAction(ConvDiffMetaAction, "meta_action");
   registerAction(AddLotsOfAuxVariablesAction, "meta_action");
+  registerAction(BadAddKernelAction, "add_kernel");
 
   registerAction(AddLotsOfDiffusion, "add_variable");
   registerAction(AddLotsOfDiffusion, "add_kernel");
@@ -504,8 +512,7 @@ MooseTestApp::associateSyntax(Syntax & syntax, ActionFactory & action_factory)
 
   registerAction(ApplyCoupledVariablesTestAction, "meta_action");
   syntax.registerActionSyntax("ApplyCoupledVariablesTestAction", "ApplyInputParametersTest");
-
   syntax.registerActionSyntax("AddLotsOfDiffusion", "Testing/LotsOfDiffusion/*");
-
   syntax.registerActionSyntax("PrintMaterials", "PrintMaterials");
+  syntax.registerActionSyntax("BadAddKernelAction", "BadKernels/*");
 }

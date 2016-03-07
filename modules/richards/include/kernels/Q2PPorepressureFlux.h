@@ -62,17 +62,11 @@ protected:
   /// This simply calls upwind
   virtual void computeResidual();
 
-  /// Not used.  I use computeQpJac instead.
-  virtual Real computeQpJacobian();
-
-  /// Not used.  I use computeQpJac instead.
+  /// this simply calls upwind
   virtual void computeOffDiagJacobian(unsigned int jvar);
 
   /// this simply calls upwind
   virtual void computeJacobian();
-
-  /// this simply calls upwind
-  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// the derivative of the flux without the upstream mobility terms
   Real computeQpJac(unsigned int dvar);
@@ -93,7 +87,7 @@ protected:
   const RichardsDensity & _density;
 
   /// saturation at the nodes
-  VariableValue & _sat;
+  const VariableValue & _sat;
 
   /// variable number of the saturation variable
   unsigned int _sat_var;
@@ -130,7 +124,6 @@ protected:
    * These are used in the jacobian calculations
    */
   std::vector<Real> _dmobility_ds;
-
 };
 
 #endif //Q2PPOREPRESSUREFLUX

@@ -62,17 +62,11 @@ protected:
   /// This simply calls upwind
   virtual void computeResidual();
 
-  /// Not used.  I use computeQpJac instead.
-  virtual Real computeQpJacobian();
-
-  /// Not used.  I use computeQpJac instead.
+  /// this simply calls upwind
   virtual void computeOffDiagJacobian(unsigned int jvar);
 
   /// this simply calls upwind
   virtual void computeJacobian();
-
-  /// this simply calls upwind
-  virtual Real computeQpOffDiagJacobian(unsigned int jvar);
 
   /// the derivative of the flux without the upstream mobility terms
   Real computeQpJac(unsigned int dvar);
@@ -93,13 +87,13 @@ protected:
   const RichardsDensity & _density;
 
   /// porepressure at the quadpoints
-  VariableValue & _pp;
+  const VariableValue & _pp;
 
   /// grad(porepressure) at the quadpoints
-  VariableGradient & _grad_pp;
+  const VariableGradient & _grad_pp;
 
   /// porepressure at the nodes
-  VariableValue & _pp_nodal;
+  const VariableValue & _pp_nodal;
 
   /// variable number of the porepressure variable
   unsigned int _pp_var;

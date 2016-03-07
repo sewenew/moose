@@ -125,6 +125,9 @@ public:
   /// returns _vals[r][i], ie, row r, with r = 0, 1, 2
   TypeVector<Real> row(const unsigned int r) const;
 
+  /// returns _vals[i][c], ie, column c, with c = 0, 1, 2
+  TypeVector<Real> column(const unsigned int c) const;
+
   /**
    * rotates the tensor data given a rank two tensor rotation tensor
    * _vals[i][j] = R_ij * R_jl * _vals[k][l]
@@ -180,6 +183,9 @@ public:
 
   /// returns _vals/a
   RankTwoTensor operator/ (const Real a) const;
+
+  /// Defines multiplication with a vector to get a vector
+  TypeVector<Real> operator* (const TypeVector<Real> & a) const;
 
   /// performs _vals *= a (component by component) and returns the result
   RankTwoTensor & operator*= (const RankTwoTensor & a);
@@ -372,6 +378,9 @@ public:
    * The second real offsets the uniform random number
    */
   static RankTwoTensor genRandomSymmTensor( Real, Real );
+
+  /// RankTwoTensor from outer product of vectors
+  void vectorOuterProduct(const TypeVector<Real> &, const TypeVector<Real> &);
 
 protected:
 

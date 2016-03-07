@@ -43,8 +43,8 @@
     type = RichardsExcavGeom
     start_posn = '0 -500 0'
     start_time = 0
-    end_posn = '0 500 0'
-    end_time = 3E7
+    end_posn = '0 -300 0'
+    end_time = 6E6
     active_length = 1E4
   [../]
 
@@ -83,7 +83,7 @@
   [./mass_init]
     type = RichardsMass
     variable = pressure
-    execute_on = timestep_begin
+    execute_on = 'initial timestep_begin'
   [../]
 
 # note this is calculated at end of timestep
@@ -236,8 +236,4 @@
   file_base = ex01
   exodus = true
   csv = true
-[]
-
-[Problem]
-  use_legacy_uo_initialization = true
 []

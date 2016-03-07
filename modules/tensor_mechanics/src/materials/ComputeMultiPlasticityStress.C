@@ -83,10 +83,10 @@ ComputeMultiPlasticityStress::ComputeMultiPlasticityStress(const InputParameters
   if (_n_supplied)
   {
     // normalise the inputted transverse_direction
-    if (_n_input.size() == 0)
+    if (_n_input.norm() == 0)
       mooseError("ComputeMultiPlasticityStress: transverse_direction vector must not have zero length");
     else
-      _n_input /= _n_input.size();
+      _n_input /= _n_input.norm();
   }
 
   if (_num_surfaces == 1)
@@ -1371,10 +1371,13 @@ ComputeMultiPlasticityStress::consistentTangentOperator(const RankTwoTensor & st
     }
 
 
-  // invert zzz, in place
-  int ierr = RankFourTensor().matrixInversion(zzz, num_currently_active);
-  if (ierr != 0)
-    return E_ijkl; // in the very rare case of zzz being singular, just return the "elastic" tangent operator
+  if (num_currently_active > 0)
+  {
+    // invert zzz, in place.  if num_currently_active = 0 then zzz is not needed.
+    const int ierr = RankFourTensor().matrixInversion(zzz, num_currently_active);
+    if (ierr != 0)
+      return E_ijkl; // in the very rare case of zzz being singular, just return the "elastic" tangent operator
+  }
 
 
 

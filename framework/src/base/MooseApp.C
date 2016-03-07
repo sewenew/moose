@@ -116,6 +116,7 @@ MooseApp::MooseApp(InputParameters parameters) :
     ParallelObject(*parameters.get<MooseSharedPointer<Parallel::Communicator> >("_comm")), // Can't call getParam() before pars is set
     _name(parameters.get<std::string>("_app_name")),
     _pars(parameters),
+    _type(getParam<std::string>("_type")),
     _comm(getParam<MooseSharedPointer<Parallel::Communicator> >("_comm")),
     _output_position_set(false),
     _start_time_set(false),
@@ -126,7 +127,8 @@ MooseApp::MooseApp(InputParameters parameters) :
     _action_factory(*this),
     _action_warehouse(*this, _syntax, _action_factory),
     _parser(*this, _action_warehouse),
-    _use_nonlinear(true),_enable_unused_check(WARN_UNUSED),
+    _use_nonlinear(true),
+    _enable_unused_check(WARN_UNUSED),
     _factory(*this),
     _error_overridden(false),
     _ready_to_exit(false),
@@ -198,6 +200,17 @@ MooseApp::setupOptions()
 
   Moose::_warnings_are_errors = getParam<bool>("error");
   Moose::_color_console = !getParam<bool>("no_color");
+
+  // If there's no threading model active, but the user asked for
+  // --n-threads > 1 on the command line, throw a mooseError.  This is
+  // intended to prevent situations where the user has potentially
+  // built MOOSE incorrectly (neither TBB nor pthreads found) and is
+  // asking for multiple threads, not knowing that there will never be
+  // any threads launched.
+#if !LIBMESH_USING_THREADS
+  if (libMesh::command_line_value ("--n-threads", 1) > 1)
+    mooseError("You specified --n-threads > 1, but there is no threading model active!");
+#endif
 
   // Build a minimal running application, ignoring the input file.
   if (getParam<bool>("minimal"))
@@ -866,7 +879,7 @@ MooseApp::header() const
 void
 MooseApp::addMeshModifier(const std::string & modifier_name, const std::string & name, InputParameters parameters)
 {
-  MooseSharedPointer<MeshModifier> mesh_modifier = MooseSharedNamespace::static_pointer_cast<MeshModifier>(_factory.create(modifier_name, name, parameters));
+  MooseSharedPointer<MeshModifier> mesh_modifier = _factory.create<MeshModifier>(modifier_name, name, parameters);
 
   _mesh_modifiers.insert(std::make_pair(MooseUtils::shortName(name), mesh_modifier));
 }

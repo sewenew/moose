@@ -136,6 +136,13 @@
   [../]
   [./seffwater]
   [../]
+
+  # the following "dummy" variable is simply used for exception testing RichardsMultiphaseProblem
+  # It is not part of the "gravity head" simulation
+  [./dummy_var]
+    order = CONSTANT
+    family = MONOMIAL
+  [../]
 []
 
 [AuxKernels]
@@ -244,6 +251,7 @@
   end_time = 1E6
   dt = 1E6
   dtmin = 1E6
+  line_search = bt
 
   nl_rel_tol = 1.e-6
   nl_max_its = 10

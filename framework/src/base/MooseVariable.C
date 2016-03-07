@@ -28,8 +28,7 @@
 #include "libmesh/dense_vector.h"
 
 MooseVariable::MooseVariable(unsigned int var_num, const FEType & fe_type, SystemBase & sys, Assembly & assembly, Moose::VarKindType var_kind) :
-    MooseVariableBase(var_num, sys, assembly, var_kind),
-    _fe_type(fe_type),
+    MooseVariableBase(var_num, fe_type, sys, assembly, var_kind),
 
     _qrule(_assembly.qRule()),
     _qrule_face(_assembly.qRuleFace()),
@@ -247,7 +246,6 @@ MooseVariable::reinitAux()
   {
     // FIXME: check if the following is equivalent with '_nodal_dof_index = _dof_indices[0];'?
     _nodal_dof_index = _elem->dof_number(_sys.number(), _var_num, 0);
-
     libmesh_assert(_dof_indices.size());
     _nodal_u.resize(_dof_indices.size());
     _sys.currentSolution()->get(_dof_indices, &_nodal_u[0]);
@@ -411,7 +409,7 @@ MooseVariable::secondPhiFaceNeighbor()
   return *_second_phi_face_neighbor;
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValue()
 {
   if (isNodal())
@@ -423,7 +421,7 @@ MooseVariable::nodalValue()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueOld()
 {
   if (isNodal())
@@ -435,7 +433,7 @@ MooseVariable::nodalValueOld()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueOlder()
 {
   if (isNodal())
@@ -447,7 +445,7 @@ MooseVariable::nodalValueOlder()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueDot()
 {
   if (isNodal())
@@ -459,7 +457,7 @@ MooseVariable::nodalValueDot()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueNeighbor()
 {
   if (isNodal())
@@ -471,7 +469,7 @@ MooseVariable::nodalValueNeighbor()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueOldNeighbor()
 {
   if (isNodal())
@@ -483,7 +481,7 @@ MooseVariable::nodalValueOldNeighbor()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueOlderNeighbor()
 {
   if (isNodal())
@@ -495,7 +493,7 @@ MooseVariable::nodalValueOlderNeighbor()
     mooseError("Nodal values can be requested only on nodal variables, variable '" << name() << "' is not nodal.");
 }
 
-VariableValue &
+const VariableValue &
 MooseVariable::nodalValueDotNeighbor()
 {
   if (isNodal())

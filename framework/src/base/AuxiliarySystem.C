@@ -144,7 +144,7 @@ void
 AuxiliarySystem::addTimeIntegrator(const std::string & type, const std::string & name, InputParameters parameters)
 {
   parameters.set<SystemBase *>("_sys") = this;
-  _time_integrator = MooseSharedNamespace::static_pointer_cast<TimeIntegrator>(_factory.create(type, name, parameters));
+  _time_integrator = _factory.create<TimeIntegrator>(type, name, parameters);
 }
 
 void
@@ -154,7 +154,7 @@ AuxiliarySystem::addKernel(const std::string & kernel_name, const std::string & 
 
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    MooseSharedPointer<AuxKernel> kernel = MooseSharedNamespace::static_pointer_cast<AuxKernel>(_factory.create(kernel_name, name, parameters, tid));
+    MooseSharedPointer<AuxKernel> kernel = _factory.create<AuxKernel>(kernel_name, name, parameters, tid);
     if (kernel->isNodal())
       _nodal_aux_storage.addObject(kernel, tid);
     else
@@ -167,7 +167,7 @@ AuxiliarySystem::addScalarKernel(const std::string & kernel_name, const std::str
 {
   for (THREAD_ID tid = 0; tid < libMesh::n_threads(); tid++)
   {
-    MooseSharedPointer<AuxScalarKernel> kernel = MooseSharedNamespace::static_pointer_cast<AuxScalarKernel>(_factory.create(kernel_name, name, parameters, tid));
+    MooseSharedPointer<AuxScalarKernel> kernel = _factory.create<AuxScalarKernel>(kernel_name, name, parameters, tid);
     _aux_scalar_storage.addObject(kernel, tid);
   }
 }
@@ -303,6 +303,35 @@ AuxiliarySystem::getDependObjects(ExecFlagType type)
 
   return depend_objects;
 }
+
+std::set<std::string>
+AuxiliarySystem::getDependObjects()
+{
+  std::set<std::string> depend_objects;
+
+  // Elemental AuxKernels
+  {
+    const std::vector<MooseSharedPointer<AuxKernel> > & auxs = _elemental_aux_storage.getActiveObjects();
+    for (std::vector<MooseSharedPointer<AuxKernel> >::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+    {
+      const std::set<std::string> & uo = (*it)->getDependObjects();
+      depend_objects.insert(uo.begin(), uo.end());
+    }
+  }
+
+  // Nodal AuxKernels
+  {
+    const std::vector<MooseSharedPointer<AuxKernel> > & auxs = _nodal_aux_storage.getActiveObjects();
+    for (std::vector<MooseSharedPointer<AuxKernel> >::const_iterator it = auxs.begin(); it != auxs.end(); ++it)
+    {
+      const std::set<std::string> & uo = (*it)->getDependObjects();
+      depend_objects.insert(uo.begin(), uo.end());
+    }
+  }
+
+  return depend_objects;
+}
+
 
 NumericVector<Number> &
 AuxiliarySystem::addVector(const std::string & vector_name, const bool project, const ParallelType type)

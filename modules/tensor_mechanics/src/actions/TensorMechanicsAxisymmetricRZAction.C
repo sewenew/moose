@@ -9,6 +9,7 @@
 #include "Factory.h"
 #include "FEProblem.h"
 #include "Parser.h"
+#include "Conversion.h"
 
 template<>
 InputParameters validParams<TensorMechanicsAxisymmetricRZAction>()
@@ -35,26 +36,23 @@ TensorMechanicsAxisymmetricRZAction::act()
 {
   std::vector<NonlinearVariableName> displacements = getParam<std::vector<NonlinearVariableName> > ("displacements");
   std::vector<VariableName> coupled_displacements;
-  Real dim = displacements.size();
+  unsigned int dim = displacements.size();
 
   //Error checking:  Can only take two displacement variables in AxisymmetricRZ
   mooseAssert(dim == 2, "Expected two displacement variables but recieved " << dim);
 
   for (unsigned int i = 0; i < dim; ++i)
-  {
     coupled_displacements.push_back(displacements[i]);
-  }
 
-  // Retain this code 'as is' because StressDivergenceTensors inherits from Kernel.C
-  std::vector<std::vector<AuxVariableName> > save_in;
-  save_in.resize(dim);
-
+  // Must retain the size two vector here so the materials know which variable is where
+  std::vector<std::vector<AuxVariableName> > save_in(2);
   if (isParamValid("save_in_disp_r"))
     save_in[0] = getParam<std::vector<AuxVariableName> >("save_in_disp_r");
 
   if (isParamValid("save_in_disp_z"))
     save_in[1] = getParam<std::vector<AuxVariableName> >("save_in_disp_z");
 
+  // Set up the information needed to pass to create the new kernel
   InputParameters params = _factory.getValidParams("StressDivergenceRZTensors");
   params.set<std::vector<VariableName> >("displacements") = coupled_displacements;
 
@@ -63,20 +61,15 @@ TensorMechanicsAxisymmetricRZAction::act()
   if (isParamValid("base_name"))
     params.set<std::string>("base_name") = getParam<std::string>("base_name");
 
-  std::string short_name = "TensorMechanicsRZ";
-
-
   for (unsigned int i = 0; i < dim; ++i)
   {
-    std::stringstream name;
-    name << short_name;
-    name << i;
+    // Create kernel name dependent on the displacement variable
+    std::string kernel_name = "TensorMechanicsAxisymmetricRZ_" + Moose::stringify(i);
 
     params.set<unsigned int>("component") = i;
     params.set<NonlinearVariableName>("variable") = displacements[i];
     params.set<std::vector<AuxVariableName> >("save_in") = save_in[i];
 
-    _problem->addKernel("StressDivergenceRZTensors", name.str(), params);
+    _problem->addKernel("StressDivergenceRZTensors", kernel_name, params);
   }
 }
-
