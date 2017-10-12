@@ -120,6 +120,7 @@ Exodus::outputSetup()
 
   // Create the ExodusII_IO object
   _exodus_io_ptr.reset(new ExodusII_IO(_es_ptr->get_mesh()));
+  _exodus_io_ptr->write_as_dimension(3);
   _exodus_initialized = false;
 
   // Increment file number and set appending status, append if all the following conditions are met:

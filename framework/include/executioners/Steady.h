@@ -58,6 +58,7 @@ protected:
 
   int & _time_step;
   Real & _time;
+  bool _first;
 };
 
 #endif //STEADY_H

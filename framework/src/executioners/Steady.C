@@ -45,6 +45,7 @@ Steady::Steady(const InputParameters & parameters) :
     InputParameters params = _app.getFactory().getValidParams(ti_str);
     _problem.addTimeIntegrator(ti_str, "ti", params);
   }
+  _first = true;
 }
 
 Steady::~Steady()
@@ -77,9 +78,13 @@ Steady::execute()
   _problem.advanceState();
 
   // first step in any steady state solve is always 1 (preserving backwards compatibility)
-  _time_step = 1;
-  _time = _time_step;                 // need to keep _time in sync with _time_step to get correct output
-
+  if(_first)
+  {
+    _time_step = 1;
+    _time = _time_step;                 // need to keep _time in sync with _time_step to get correct output
+    _first = false;
+  }
+      
 #ifdef LIBMESH_ENABLE_AMR
 
   // Define the refinement loop

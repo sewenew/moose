@@ -202,7 +202,9 @@ endif
 	  $(libmesh_F90) $(libmesh_FFLAGS) $(libmesh_INCLUDE) -c $< $(module_dir_flag) -o $@
 
 # Add method to list of defines passed to the compiler
-libmesh_CXXFLAGS       += -DMETHOD=$(METHOD)
+libmesh_CXXFLAGS       += -DMETHOD=$(METHOD) -DOPENMC -DINCLUDEYAK
+#libmesh_CXXFLAGS       += -DMETHOD=$(METHOD) -DINCLUDEYAK
+#libmesh_CXXFLAGS       += -DMETHOD=$(METHOD) -DOPENMC
 
 # treat these warnings as errors (This doesn't seem to be necessary for Intel)
 ifneq (,$(findstring g++,$(cxx_compiler)))
